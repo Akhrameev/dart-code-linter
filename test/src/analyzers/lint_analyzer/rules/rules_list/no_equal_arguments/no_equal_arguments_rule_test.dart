@@ -11,6 +11,8 @@ const _namedParametersExamplePath =
     'no_equal_arguments/examples/named_parameters_example.dart';
 const _providerExamplePath =
     'no_equal_arguments/examples/provider_example.dart';
+const _repeatedArgumentsExamplePath =
+    'no_equal_arguments/examples/repeated_arguments_example.dart';
 
 void main() {
   group('NoEqualArgumentsRule', () {
@@ -80,6 +82,28 @@ void main() {
       final issues = NoEqualArgumentsRule().check(unit);
 
       RuleTestHelper.verifyNoIssues(issues);
+    });
+
+    test('reports every argument that repeats an earlier one', () async {
+      final unit =
+          await RuleTestHelper.resolveFromFile(_repeatedArgumentsExamplePath);
+      final issues = NoEqualArgumentsRule().check(unit);
+
+      // Three equal arguments are two repeats, reported on the second and the
+      // third. Previously the same last argument was reported twice and the
+      // one in between was never reported at all.
+      RuleTestHelper.verifyIssues(
+        issues: issues,
+        startLines: [8, 8, 9, 9],
+        startColumns: [18, 26, 24, 32],
+        locationTexts: ['shared', 'shared', 'shared', 'other'],
+        messages: [
+          'The argument has already been passed.',
+          'The argument has already been passed.',
+          'The argument has already been passed.',
+          'The argument has already been passed.',
+        ],
+      );
     });
 
     test('reports no issues with custom config', () async {

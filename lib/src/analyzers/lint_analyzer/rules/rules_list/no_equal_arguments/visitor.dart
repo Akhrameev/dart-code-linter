@@ -34,39 +34,50 @@ class _Visitor extends RecursiveAstVisitor<void> {
   void _visitArguments(Iterable<AstNode> arguments) {
     final notIgnoredArguments = arguments.whereNot(_isIgnored).toList();
 
-    for (final argument in notIgnoredArguments) {
-      final lastAppearance = notIgnoredArguments.lastWhere((arg) {
-        final argNamed = asNamedArgument(argument);
-        final otherNamed = asNamedArgument(arg);
-        if (argNamed != null &&
-            otherNamed != null &&
-            argNamed.expression is! Literal &&
-            otherNamed.expression is! Literal) {
-          return haveSameParameterType(
-                argNamed.expression,
-                otherNamed.expression,
-              ) &&
-              argNamed.expression.toString() == otherNamed.expression.toString();
-        }
+    // Report every argument that repeats an earlier one, rather than looking
+    // up the last occurrence for each argument in turn: with three or more
+    // equal arguments the latter produced one report per earlier occurrence,
+    // all of them pointing at the same last argument, and never reported the
+    // ones in between.
+    for (var index = 1; index < notIgnoredArguments.length; index++) {
+      final argument = notIgnoredArguments[index];
+      final repeatsEarlier = notIgnoredArguments
+          .take(index)
+          .any((earlier) => _passTheSameValue(earlier, argument));
 
-        final argExpr = unwrapArgumentExpression(argument);
-        final otherExpr = unwrapArgumentExpression(arg);
-        if (argExpr == null || otherExpr == null) {
-          return false;
-        }
-
-        if (_bothLiterals(argExpr, otherExpr)) {
-          return argExpr == otherExpr;
-        }
-
-        return haveSameParameterType(argExpr, otherExpr) &&
-            argExpr.toString() == otherExpr.toString();
-      });
-
-      if (argument != lastAppearance) {
-        _arguments.add(lastAppearance);
+      if (repeatsEarlier) {
+        _arguments.add(argument);
       }
     }
+  }
+
+  /// Whether [left] and [right] pass the same value to their parameters.
+  bool _passTheSameValue(AstNode left, AstNode right) {
+    final leftNamed = asNamedArgument(left);
+    final rightNamed = asNamedArgument(right);
+    if (leftNamed != null &&
+        rightNamed != null &&
+        leftNamed.expression is! Literal &&
+        rightNamed.expression is! Literal) {
+      return haveSameParameterType(
+            leftNamed.expression,
+            rightNamed.expression,
+          ) &&
+          leftNamed.expression.toString() == rightNamed.expression.toString();
+    }
+
+    final leftExpr = unwrapArgumentExpression(left);
+    final rightExpr = unwrapArgumentExpression(right);
+    if (leftExpr == null || rightExpr == null) {
+      return false;
+    }
+
+    if (_bothLiterals(leftExpr, rightExpr)) {
+      return leftExpr == rightExpr;
+    }
+
+    return haveSameParameterType(leftExpr, rightExpr) &&
+        leftExpr.toString() == rightExpr.toString();
   }
 
   bool _bothLiterals(Expression left, Expression right) =>
