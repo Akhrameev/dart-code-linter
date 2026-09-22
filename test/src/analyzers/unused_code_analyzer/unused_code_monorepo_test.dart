@@ -57,6 +57,31 @@ void main() {
     expect(packageNames, isNot(contains('SharedApi')));
     expect(packageNames, isNot(contains('UnusedApi')));
   });
+
+  test('counts a prefixed reference inside a single package', () async {
+    // The package boundary is not what this is about: the same reference
+    // without `as api` is already counted. What was missed is the prefix.
+    final names = _names(await analyzer.runCliAnalysis(
+      folders,
+      '',
+      _createConfig(isMonorepo: true),
+    ));
+
+    expect(names, isNot(contains('InternalApi')));
+  });
+
+  test('counts prefixed references from a library and its part file', () async {
+    // A library and its part share one `PrefixElement` but are analyzed as
+    // separate files, so both have to survive being merged into one usage.
+    final names = _names(await analyzer.runCliAnalysis(
+      folders,
+      '',
+      _createConfig(isMonorepo: true),
+    ));
+
+    expect(names, isNot(contains('LibraryPrefixed')));
+    expect(names, isNot(contains('PartPrefixed')));
+  });
 }
 
 Iterable<String> _names(Iterable<UnusedCodeFileReport> reports) => reports
