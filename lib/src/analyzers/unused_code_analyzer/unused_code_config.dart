@@ -1,3 +1,4 @@
+import '../../baseline/baseline_location.dart';
 import '../../config_builder/models/analysis_options.dart';
 
 /// Represents raw unused code config which can be merged with other raw configs.
@@ -33,6 +34,10 @@ class UnusedCodeConfig {
   /// own.
   final bool? suggestPrivateMembers;
 
+  /// The baseline file of the analysis context: from `--baseline` when
+  /// given, otherwise from the analysis options. Null when there is none.
+  final BaselineLocation? baseline;
+
   const UnusedCodeConfig({
     required this.excludePatterns,
     required this.analyzerExcludePatterns,
@@ -41,6 +46,7 @@ class UnusedCodeConfig {
     required this.analyzePrivateMembers,
     required this.analyzePublicMembers,
     required this.suggestPrivateMembers,
+    this.baseline,
   });
 
   /// Creates the config from analysis [options].
@@ -63,6 +69,7 @@ class UnusedCodeConfig {
           ['unused-code', 'suggest-private-members'],
           packageRelated: true,
         ),
+        baseline: BaselineLocation.fromAnalysisOptions(options),
       );
 
   /// Creates the config from cli args. Pass `null` for an unparsed flag.
@@ -73,6 +80,7 @@ class UnusedCodeConfig {
     required bool? analyzePrivateMembers,
     required bool? analyzePublicMembers,
     required bool? suggestPrivateMembers,
+    BaselineLocation? baseline,
   }) =>
       UnusedCodeConfig(
         shouldPrintConfig: shouldPrintConfig,
@@ -82,6 +90,7 @@ class UnusedCodeConfig {
         analyzePrivateMembers: analyzePrivateMembers,
         analyzePublicMembers: analyzePublicMembers,
         suggestPrivateMembers: suggestPrivateMembers,
+        baseline: baseline,
       );
 
   /// Merges two configs into a single one.
@@ -102,5 +111,6 @@ class UnusedCodeConfig {
             overrides.analyzePublicMembers ?? analyzePublicMembers,
         suggestPrivateMembers:
             overrides.suggestPrivateMembers ?? suggestPrivateMembers,
+        baseline: overrides.baseline ?? baseline,
       );
 }

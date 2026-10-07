@@ -13,6 +13,7 @@ import '../analyzers/unused_files_analyzer/unused_files_analysis_config.dart';
 import '../analyzers/unused_files_analyzer/unused_files_config.dart';
 import '../analyzers/unused_l10n_analyzer/unused_l10n_analysis_config.dart';
 import '../analyzers/unused_l10n_analyzer/unused_l10n_config.dart';
+import '../baseline/baseline_location.dart';
 import '../cli/models/parsed_arguments.dart';
 import '../utils/exclude_utils.dart';
 import 'models/analysis_options.dart';
@@ -76,11 +77,13 @@ class ConfigBuilder {
     Iterable<String> excludePatterns, {
     required bool isMonorepo,
     required bool shouldPrintConfig,
+    BaselineLocation? baseline,
   }) =>
       UnusedFilesConfig.fromArgs(
         excludePatterns,
         isMonorepo: isMonorepo,
         shouldPrintConfig: shouldPrintConfig,
+        baseline: baseline,
       );
 
   /// Creates a raw unused files config from given [options].
@@ -107,6 +110,7 @@ class ConfigBuilder {
     required bool? analyzePrivateMembers,
     required bool? analyzePublicMembers,
     required bool? suggestPrivateMembers,
+    BaselineLocation? baseline,
   }) =>
       UnusedCodeConfig.fromArgs(
         excludePatterns,
@@ -115,6 +119,7 @@ class ConfigBuilder {
         analyzePrivateMembers: analyzePrivateMembers,
         analyzePublicMembers: analyzePublicMembers,
         suggestPrivateMembers: suggestPrivateMembers,
+        baseline: baseline,
       );
 
   /// Creates a raw unused code config from given [options].
@@ -142,11 +147,13 @@ class ConfigBuilder {
     Iterable<String> excludePatterns,
     String classPattern, {
     required bool shouldPrintConfig,
+    BaselineLocation? baseline,
   }) =>
       UnusedL10nConfig.fromArgs(
         excludePatterns,
         classPattern,
         shouldPrintConfig: shouldPrintConfig,
+        baseline: baseline,
       );
 
   /// Creates a raw unused localization config from given [options].
@@ -170,11 +177,13 @@ class ConfigBuilder {
     Iterable<String> excludePatterns, {
     required bool isMonorepo,
     required bool shouldPrintConfig,
+    BaselineLocation? baseline,
   }) =>
       UnnecessaryNullableConfig.fromArgs(
         excludePatterns,
         isMonorepo: isMonorepo,
         shouldPrintConfig: shouldPrintConfig,
+        baseline: baseline,
       );
 
   /// Creates a raw unnecessary nullable config from given [options].

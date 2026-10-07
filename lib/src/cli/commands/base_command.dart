@@ -7,7 +7,10 @@ import 'package:args/command_runner.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
 
+import '../../baseline/baseline.dart';
+import '../../baseline/baseline_location.dart';
 import '../exceptions/invalid_argument_exception.dart';
+import '../models/baseline_options.dart';
 import '../models/flag_names.dart';
 import '../utils/detect_sdk_path.dart';
 
@@ -26,6 +29,31 @@ abstract class BaseCommand extends Command<void> {
 
   bool get isVerbose => argResults[FlagNames.verbose] as bool;
 
+  /// Whether the command was set up with [usesBaselineOptions].
+  bool get _usesBaseline => argParser.options.containsKey(FlagNames.baseline);
+
+  /// The baseline options of this run.
+  BaselineOptions get baselineOptions {
+    final sensitivity = argResults[FlagNames.baselineSensitivity] as String?;
+
+    return BaselineOptions(
+      write: argResults[FlagNames.writeBaseline] as bool,
+      update: argResults[FlagNames.updateBaseline] as bool,
+      sensitivity: sensitivity == null
+          ? null
+          : BaselineSensitivity.fromName(sensitivity),
+      fatalStale: argResults[FlagNames.fatalStaleBaseline] as bool,
+    );
+  }
+
+  /// The file given by `--baseline`, null when the option is not given.
+  BaselineLocation? get cliBaseline => _usesBaseline
+      ? BaselineLocation.fromCli(
+          argResults[FlagNames.baseline] as String?,
+          rootFolder: argResults[FlagNames.rootFolder] as String,
+        )
+      : null;
+
   @override
   Future<void> run() => _verifyThenRunCommand();
 
@@ -36,6 +64,55 @@ abstract class BaseCommand extends Command<void> {
     validateRootFolderExist();
     validateSdkPath();
     validateTargetDirectoriesOrFiles();
+    if (_usesBaseline) {
+      validateBaselineOptions();
+    }
+  }
+
+  /// Rejects combinations of baseline options that cannot do what they ask.
+  ///
+  /// Each message says what the options do, so that someone who meets it in
+  /// a CI log sees why the combination is wrong and what to run instead.
+  void validateBaselineOptions() {
+    final options = baselineOptions;
+
+    if (options.write && options.update) {
+      throw const InvalidArgumentException(
+        '--write-baseline and --update-baseline cannot be used together: '
+        '--write-baseline records the current findings, new ones included, '
+        'while --update-baseline only removes entries that no longer occur. '
+        'Choose one of them.',
+      );
+    }
+
+    final sensitivity = options.sensitivity?.name;
+    if (sensitivity != null && !options.write) {
+      throw InvalidArgumentException(
+        options.update
+            ? '--baseline-sensitivity cannot be used with --update-baseline: '
+                'an update only removes entries and keeps the sensitivity '
+                'recorded in the baseline file. To change the sensitivity, '
+                'run --write-baseline --baseline-sensitivity=$sensitivity '
+                'instead.'
+            : '--baseline-sensitivity only works together with '
+                '--write-baseline: it sets how the baseline being written '
+                'matches findings, while a normal run uses the sensitivity '
+                'recorded in the baseline file. Add --write-baseline to '
+                'rewrite the baseline with sensitivity $sensitivity, or '
+                'remove --baseline-sensitivity.',
+      );
+    }
+
+    final location = cliBaseline;
+    if (location != null &&
+        !options.write &&
+        !File(location.path).existsSync()) {
+      throw InvalidArgumentException(
+        'Baseline file ${location.path} given by --baseline does not exist. '
+        'Check the path (a relative path is resolved against --root-folder), '
+        'or add --write-baseline to create it.',
+      );
+    }
   }
 
   void validateRootFolderExist() {
@@ -87,6 +164,56 @@ abstract class BaseCommand extends Command<void> {
     usesExcludeOption();
     usesCongratulateFlag();
     usesVerboseFlag();
+  }
+
+  /// Adds the baseline options.
+  ///
+  /// Not part of [addCommonFlags], since `fix` uses those too and ignores the
+  /// baseline: it applies every available fix, including fixes for findings
+  /// the baseline hides.
+  void usesBaselineOptions() {
+    argParser
+      ..addSeparator('')
+      ..addOption(
+        FlagNames.baseline,
+        help: 'Baseline file to use instead of the one set by '
+            '"dart_code_linter: baseline:" or the dcl_baseline.json next to '
+            'analysis_options.yaml. Relative to --root-folder. The IDE never '
+            'reads this option.',
+        valueHelp: 'path/to/dcl_baseline.json',
+      )
+      ..addFlag(
+        FlagNames.writeBaseline,
+        help: "Record this command's current findings as the accepted "
+            'baseline.',
+        negatable: false,
+      )
+      ..addFlag(
+        FlagNames.updateBaseline,
+        help: 'Remove baseline entries that no longer occur and tighten '
+            'improved metric values. Never adds entries.',
+        negatable: false,
+      )
+      ..addOption(
+        FlagNames.baselineSensitivity,
+        help: 'How strictly findings match baseline entries, with '
+            '--write-baseline. Defaults to exact.',
+        valueHelp: 'exact',
+        allowed: BaselineSensitivity.values.map((s) => s.name),
+        allowedHelp: {
+          BaselineSensitivity.exact.name: 'Only the same code in the same '
+              'declaration.',
+          BaselineSensitivity.scope.name: 'Any finding of the rule in the '
+              'same declaration.',
+          BaselineSensitivity.count.name: 'Up to the recorded number of '
+              'findings of the rule in the file.',
+        },
+      )
+      ..addFlag(
+        FlagNames.fatalStaleBaseline,
+        help: 'Treat baseline entries that no longer occur as fatal.',
+        defaultsTo: false,
+      );
   }
 
   void usesPrintConfig() {

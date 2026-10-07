@@ -1,3 +1,4 @@
+import '../../baseline/baseline_location.dart';
 import '../../config_builder/models/analysis_options.dart';
 
 /// Represents raw unused files config which can be merged with other raw configs.
@@ -7,11 +8,16 @@ class UnusedFilesConfig {
   final bool isMonorepo;
   final bool shouldPrintConfig;
 
+  /// The baseline file of the analysis context: from `--baseline` when
+  /// given, otherwise from the analysis options. Null when there is none.
+  final BaselineLocation? baseline;
+
   const UnusedFilesConfig({
     required this.excludePatterns,
     required this.analyzerExcludePatterns,
     required this.isMonorepo,
     required this.shouldPrintConfig,
+    this.baseline,
   });
 
   /// Creates the config from analysis [options].
@@ -22,6 +28,7 @@ class UnusedFilesConfig {
             options.readIterableOfString(['analyzer', 'exclude']),
         isMonorepo: false,
         shouldPrintConfig: false,
+        baseline: BaselineLocation.fromAnalysisOptions(options),
       );
 
   /// Creates the config from cli args.
@@ -29,12 +36,14 @@ class UnusedFilesConfig {
     Iterable<String> excludePatterns, {
     required bool isMonorepo,
     required bool shouldPrintConfig,
+    BaselineLocation? baseline,
   }) =>
       UnusedFilesConfig(
         shouldPrintConfig: shouldPrintConfig,
         excludePatterns: excludePatterns,
         analyzerExcludePatterns: const [],
         isMonorepo: isMonorepo,
+        baseline: baseline,
       );
 
   /// Merges two configs into a single one.
@@ -49,5 +58,6 @@ class UnusedFilesConfig {
         },
         isMonorepo: isMonorepo || overrides.isMonorepo,
         shouldPrintConfig: shouldPrintConfig || overrides.shouldPrintConfig,
+        baseline: overrides.baseline ?? baseline,
       );
 }

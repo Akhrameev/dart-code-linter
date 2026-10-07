@@ -1,3 +1,4 @@
+import '../../baseline/baseline_location.dart';
 import '../../cli/models/parsed_arguments.dart';
 import '../../config_builder/analysis_options_utils.dart';
 import '../../config_builder/models/analysis_options.dart';
@@ -14,6 +15,10 @@ class LintConfig {
   final bool shouldPrintConfig;
   final String? analysisOptionsPath;
 
+  /// The baseline file of the analysis context: from `--baseline` when
+  /// given, otherwise from the analysis options. Null when there is none.
+  final BaselineLocation? baseline;
+
   const LintConfig({
     required this.excludePatterns,
     required this.excludeForMetricsPatterns,
@@ -23,6 +28,7 @@ class LintConfig {
     required this.antiPatterns,
     required this.shouldPrintConfig,
     required this.analysisOptionsPath,
+    this.baseline,
   });
 
   /// Creates the config from analysis [options].
@@ -38,6 +44,7 @@ class LintConfig {
             options.readMapOfMap(['anti-patterns'], packageRelated: true),
         shouldPrintConfig: false,
         analysisOptionsPath: options.fullPath,
+        baseline: BaselineLocation.fromAnalysisOptions(options),
       );
 
   /// Creates the config from cli [arguments].
@@ -55,6 +62,7 @@ class LintConfig {
         excludeForRulesPatterns: const [],
         antiPatterns: const {},
         analysisOptionsPath: null,
+        baseline: arguments.baseline,
       );
 
   /// Merges two configs into a single one
@@ -80,5 +88,6 @@ class LintConfig {
                 .cast<String, Map<String, Object>>(),
         analysisOptionsPath:
             analysisOptionsPath ?? overrides.analysisOptionsPath,
+        baseline: overrides.baseline ?? baseline,
       );
 }

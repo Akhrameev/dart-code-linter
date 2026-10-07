@@ -46,4 +46,10 @@ class FlagNames {
   static const analyzePublicMembers = 'analyze-public-members';
   static const suggestPrivateMembers = 'suggest-private-members';
   static const fatalOnCouldBePrivate = 'fatal-could-be-private';
+
+  static const baseline = 'baseline';
+  static const writeBaseline = 'write-baseline';
+  static const updateBaseline = 'update-baseline';
+  static const baselineSensitivity = 'baseline-sensitivity';
+  static const fatalStaleBaseline = 'fatal-stale-baseline';
 }

@@ -48,6 +48,7 @@ class CheckUnusedFilesCommand extends BaseCommand {
       [excludePath],
       isMonorepo: isMonorepo,
       shouldPrintConfig: shouldPrintConfig,
+      baseline: cliBaseline,
     );
 
     final unusedFilesResult = await _analyzer.runCliAnalysis(
@@ -88,6 +89,7 @@ class CheckUnusedFilesCommand extends BaseCommand {
     _usesIsMonorepoOption();
     _usesExitOption();
     _usesDeleteUnusedFiles();
+    usesBaselineOptions();
   }
 
   void _usesReporterOption() {

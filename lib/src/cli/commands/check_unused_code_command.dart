@@ -75,6 +75,7 @@ class CheckUnusedCodeCommand extends BaseCommand {
       analyzePrivateMembers: analyzePrivateMembers,
       analyzePublicMembers: analyzePublicMembers,
       suggestPrivateMembers: suggestPrivateMembers,
+      baseline: cliBaseline,
     );
 
     final unusedCodeResult = await _analyzer.runCliAnalysis(
@@ -119,6 +120,7 @@ class CheckUnusedCodeCommand extends BaseCommand {
     _usesAnalyzePublicMembersOption();
     _usesSuggestPrivateMembersOption();
     _usesExitOption();
+    usesBaselineOptions();
   }
 
   void _usesReporterOption() {

@@ -251,6 +251,32 @@ void main() {
       );
     });
 
+    test('readStringOrNull returns a string or null', () {
+      const options = AnalysisOptions(null, {
+        'dart_code_linter': {
+          'baseline': 'config/dcl_baseline.json',
+          'rules': ['no-magic-number'],
+        },
+        'top': 'level',
+      });
+
+      expect(
+        options.readStringOrNull(['baseline'], packageRelated: true),
+        'config/dcl_baseline.json',
+      );
+      expect(options.readStringOrNull(['top']), 'level');
+      expect(
+        options.readStringOrNull(['rules'], packageRelated: true),
+        isNull,
+        reason: 'not a string',
+      );
+      expect(
+        options.readStringOrNull(['missing'], packageRelated: true),
+        isNull,
+      );
+      expect(options.readStringOrNull(['baseline']), isNull);
+    });
+
     test(
       'returns correct "folderPath" on posix platforms',
       () {

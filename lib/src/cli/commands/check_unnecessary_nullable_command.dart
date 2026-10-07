@@ -48,6 +48,7 @@ class CheckUnnecessaryNullableCommand extends BaseCommand {
       [excludePath],
       isMonorepo: isMonorepo,
       shouldPrintConfig: shouldPrintConfig,
+      baseline: cliBaseline,
     );
 
     final unusedCodeResult = await _analyzer.runCliAnalysis(
@@ -81,6 +82,7 @@ class CheckUnnecessaryNullableCommand extends BaseCommand {
     addCommonFlags();
     _usesIsMonorepoOption();
     _usesExitOption();
+    usesBaselineOptions();
   }
 
   void _usesReporterOption() {

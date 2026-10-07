@@ -1,3 +1,4 @@
+import '../../baseline/baseline_location.dart';
 import '../../config_builder/models/analysis_options.dart';
 
 /// Represents raw unused files config which can be merged with other raw configs.
@@ -7,11 +8,16 @@ class UnusedL10nConfig {
   final String? classPattern;
   final bool shouldPrintConfig;
 
+  /// The baseline file of the analysis context: from `--baseline` when
+  /// given, otherwise from the analysis options. Null when there is none.
+  final BaselineLocation? baseline;
+
   const UnusedL10nConfig({
     required this.excludePatterns,
     required this.analyzerExcludePatterns,
     required this.classPattern,
     required this.shouldPrintConfig,
+    this.baseline,
   });
 
   /// Creates the config from analysis [options].
@@ -24,6 +30,7 @@ class UnusedL10nConfig {
             options.readIterableOfString(['analyzer', 'exclude']),
         classPattern: null,
         shouldPrintConfig: false,
+        baseline: BaselineLocation.fromAnalysisOptions(options),
       );
 
   /// Creates the config from cli args.
@@ -31,12 +38,14 @@ class UnusedL10nConfig {
     Iterable<String> excludePatterns,
     String classPattern, {
     required bool shouldPrintConfig,
+    BaselineLocation? baseline,
   }) =>
       UnusedL10nConfig(
         shouldPrintConfig: shouldPrintConfig,
         excludePatterns: excludePatterns,
         analyzerExcludePatterns: const [],
         classPattern: classPattern,
+        baseline: baseline,
       );
 
   /// Merges two configs into a single one.
@@ -51,5 +60,6 @@ class UnusedL10nConfig {
         },
         classPattern: overrides.classPattern ?? classPattern,
         shouldPrintConfig: shouldPrintConfig || overrides.shouldPrintConfig,
+        baseline: overrides.baseline ?? baseline,
       );
 }

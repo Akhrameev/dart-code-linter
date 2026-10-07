@@ -48,6 +48,7 @@ class CheckUnusedL10nCommand extends BaseCommand {
       [excludePath],
       classPattern,
       shouldPrintConfig: shouldPrintConfig,
+      baseline: cliBaseline,
     );
 
     final unusedL10nResult = await _analyzer.runCliAnalysis(
@@ -81,6 +82,7 @@ class CheckUnusedL10nCommand extends BaseCommand {
     _usesReporterOption();
     addCommonFlags();
     _usesExitOption();
+    usesBaselineOptions();
   }
 
   void _usesReporterOption() {

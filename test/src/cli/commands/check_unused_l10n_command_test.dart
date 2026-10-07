@@ -35,6 +35,18 @@ const _usage = 'Check unused localization in *.dart files.\n'
     '    --[no-]fatal-unused                          Treat find unused l10n as fatal.\n'
     '                                                 (defaults to on)\n'
     '\n'
+    '\n'
+    '    --baseline=<path/to/dcl_baseline.json>       Baseline file to use instead of the one set by "dart_code_linter: baseline:" or the dcl_baseline.json next to analysis_options.yaml. Relative to --root-folder. The IDE never reads this option.\n'
+    "    --write-baseline                             Record this command's current findings as the accepted baseline.\n"
+    '    --update-baseline                            Remove baseline entries that no longer occur and tighten improved metric values. Never adds entries.\n'
+    '    --baseline-sensitivity=<exact>               How strictly findings match baseline entries, with --write-baseline. Defaults to exact.\n'
+    '\n'
+    '          [exact]                                Only the same code in the same declaration.\n'
+    '          [scope]                                Any finding of the rule in the same declaration.\n'
+    '          [count]                                Up to the recorded number of findings of the rule in the file.\n'
+    '\n'
+    '    --[no-]fatal-stale-baseline                  Treat baseline entries that no longer occur as fatal.\n'
+    '\n'
     'Run "metrics help" to see global options.';
 
 void main() {
