@@ -37,17 +37,57 @@ Set<String> getFilePaths(
   AnalysisContext context,
   String rootFolder,
   Iterable<Glob> excludes,
+) =>
+    _extractDartFilesFromFolders(
+      getContextFolders(folders, context, rootFolder),
+      rootFolder,
+      excludes,
+    );
+
+/// Returns the [folders], as given on the command line, that lie inside the
+/// root of [context].
+List<String> getContextFolders(
+  Iterable<String> folders,
+  AnalysisContext context,
+  String rootFolder,
 ) {
   final rootPath = context.contextRoot.root.path;
 
-  final contextFolders = folders.where((path) {
+  return folders.where((path) {
     final folderPath = normalize(join(rootFolder, path));
 
     return folderPath == rootPath || folderPath.startsWith('$rootPath/');
   }).toList();
-
-  return _extractDartFilesFromFolders(contextFolders, rootFolder, excludes);
 }
+
+/// Whether [getFilePaths] would select the file at [absolutePath] from
+/// [folders], decided from the path alone, whether or not the file exists.
+bool isSelectedFilePath(
+  String absolutePath,
+  Iterable<String> folders,
+  String rootFolder,
+  Iterable<Glob> excludes,
+) {
+  if (!absolutePath.endsWith('.dart') ||
+      _isExcludedFromFolders(absolutePath, rootFolder, excludes)) {
+    return false;
+  }
+
+  return folders.any((folder) {
+    final folderPath = normalize(absolute(rootFolder, folder));
+
+    return folder.endsWith('.dart')
+        ? folderPath == absolutePath
+        : isWithin(folderPath, absolutePath);
+  });
+}
+
+bool _isExcludedFromFolders(
+  String path,
+  String rootFolder,
+  Iterable<Glob> excludes,
+) =>
+    isExcluded(relative(path, from: rootFolder), excludes);
 
 /// If the state location can be accessed, return the file byte store,
 /// otherwise return the memory byte store.
@@ -83,8 +123,9 @@ Set<String> _extractDartFilesFromFolders(
               followLinks: false,
             )
             .whereType<File>()
-            .where((entity) => !isExcluded(
-                  relative(entity.path, from: rootFolder),
+            .where((entity) => !_isExcludedFromFolders(
+                  entity.path,
+                  rootFolder,
                   globalExcludes,
                 ))
             .map((entity) => normalize(entity.path)))

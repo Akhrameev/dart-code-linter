@@ -4,6 +4,8 @@ import 'package:analyzer/dart/analysis/analysis_context.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:path/path.dart';
 
+import '../../baseline/baseline_matcher.dart';
+import '../../baseline/baseline_session.dart';
 import '../../config_builder/config_builder.dart';
 import '../../config_builder/models/analysis_options.dart';
 import '../../logger/logger.dart';
@@ -20,6 +22,10 @@ import 'unused_files_visitor.dart';
 /// The analyzer responsible for collecting unused files reports.
 class UnusedFilesAnalyzer {
   static const _ignoreName = 'unused-files';
+
+  /// The baseline group of an unused file. Its key is empty: the path is the
+  /// whole identity of the finding.
+  static const baselineGroup = 'unused-file';
 
   final Logger? _logger;
 
@@ -39,11 +45,16 @@ class UnusedFilesAnalyzer {
   /// Returns a list of unused files reports
   /// for analyzing all files in the given [folders].
   /// The analysis is configured with the [config].
+  ///
+  /// With a [baseline] session, files recorded in the baseline of the
+  /// analysis context that owns them are left out. The result is what
+  /// [deleteAllUnusedFiles] deletes, so a baselined file is never deleted.
   Future<Iterable<UnusedFilesFileReport>> runCliAnalysis(
     Iterable<String> folders,
     String rootFolder,
     UnusedFilesConfig config, {
     String? sdkPath,
+    BaselineSession? baseline,
   }) async {
     final collection =
         createAnalysisContextCollection(folders, rootFolder, sdkPath);
@@ -65,6 +76,14 @@ class UnusedFilesAnalyzer {
         unusedFilesAnalysisConfig.globalExcludes,
       );
 
+      baseline?.addContext(
+        context,
+        unusedFilesAnalysisConfig.baseline,
+        folders: folders,
+        rootFolder: rootFolder,
+        excludes: unusedFilesAnalysisConfig.globalExcludes,
+      );
+
       unusedFiles.addAll(filePaths);
 
       final analyzedFiles =
@@ -77,7 +96,16 @@ class UnusedFilesAnalyzer {
       }
     }
 
-    return unusedFiles.map((path) {
+    final reported = baseline?.filter(
+          unusedFiles,
+          collection: collection,
+          describe: (path) => BaselineFinding(path, baselineGroup, ''),
+          groupState: (group) =>
+              group == baselineGroup ? GroupState.ran : GroupState.unknown,
+        ) ??
+        unusedFiles;
+
+    return reported.map((path) {
       final relativePath = relative(path, from: rootFolder);
 
       return UnusedFilesFileReport(

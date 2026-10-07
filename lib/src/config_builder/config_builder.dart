@@ -100,6 +100,7 @@ class ConfigBuilder {
       UnusedFilesAnalysisConfig(
         createAbsolutePatterns(config.excludePatterns, rootPath),
         isMonorepo: config.isMonorepo,
+        baseline: config.baseline,
       );
 
   /// Creates a raw unused code config from given [excludePatterns].
