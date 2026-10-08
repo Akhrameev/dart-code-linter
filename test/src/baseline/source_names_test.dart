@@ -8,55 +8,116 @@ import '../helpers/file_resolver.dart';
 const _example = 'test/resources/baseline/source_names_example.dart';
 
 class _Declarations extends RecursiveAstVisitor<void> {
-  final names = <String?>[];
+  final names = <String>[];
   final SourceNames sourceNames;
 
   _Declarations(this.sourceNames);
 
+  void _add(Declaration node) => names.add(
+        '${SourceNames.kindOf(node)} ${sourceNames.qualifiedNameOf(node)}',
+      );
+
+  @override
+  void visitClassDeclaration(ClassDeclaration node) {
+    _add(node);
+    super.visitClassDeclaration(node);
+  }
+
+  @override
+  void visitMixinDeclaration(MixinDeclaration node) {
+    _add(node);
+    super.visitMixinDeclaration(node);
+  }
+
+  @override
+  void visitEnumDeclaration(EnumDeclaration node) {
+    _add(node);
+    super.visitEnumDeclaration(node);
+  }
+
+  @override
+  void visitEnumConstantDeclaration(EnumConstantDeclaration node) {
+    _add(node);
+  }
+
+  @override
+  void visitExtensionDeclaration(ExtensionDeclaration node) {
+    _add(node);
+    super.visitExtensionDeclaration(node);
+  }
+
+  @override
+  void visitExtensionTypeDeclaration(ExtensionTypeDeclaration node) {
+    _add(node);
+    super.visitExtensionTypeDeclaration(node);
+  }
+
+  @override
+  void visitGenericTypeAlias(GenericTypeAlias node) {
+    _add(node);
+  }
+
+  @override
+  void visitVariableDeclaration(VariableDeclaration node) {
+    _add(node);
+  }
+
   @override
   void visitConstructorDeclaration(ConstructorDeclaration node) {
-    names.add(sourceNames.qualifiedNameOf(node));
+    _add(node);
   }
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
-    names.add(sourceNames.qualifiedNameOf(node));
+    _add(node);
   }
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
-    names.add(sourceNames.qualifiedNameOf(node));
+    _add(node);
   }
 }
 
 void main() {
-  test('SourceNames names every declaration kind as written', () async {
+  test('SourceNames names and kinds every declaration as written', () async {
     final unit = await FileResolver.resolve(_example);
     final visitor = _Declarations(SourceNames(unit.content));
     unit.unit.visitChildren(visitor);
 
     expect(visitor.names, [
-      'Money.new',
-      'Money.zero',
-      'Money.parse',
-      'Money.count',
-      'Money.count=',
-      'Money.==',
-      'Money.hashCode',
-      'Money.unary-',
-      'Money.-',
-      'Money.[]=',
-      'Money.helper',
-      'Explicit.new',
-      'Audited.audit',
-      'Status.isActive',
-      'Id.twice',
-      'Formatting.format',
-      '<extension on Map<String,int>>.total',
-      '<extension on void Function(int)>.callTwice',
-      'topLevel',
-      'isDebug',
-      'isDebug=',
+      'class Money',
+      'constructor Money.new',
+      'constructor Money.zero',
+      'constructor Money.parse',
+      'field Money.cents',
+      'getter Money.count',
+      'setter Money.count=',
+      'operator Money.==',
+      'getter Money.hashCode',
+      'operator Money.unary-',
+      'operator Money.-',
+      'operator Money.[]=',
+      'method Money.helper',
+      'class Explicit',
+      'constructor Explicit.new',
+      'mixin Audited',
+      'method Audited.audit',
+      'enum Status',
+      'enum constant Status.active',
+      'getter Status.isActive',
+      'extension type Id',
+      'getter Id.twice',
+      'extension Formatting',
+      'method Formatting.format',
+      'extension <extension on Map<String,int>>',
+      'method <extension on Map<String,int>>.total',
+      'extension <extension on void Function(int)>',
+      'method <extension on void Function(int)>.callTwice',
+      'function topLevel',
+      'getter isDebug',
+      'setter isDebug=',
+      'type alias Callback',
+      'top level variable counter',
     ]);
   });
 

@@ -176,7 +176,7 @@ class UnnecessaryNullableAnalyzer {
             relativePath: report.relativePath,
             issues: issues,
           ),
-          groupState: (group) =>
+          groupState: (group, _) =>
               group == baselineGroup ? GroupState.ran : GroupState.unknown,
         ) ??
         reports;

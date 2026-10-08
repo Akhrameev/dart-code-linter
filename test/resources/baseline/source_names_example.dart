@@ -64,3 +64,7 @@ void topLevel() {}
 bool get isDebug => false;
 
 set isDebug(bool value) {}
+
+typedef Callback = void Function();
+
+var counter = 0;

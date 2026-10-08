@@ -5,6 +5,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 
+import '../../baseline/source_names.dart';
 import '../../utils/node_utils.dart';
 import '../../utils/suppression.dart';
 
@@ -20,8 +21,14 @@ class PublicCodeVisitor extends GeneralizingAstVisitor<void> {
   /// existed. A declaration can be in both sets, in neither, or in one alone.
   final Set<Element> privatizableElements = {};
 
+  /// The kind and qualified name of each candidate, as written in the
+  /// source, for baseline keys: `method Cart.total`. Filled only when
+  /// `names` is given.
+  final Map<Element, String> baselineNames = {};
+
   final Suppression _suppression;
   final String _pattern;
+  final SourceNames? _names;
   final bool _analyzePrivateMembers;
   final bool _analyzePublicMembers;
   final bool _suggestPrivateMembers;
@@ -29,10 +36,12 @@ class PublicCodeVisitor extends GeneralizingAstVisitor<void> {
   PublicCodeVisitor(
     this._suppression,
     this._pattern, {
+    SourceNames? names,
     bool analyzePrivateMembers = false,
     bool analyzePublicMembers = false,
     bool suggestPrivateMembers = false,
-  })  : _analyzePrivateMembers = analyzePrivateMembers,
+  })  : _names = names,
+        _analyzePrivateMembers = analyzePrivateMembers,
         _analyzePublicMembers = analyzePublicMembers,
         _suggestPrivateMembers = suggestPrivateMembers;
 
@@ -63,8 +72,10 @@ class PublicCodeVisitor extends GeneralizingAstVisitor<void> {
       final memberVisitor = _MemberVisitor(
         topLevelElements,
         privatizableElements,
+        baselineNames,
         _suppression,
         _pattern,
+        names: _names,
         enclosingMetadata: node.metadata,
         hierarchyUnresolved: _hasUnresolvedHierarchyClause(node),
         analyzePrivateMembers: _analyzePrivateMembers,
@@ -102,6 +113,7 @@ class PublicCodeVisitor extends GeneralizingAstVisitor<void> {
     }
 
     topLevelElements.add(element);
+    _recordName(baselineNames, _names, element, node);
 
     if (_suggestPrivateMembers && _isPrivatizableTopLevel(element, metadata)) {
       privatizableElements.add(element);
@@ -201,8 +213,10 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
 
   final Set<Element> _elements;
   final Set<Element> _privatizableElements;
+  final Map<Element, String> _baselineNames;
   final Suppression _suppression;
   final String _pattern;
+  final SourceNames? _names;
   final bool _analyzePrivateMembers;
   final bool _analyzePublicMembers;
   final bool _suggestPrivateMembers;
@@ -241,14 +255,17 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
   _MemberVisitor(
     this._elements,
     this._privatizableElements,
+    this._baselineNames,
     this._suppression,
     this._pattern, {
+    required SourceNames? names,
     required Iterable<Annotation> enclosingMetadata,
     required bool hierarchyUnresolved,
     required bool analyzePrivateMembers,
     required bool analyzePublicMembers,
     required bool suggestPrivateMembers,
-  })  : _enclosingIsJSExported = hasJSExportAnnotation(enclosingMetadata),
+  })  : _names = names,
+        _enclosingIsJSExported = hasJSExportAnnotation(enclosingMetadata),
         _hierarchyUnresolved = hierarchyUnresolved,
         _analyzePrivateMembers = analyzePrivateMembers,
         _analyzePublicMembers = analyzePublicMembers,
@@ -292,7 +309,7 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
       return;
     }
 
-    _addCandidate(node.declaredFragment?.element, node);
+    _addCandidate(node.declaredFragment?.element, node, node);
   }
 
   @override
@@ -302,7 +319,7 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
     }
 
     for (final variable in node.fields.variables) {
-      _addCandidate(variable.declaredFragment?.element, node);
+      _addCandidate(variable.declaredFragment?.element, node, variable);
     }
   }
 
@@ -319,7 +336,7 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
     // constant reached exclusively through `values` (iteration, `byName`,
     // deserialization) is marked used by the usage visitor, which records
     // every constant of an enum whose `values` is referenced.
-    _addCandidate(node.declaredFragment?.element, node);
+    _addCandidate(node.declaredFragment?.element, node, node);
   }
 
   @override
@@ -356,7 +373,7 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
       return;
     }
 
-    _addCandidate(element, node);
+    _addCandidate(element, node, node);
   }
 
   bool _isSuppressed(AstNode node) {
@@ -365,10 +382,20 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
     return _suppression.isSuppressedAt(_pattern, lineIndex);
   }
 
-  void _addCandidate(Element? element, AnnotatedNode node) {
+  /// Adds [element], declared by [declaration] inside [node], to the
+  /// candidate sets it qualifies for. [declaration] differs from [node] only
+  /// for a field, which shares its declaration with the other fields it is
+  /// declared with.
+  void _addCandidate(
+    Element? element,
+    AnnotatedNode node,
+    Declaration declaration,
+  ) {
     if (element == null) {
       return;
     }
+
+    _recordName(_baselineNames, _names, element, declaration);
 
     if (element.isPrivate) {
       if (_analyzePrivateMembers) {
@@ -558,6 +585,19 @@ class _MemberVisitor extends RecursiveAstVisitor<void> {
     // The JS interop annotations are handled in
     // [_isReachableWithoutReference] instead of here, by name rather than
     // through the resolved element. See [_hasJSInteropAnnotation].
+  }
+}
+
+/// Records the baseline name of [element], declared by [node], in [names].
+void _recordName(
+  Map<Element, String> baselineNames,
+  SourceNames? names,
+  Element element,
+  Declaration node,
+) {
+  final name = names?.qualifiedNameOf(node);
+  if (name != null) {
+    baselineNames[element] = '${SourceNames.kindOf(node)} $name';
   }
 }
 

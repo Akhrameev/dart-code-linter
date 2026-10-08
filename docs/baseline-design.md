@@ -1,6 +1,6 @@
 # Baseline: design and implementation plan
 
-Status: in progress on `feat/baseline` (steps 1 to 3 of the [Plan](#plan) done). Base: trunk `d48a285d`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
+Status: in progress on `feat/baseline` (steps 1 to 5 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
 
 ## Goal
 
@@ -69,7 +69,7 @@ Default name `dcl_baseline.json`, next to the `analysis_options.yaml` it belongs
       "sensitivity": "exact",
       "findings": {
         "lib/src/cart/cart_model.dart": {
-          "unused": ["method CartModel.legacyTotal"],
+          "unused-public-member": ["method CartModel.legacyTotal"],
           "could-be-private": ["class CartLine"]
         }
       }
@@ -158,7 +158,7 @@ The IDE does not take part: it runs lint rules only, which belong to `analyze`.
 | `analyze`, rule issues | rule id | `<scope>#<token hash of the flagged span>` |
 | `analyze`, anti-patterns | pattern id | `<scope>@<value>`: the measured value behind the pattern (lines for `long-method`, arguments for `long-parameter-list`). No body hash: the span is the whole declaration and would change on every edit |
 | `analyze`, metric violations | metric id | `<scope>@<value>` (scope is a class, function or `<file>`) |
-| `check-unused-code` | `unused` or `could-be-private` | `<declarationType> <qualified name>` |
+| `check-unused-code` | `unused`, `unused-private-member`, `unused-public-member` or `could-be-private` | `<declarationType> <qualified name>` |
 | `check-unnecessary-nullable` | `unnecessary-nullable` | `<declarationType> <qualified name>(<parameter names>)` |
 | `check-unused-files` | `unused-file` | empty string |
 | `check-unused-l10n` | class name | member name |
@@ -199,6 +199,10 @@ The existing metric scopes (`ScopedFunctionDeclaration.fullName`) are not reused
 ### Semantic analyzers
 
 `UnusedCodeIssue.declarationName` is `element.displayName` (`unused_code_analyzer.dart` line 445), and `check-unnecessary-nullable` builds its names from `displayName` too (`_declarationNameOf` in `unnecessary_nullable_analyzer.dart`). The latter already shows the drift: #279 had to special-case the unnamed constructor there, because analyzer 14.4.0 stopped returning the bare type name for it. That has two problems for a key: two `dispose` methods in different classes of one file look the same, and display names change between analyzer versions. The key therefore uses the scope grammar above for these analyzers too. The analyzers work on elements, not on the AST, so each name part is read from the source text at the fragment's `nameOffset`, walking the enclosing fragments for the qualifier; an unnamed constructor has no name offset and becomes `new`. `declarationName` in the reports is unchanged, since it is public API and what users see.
+
+`<declarationType>` is a word DCL picks from the declaration's AST node (`class`, `mixin`, `enum`, `extension`, `extension type`, `type alias`, `top level variable`, `field`, `enum constant`, `constructor`, `method`, `operator`, `getter`, `setter`, `function`), not `ElementKind.displayName`, which is analyzer output like the names. The words follow the analyzer's where they exist, so a key reads like the report, but an enum constant is `enum constant` (the analyzer calls it a field) and an operator is `operator`. An unnamed extension is `extension <extension on T>`.
+
+`check-unused-code` splits its unused findings into one group per check: `unused` for top level declarations, which are always checked, and `unused-private-member` and `unused-public-member` for the opt-in member checks. A run that leaves a member check off then counts that check's entries as disabled and keeps them, as for a disabled rule, instead of reporting them stale and letting `--update-baseline` remove them. One `unused` group could not tell those entries apart, since coverage is decided per group.
 
 ### Measured values
 
@@ -320,7 +324,7 @@ Results of matching:
 An entry is inside the run's coverage when both hold:
 
 - **Its path is covered.** The path, resolved against the baseline file's folder, is one of the paths the command was given or lies inside one of them (every command accepts files as well as folders: `base_command.dart` checks each argument for a directory or a file, and `getFilePaths` turns a `.dart` argument into a glob of that one file), is not excluded (`--exclude`, whose default leaves out `.g.dart` and `.freezed.dart`, and `analyzer: exclude:` in the options file), and is a file the command analyzes (a `.dart` file). This is decided from the path alone, **whether or not the file still exists**.
-- **Its group ran for that path.** For `analyze`, the rule, anti-pattern or metric is enabled in the configuration and not excluded for that path (`rules-exclude`, `metrics-exclude`, a rule's own `exclude`). For the other commands, the check behind the group ran in this run (for example `could-be-private` only with `--suggest-private-members`).
+- **Its group ran for that path.** For `analyze`, the rule, anti-pattern or metric is enabled in the configuration and not excluded for that path (`rules-exclude`, `metrics-exclude`, a rule's own `exclude`). For the other commands, the check behind the group ran in this run for the context that owns the file (for example `could-be-private` only with `suggest-private-members`, `unused-public-member` only with `analyze-public-members`).
 
 Group ids that this DCL does not know at all are the exception to the second condition. Without it, an entry for a rule that was renamed or removed from DCL (as `prefer-commenting-analyzer-ignores` is planned to be in 5.0) would never be covered: never matched, never stale, kept by every write and update forever. So:
 

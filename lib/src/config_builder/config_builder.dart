@@ -141,6 +141,7 @@ class ConfigBuilder {
         analyzePrivateMembers: config.analyzePrivateMembers ?? false,
         analyzePublicMembers: config.analyzePublicMembers ?? false,
         suggestPrivateMembers: config.suggestPrivateMembers ?? false,
+        baseline: config.baseline,
       );
 
   /// Creates a raw unused localization config from given [excludePatterns] and [classPattern].

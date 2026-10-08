@@ -8,6 +8,9 @@ import 'package:analyzer/src/dart/element/element.dart';
 import 'package:path/path.dart';
 import 'package:source_span/source_span.dart';
 
+import '../../baseline/baseline_matcher.dart';
+import '../../baseline/baseline_session.dart';
+import '../../baseline/source_names.dart';
 import '../../config_builder/config_builder.dart';
 import '../../config_builder/models/analysis_options.dart';
 import '../../logger/logger.dart';
@@ -31,6 +34,21 @@ import 'used_code_visitor.dart';
 class UnusedCodeAnalyzer {
   static const _ignoreName = 'unused-code';
 
+  /// The baseline group of unused top level declarations.
+  static const unusedGroup = 'unused';
+
+  /// The baseline group of unused private members, which are checked only
+  /// with `analyze-private-members`.
+  static const unusedPrivateMemberGroup = 'unused-private-member';
+
+  /// The baseline group of unused public members, which are checked only
+  /// with `analyze-public-members`.
+  static const unusedPublicMemberGroup = 'unused-public-member';
+
+  /// The baseline group of could be private suggestions, which are made only
+  /// with `suggest-private-members`.
+  static const couldBePrivateGroup = 'could-be-private';
+
   final Logger? _logger;
 
   const UnusedCodeAnalyzer([this._logger]);
@@ -49,17 +67,26 @@ class UnusedCodeAnalyzer {
   /// Returns a list of unused code reports
   /// for analyzing all files in the given [folders].
   /// The analysis is configured with the [config].
+  ///
+  /// With a [baseline] session, issues recorded in the baseline of the
+  /// analysis context that owns their file are left out. An issue's key is
+  /// its declaration's kind and qualified name as written in the source:
+  /// `method Cart.total`. Each opt-in check has its own group, so entries of
+  /// a check a run leaves off are kept rather than reported stale.
   Future<Iterable<UnusedCodeFileReport>> runCliAnalysis(
     Iterable<String> folders,
     String rootFolder,
     UnusedCodeConfig config, {
     String? sdkPath,
+    BaselineSession? baseline,
   }) async {
     final collection =
         createAnalysisContextCollection(folders, rootFolder, sdkPath);
 
     final codeUsages = FileElementsUsage();
     final publicCode = <String, _FileCandidates>{};
+    final baselineNames = <Element, String>{};
+    final configsByRoot = <String, UnusedCodeAnalysisConfig>{};
 
     // Files any consumer of their package can import directly. Collected
     // during the walk, where each unit's resolved library URI says whether it
@@ -69,6 +96,7 @@ class UnusedCodeAnalyzer {
     for (final context in collection.contexts) {
       final unusedCodeAnalysisConfig =
           _getAnalysisConfig(context, rootFolder, config);
+      configsByRoot[context.contextRoot.root.path] = unusedCodeAnalysisConfig;
 
       if (config.shouldPrintConfig ?? false) {
         _logger?.printConfig(unusedCodeAnalysisConfig.toJson());
@@ -78,6 +106,17 @@ class UnusedCodeAnalyzer {
       // analyzed for usages: generated code is often the only user of the
       // code it was generated for.
       final filePaths = getFilePaths(folders, context, rootFolder, const []);
+
+      baseline?.addContext(
+        context,
+        unusedCodeAnalysisConfig.baseline,
+        folders: folders,
+        rootFolder: rootFolder,
+        excludes: [
+          ...unusedCodeAnalysisConfig.globalExcludes,
+          ...unusedCodeAnalysisConfig.analyzerExcludedPatterns,
+        ],
+      );
 
       final analyzedFiles =
           filePaths.intersection(context.contextRoot.analyzedFiles().toSet());
@@ -108,6 +147,7 @@ class UnusedCodeAnalyzer {
           publicCode[filePath] = _analyzeFilePublicCode(
             unit,
             unusedCodeAnalysisConfig,
+            baseline == null ? null : baselineNames,
           );
 
           if (unusedCodeAnalysisConfig.suggestPrivateMembers &&
@@ -176,8 +216,67 @@ class UnusedCodeAnalyzer {
       }
     }
 
-    return _getReports(codeUsages, publicCode, rootFolder);
+    final baselineFindings = Map<UnusedCodeIssue, (String, String)>.identity();
+    final reports = _getReports(
+      codeUsages,
+      publicCode,
+      rootFolder,
+      baselineNames,
+      baselineFindings,
+    );
+
+    return baseline?.filterReports<UnusedCodeFileReport, UnusedCodeIssue>(
+          reports,
+          collection: collection,
+          issuesOf: (report) => report.issues,
+          describe: (report, issue) {
+            final (group, key) = baselineFindings[issue]!;
+
+            return BaselineFinding(report.path, group, key);
+          },
+          rebuild: (report, issues) => UnusedCodeFileReport(
+            path: report.path,
+            relativePath: report.relativePath,
+            issues: issues,
+          ),
+          groupState: (group, context) => _groupState(
+            group,
+            configsByRoot[context.contextRoot.root.path]!,
+          ),
+        ) ??
+        reports;
   }
+
+  /// Whether the check behind [group] ran for a context with [config].
+  static GroupState _groupState(
+    String group,
+    UnusedCodeAnalysisConfig config,
+  ) {
+    final enabled = switch (group) {
+      unusedGroup => true,
+      unusedPrivateMemberGroup => config.analyzePrivateMembers,
+      unusedPublicMemberGroup => config.analyzePublicMembers,
+      couldBePrivateGroup => config.suggestPrivateMembers,
+      _ => null,
+    };
+
+    return switch (enabled) {
+      true => GroupState.ran,
+      false => GroupState.disabled,
+      null => GroupState.unknown,
+    };
+  }
+
+  /// Returns the baseline group of an issue of [kind] about [element].
+  static String _baselineGroupOf(Element element, UnusedCodeIssueKind kind) =>
+      switch (kind) {
+        UnusedCodeIssueKind.couldBePrivate => couldBePrivateGroup,
+        UnusedCodeIssueKind.unused when !isMemberElement(element) =>
+          unusedGroup,
+        UnusedCodeIssueKind.unused when element.isPrivate =>
+          unusedPrivateMemberGroup,
+        UnusedCodeIssueKind.unused => unusedPublicMemberGroup,
+      };
 
   UnusedCodeAnalysisConfig _getAnalysisConfig(
     AnalysisContext context,
@@ -215,6 +314,7 @@ class UnusedCodeAnalyzer {
   _FileCandidates _analyzeFilePublicCode(
     SomeResolvedUnitResult unit,
     UnusedCodeAnalysisConfig config,
+    Map<Element, String>? baselineNames,
   ) {
     if (unit is ResolvedUnitResult) {
       final suppression = Suppression(unit.content, unit.lineInfo);
@@ -226,11 +326,13 @@ class UnusedCodeAnalyzer {
       final visitor = PublicCodeVisitor(
         suppression,
         _ignoreName,
+        names: baselineNames == null ? null : SourceNames(unit.content),
         analyzePrivateMembers: config.analyzePrivateMembers,
         analyzePublicMembers: config.analyzePublicMembers,
         suggestPrivateMembers: config.suggestPrivateMembers,
       );
       unit.unit.visitChildren(visitor);
+      baselineNames?.addAll(visitor.baselineNames);
 
       return _FileCandidates(
         visitor.topLevelElements,
@@ -245,6 +347,8 @@ class UnusedCodeAnalyzer {
     FileElementsUsage codeUsages,
     Map<String, _FileCandidates> publicCodeElements,
     String rootFolder,
+    Map<Element, String> baselineNames,
+    Map<UnusedCodeIssue, (String, String)> baselineFindings,
   ) {
     final unusedCodeReports = <UnusedCodeFileReport>[];
 
@@ -254,8 +358,13 @@ class UnusedCodeAnalyzer {
       void report(Element element, UnusedCodeIssueKind kind) {
         final unit = element.firstFragment.libraryFragment;
         if (unit != null) {
-          issues.add(
-            _createUnusedCodeIssue(element as ElementImpl, unit, kind),
+          final issue =
+              _createUnusedCodeIssue(element as ElementImpl, unit, kind);
+          issues.add(issue);
+          baselineFindings[issue] = (
+            _baselineGroupOf(element, kind),
+            baselineNames[element] ??
+                '${issue.declarationType} ${issue.declarationName}',
           );
         }
       }

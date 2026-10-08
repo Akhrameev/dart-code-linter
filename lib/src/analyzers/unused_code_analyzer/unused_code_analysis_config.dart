@@ -1,5 +1,7 @@
 import 'package:glob/glob.dart';
 
+import '../../baseline/baseline_location.dart';
+
 /// Represents converted unused code config which contains parsed entities.
 class UnusedCodeAnalysisConfig {
   final Iterable<Glob> globalExcludes;
@@ -8,6 +10,9 @@ class UnusedCodeAnalysisConfig {
   final bool analyzePrivateMembers;
   final bool analyzePublicMembers;
   final bool suggestPrivateMembers;
+
+  /// The baseline file of the analysis context, null when there is none.
+  final BaselineLocation? baseline;
 
   /// Whether members of type declarations take part in the analysis at all,
   /// either as candidates or as recorded usages.
@@ -25,6 +30,7 @@ class UnusedCodeAnalysisConfig {
     required this.analyzePrivateMembers,
     required this.analyzePublicMembers,
     required this.suggestPrivateMembers,
+    this.baseline,
   });
 
   Map<String, Object?> toJson() => {
@@ -35,5 +41,6 @@ class UnusedCodeAnalysisConfig {
         'analyze-private-members': analyzePrivateMembers,
         'analyze-public-members': analyzePublicMembers,
         'suggest-private-members': suggestPrivateMembers,
+        if (baseline != null) 'baseline': baseline?.path,
       };
 }

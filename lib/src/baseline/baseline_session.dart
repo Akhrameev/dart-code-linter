@@ -9,6 +9,12 @@ import 'baseline_location.dart';
 import 'baseline_matcher.dart';
 import 'key_version.dart';
 
+/// Tells whether [group] ran for the files of [context] in this run.
+typedef BaselineGroupState = GroupState Function(
+  String group,
+  AnalysisContext context,
+);
+
 /// One finding as the baseline sees it.
 class BaselineFinding {
   /// The absolute path of the file the finding is in.
@@ -119,6 +125,7 @@ class BaselineSession {
 
     final root = context.contextRoot.root.path;
     _contexts[root] = _Context(
+      context,
       file,
       getContextFolders(folders, context, rootFolder),
       rootFolder,
@@ -131,12 +138,13 @@ class BaselineSession {
   ///
   /// [describe] gives each finding's path, group and key. [collection] tells
   /// which context owns a file, so that each finding meets the baseline of
-  /// that context. [groupState] tells whether a group ran in this run.
+  /// that context. [groupState] tells whether a group ran in this run for
+  /// the files of a context, since contexts can configure checks differently.
   List<T> filter<T>(
     Iterable<T> findings, {
     required AnalysisContextCollection collection,
     required BaselineFinding Function(T finding) describe,
-    required GroupState Function(String group) groupState,
+    required BaselineGroupState groupState,
   }) {
     final all = findings.toList();
     final hidden = List.filled(all.length, false);
@@ -225,7 +233,7 @@ class BaselineSession {
     required Iterable<I> Function(R report) issuesOf,
     required BaselineFinding Function(R report, I issue) describe,
     required R Function(R report, List<I> issues) rebuild,
-    required GroupState Function(String group) groupState,
+    required BaselineGroupState groupState,
   }) {
     final pairs = [
       for (final report in reports)
@@ -319,12 +327,14 @@ class BaselineSession {
 }
 
 class _Context {
+  final AnalysisContext context;
   final _File file;
   final List<String> folders;
   final String rootFolder;
   final Iterable<Glob> excludes;
 
-  const _Context(this.file, this.folders, this.rootFolder, this.excludes);
+  const _Context(
+      this.context, this.file, this.folders, this.rootFolder, this.excludes);
 }
 
 class _File {
@@ -354,27 +364,36 @@ class _Coverage implements BaselineCoverage {
   final BaselineSession session;
   final _File file;
   final AnalysisContextCollection collection;
-  final GroupState Function(String group) state;
+  final BaselineGroupState state;
 
   const _Coverage(this.session, this.file, this.collection, this.state);
 
   @override
   bool coversPath(String path) {
     final absolutePath = file.absolutePathOf(path);
-    final context =
-        session._contexts[session._ownerOf(collection, absolutePath)];
-    if (context == null || context.file != file) {
-      return false;
-    }
+    final context = _contextOf(absolutePath);
 
-    return isSelectedFilePath(
-      absolutePath,
-      context.folders,
-      context.rootFolder,
-      context.excludes,
-    );
+    return context != null &&
+        isSelectedFilePath(
+          absolutePath,
+          context.folders,
+          context.rootFolder,
+          context.excludes,
+        );
   }
 
   @override
-  GroupState groupState(String path, String group) => state(group);
+  GroupState groupState(String path, String group) {
+    final context = _contextOf(file.absolutePathOf(path));
+
+    return context == null ? GroupState.ran : state(group, context.context);
+  }
+
+  /// The context that owns [absolutePath], when it uses this file.
+  _Context? _contextOf(String absolutePath) {
+    final context =
+        session._contexts[session._ownerOf(collection, absolutePath)];
+
+    return context?.file == file ? context : null;
+  }
 }

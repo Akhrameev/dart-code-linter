@@ -6,6 +6,7 @@ import '../../analyzers/unused_code_analyzer/models/unused_code_file_report.dart
 import '../../analyzers/unused_code_analyzer/models/unused_code_issue.dart';
 import '../../analyzers/unused_code_analyzer/reporters/unused_code_report_params.dart';
 import '../../analyzers/unused_code_analyzer/unused_code_analyzer.dart';
+import '../../baseline/baseline.dart';
 import '../../config_builder/config_builder.dart';
 import '../../logger/logger.dart';
 import '../models/flag_names.dart';
@@ -78,14 +79,17 @@ class CheckUnusedCodeCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final unusedCodeResult = await _analyzer.runCliAnalysis(
-      folders,
-      rootFolder,
-      config,
-      sdkPath: findSdkPath(),
+    final (unusedCodeResult, _) = await runWithBaseline(
+      BaselineCommand.checkUnusedCode,
+      _logger,
+      (baseline) => _analyzer.runCliAnalysis(
+        folders,
+        rootFolder,
+        config,
+        sdkPath: findSdkPath(),
+        baseline: baseline,
+      ),
     );
-
-    _logger.progress.complete('Analysis is completed. Preparing the results:');
 
     await _analyzer
         .getReporter(

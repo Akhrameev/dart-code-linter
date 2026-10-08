@@ -87,8 +87,8 @@ class SourceNames {
     return nameAt(offset);
   }
 
-  /// Returns the qualified name of a function, method or constructor
-  /// declaration: `Type.member`, or `member` at the top level.
+  /// Returns the qualified name of a declaration: `Type.member` for a member,
+  /// or the name alone at the top level.
   ///
   /// Setters end in `=`, unary minus is `unary-`, and an unnamed extension is
   /// `<extension on T>` with `T` written as in [extendedTypeText].
@@ -100,7 +100,9 @@ class SourceNames {
 
     var name = nameOf(fragment);
     if (name == null) {
-      return null;
+      return node is ExtensionDeclaration
+          ? '<extension on ${extendedTypeText(node)}>'
+          : null;
     }
 
     if ((node is MethodDeclaration && node.isSetter) ||
@@ -127,6 +129,35 @@ class SourceNames {
             ? '<extension on ${extendedTypeText(type)}>.$name'
             : name;
   }
+
+  /// Returns the kind of declaration [node] is, as a word for baseline keys.
+  ///
+  /// The words are DCL's own rather than `ElementKind.displayName`, which is
+  /// analyzer output, so they cannot change with an analyzer upgrade.
+  static String kindOf(Declaration node) => switch (node) {
+        ClassDeclaration() => 'class',
+        MixinDeclaration() => 'mixin',
+        EnumDeclaration() => 'enum',
+        ExtensionDeclaration() => 'extension',
+        ExtensionTypeDeclaration() => 'extension type',
+        TypeAlias() => 'type alias',
+        EnumConstantDeclaration() => 'enum constant',
+        VariableDeclaration(
+          parent: VariableDeclarationList(parent: FieldDeclaration())
+        ) =>
+          'field',
+        VariableDeclaration() => 'top level variable',
+        ConstructorDeclaration() => 'constructor',
+        MethodDeclaration(isGetter: true) ||
+        FunctionDeclaration(isGetter: true) =>
+          'getter',
+        MethodDeclaration(isSetter: true) ||
+        FunctionDeclaration(isSetter: true) =>
+          'setter',
+        MethodDeclaration(operatorKeyword: _?) => 'operator',
+        MethodDeclaration() => 'method',
+        _ => 'function',
+      };
 
   /// Returns the extended type of [node] as its tokens, with a space only
   /// between two adjacent words and no trailing comma, so that formatting

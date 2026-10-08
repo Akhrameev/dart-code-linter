@@ -100,21 +100,8 @@ class DeclarationsVisitor extends RecursiveAstVisitor<void> {
 
       final name = _names?.qualifiedNameOf(node);
       if (name != null) {
-        baselineNames[element] = '${_kindOf(node)} $name';
+        baselineNames[element] = '${SourceNames.kindOf(node)} $name';
       }
     }
   }
-
-  static String _kindOf(Declaration node) => switch (node) {
-        ConstructorDeclaration() => 'constructor',
-        MethodDeclaration(isGetter: true) ||
-        FunctionDeclaration(isGetter: true) =>
-          'getter',
-        MethodDeclaration(isSetter: true) ||
-        FunctionDeclaration(isSetter: true) =>
-          'setter',
-        MethodDeclaration(operatorKeyword: _?) => 'operator',
-        MethodDeclaration() => 'method',
-        _ => 'function',
-      };
 }
