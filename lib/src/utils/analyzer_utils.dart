@@ -60,16 +60,16 @@ List<String> getContextFolders(
   }).toList();
 }
 
-/// Whether [getFilePaths] would select the file at [absolutePath] from
-/// [folders], decided from the path alone, whether or not the file exists.
+/// Whether a command reports on the file at [absolutePath]: a Dart file in
+/// one of [folders] that [excludes] do not match. Decided from the path alone,
+/// whether or not the file exists.
 bool isSelectedFilePath(
   String absolutePath,
   Iterable<String> folders,
   String rootFolder,
   Iterable<Glob> excludes,
 ) {
-  if (!absolutePath.endsWith('.dart') ||
-      _isExcludedFromFolders(absolutePath, rootFolder, excludes)) {
+  if (!absolutePath.endsWith('.dart') || isExcluded(absolutePath, excludes)) {
     return false;
   }
 
@@ -81,13 +81,6 @@ bool isSelectedFilePath(
         : isWithin(folderPath, absolutePath);
   });
 }
-
-bool _isExcludedFromFolders(
-  String path,
-  String rootFolder,
-  Iterable<Glob> excludes,
-) =>
-    isExcluded(relative(path, from: rootFolder), excludes);
 
 /// If the state location can be accessed, return the file byte store,
 /// otherwise return the memory byte store.
@@ -123,11 +116,9 @@ Set<String> _extractDartFilesFromFolders(
               followLinks: false,
             )
             .whereType<File>()
-            .where((entity) => !_isExcludedFromFolders(
-                  entity.path,
-                  rootFolder,
-                  globalExcludes,
-                ))
+            // The excludes are joined to the root folder, so they are matched
+            // against the listed path, which is joined to it as well.
+            .where((entity) => !isExcluded(entity.path, globalExcludes))
             .map((entity) => normalize(entity.path)))
         .toSet();
 
