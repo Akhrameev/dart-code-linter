@@ -1,6 +1,6 @@
 # Baseline: design and implementation plan
 
-Status: proposal, not implemented. Base: trunk `6df3747c`, 4.4.1 (analyzer `>=10.0.0 <15.0.0`).
+Status: in progress on `feat/baseline` (steps 1 to 3 of the [Plan](#plan) done). Base: trunk `d48a285d`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
 
 ## Goal
 
@@ -662,7 +662,7 @@ One MR, built test first, one commit per step.
 2. Baselined findings are hidden, the same way `// ignore:` hides them; baselined metric values are downgraded with `suppressed()`; a summary reports the hidden and stale counts. Rationale and comparison, including Psalm's opt-in `--show-info`, in [Why baselined findings are hidden](#why-baselined-findings-are-hidden).
 3. `--[no-]fatal-stale-baseline` ships in the first release, off by default, matching DCL's opt-in `--fatal-style` and `--fatal-performance`; the README recommends it for CI jobs that cover the baseline's paths with locked versions. Staleness is counted only inside the run's [coverage](#coverage), decided by path so that entries of deleted files go stale. Rationale and comparison in [Why stale entries are not fatal by default](#why-stale-entries-are-not-fatal-by-default).
 4. Anti-pattern and metric entries record their measured value; a finding is reported again once its value gets worse, in the metric's own direction, and `--update-baseline` tightens values that improved. Details in [Measured values](#measured-values).
-5. The release targets 4.5.0. #269 targets the same number; whichever merges later is renumbered at merge time. (#279 was released as 4.4.1.)
+5. The release targets 4.5.0. #269 targets the same number; whichever merges later is renumbered at merge time. (#279 was released as 4.4.1, #282 as 4.4.2.)
 6. Analyzer floor depends on merge order. If #269 (analyzer floor 8.2.0) merges first, this branch is synced with trunk and the token and scope code must pass the 8.2.0 to 9.0.0 rows of the compatibility matrix. If this feature merges first, the fixes needed for those rows go into the #269 branch instead.
 7. A context without a `baseline:` key uses `dcl_baseline.json` next to its `analysis_options.yaml` when that file exists, as detekt and DCM do; `--write-baseline` creates one per covered context. The key only changes the name or location, and `--baseline` still means one file for the whole run. Details in [Finding the baseline](#finding-the-baseline) and [Several packages (a monorepo)](#several-packages-a-monorepo).
 8. `--write-baseline` reports and exits as a normal run judged against the baseline as it was before the write (SwiftLint's behavior), with one exemption: findings recorded into a command section that did not exist before, per analysis context, are accepted and exit 0. Output is a summary, listing in full only additions to existing sections. No CI detection. Details and alternatives in [Exit code of `--write-baseline`](#exit-code-of---write-baseline).
