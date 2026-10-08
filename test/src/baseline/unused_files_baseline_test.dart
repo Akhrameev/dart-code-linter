@@ -188,6 +188,31 @@ void main() {
         expect(session.results.single.stale, isEmpty);
       });
 
+      test('keeps entries of excluded files, which are never reported',
+          () async {
+        write('lib/model.g.dart', 'void generated() {}\n');
+        write(
+          baselineFileName,
+          _baseline({
+            'lib/model.g.dart': ['unused-file'],
+            'lib/gone.freezed.dart': ['unused-file'],
+          }),
+        );
+
+        final (unused, session) = await run(
+          config: const UnusedFilesConfig(
+            excludePatterns: ['{/**.g.dart,/**.freezed.dart}'],
+            analyzerExcludePatterns: [],
+            isMonorepo: false,
+            shouldPrintConfig: false,
+          ),
+        );
+
+        expect(unused, ['lib/old.dart', 'lib/unused.dart']);
+        expect(session.results.single.stale, isEmpty);
+        expect(session.results.single.hidden, 0);
+      });
+
       test('marks an entry of an unknown group stale', () async {
         write(
           baselineFileName,
