@@ -2,11 +2,9 @@
 
 import 'dart:io';
 
-import '../../analyzers/unused_files_analyzer/models/unused_files_file_report.dart';
 import '../../analyzers/unused_files_analyzer/reporters/unused_files_report_params.dart';
 import '../../analyzers/unused_files_analyzer/unused_files_analyzer.dart';
 import '../../baseline/baseline.dart';
-import '../../baseline/baseline_session.dart';
 import '../../config_builder/config_builder.dart';
 import '../../logger/logger.dart';
 import '../models/flag_names.dart';
@@ -54,29 +52,17 @@ class CheckUnusedFilesCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final baseline = BaselineSession(
+    final (unusedFilesResult, _) = await runWithBaseline(
       BaselineCommand.checkUnusedFiles,
-      creating: baselineOptions.write,
-    );
-
-    final Iterable<UnusedFilesFileReport> unusedFilesResult;
-    try {
-      unusedFilesResult = await _analyzer.runCliAnalysis(
+      _logger,
+      (baseline) => _analyzer.runCliAnalysis(
         folders,
         rootFolder,
         config,
         sdkPath: findSdkPath(),
         baseline: baseline,
-      );
-    } on BaselineFormatException catch (e) {
-      _logger
-        ..progress.fail('Analysis is aborted.')
-        ..error(e.toString());
-      exit(1);
-    }
-
-    _logger.progress.complete('Analysis is completed. Preparing the results:');
-    baseline.warnings.forEach(_logger.warn);
+      ),
+    );
 
     if (deleteFiles) {
       _analyzer.deleteAllUnusedFiles(unusedFilesResult);

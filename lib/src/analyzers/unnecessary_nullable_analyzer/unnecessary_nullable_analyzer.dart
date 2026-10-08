@@ -11,6 +11,9 @@ import 'package:collection/collection.dart';
 import 'package:path/path.dart';
 import 'package:source_span/source_span.dart';
 
+import '../../baseline/baseline_matcher.dart';
+import '../../baseline/baseline_session.dart';
+import '../../baseline/source_names.dart';
 import '../../config_builder/config_builder.dart';
 import '../../config_builder/models/analysis_options.dart';
 import '../../logger/logger.dart';
@@ -35,6 +38,9 @@ import 'unnecessary_nullable_config.dart';
 class UnnecessaryNullableAnalyzer {
   static const _ignoreName = 'unnecessary-nullable';
 
+  /// The baseline group of every unnecessary nullable issue.
+  static const baselineGroup = 'unnecessary-nullable';
+
   final Logger? _logger;
 
   const UnnecessaryNullableAnalyzer([this._logger]);
@@ -54,17 +60,24 @@ class UnnecessaryNullableAnalyzer {
   /// Returns a list of unnecessary nullable parameters reports
   /// for analyzing all files in the given [folders].
   /// The analysis is configured with the [config].
+  ///
+  /// With a [baseline] session, issues recorded in the baseline of the
+  /// analysis context that owns their file are left out. An issue's key is
+  /// its declaration's kind, qualified name and unnecessary parameters as
+  /// written in the source: `method Cart.total(tax)`.
   Future<Iterable<UnnecessaryNullableFileReport>> runCliAnalysis(
     Iterable<String> folders,
     String rootFolder,
     UnnecessaryNullableConfig config, {
     String? sdkPath,
+    BaselineSession? baseline,
   }) async {
     final collection =
         createAnalysisContextCollection(folders, rootFolder, sdkPath);
 
     final invocationsUsages = InvocationsUsage();
     final declarationsUsages = <String, DeclarationUsages>{};
+    final baselineNames = <Element, String>{};
 
     for (final context in collection.contexts) {
       final unnecessaryNullableAnalysisConfig =
@@ -78,6 +91,17 @@ class UnnecessaryNullableAnalyzer {
       // analyzed for invocations: generated code is often the only user of the
       // code it was generated for.
       final filePaths = getFilePaths(folders, context, rootFolder, const []);
+
+      baseline?.addContext(
+        context,
+        unnecessaryNullableAnalysisConfig.baseline,
+        folders: folders,
+        rootFolder: rootFolder,
+        excludes: [
+          ...unnecessaryNullableAnalysisConfig.globalExcludes,
+          ...unnecessaryNullableAnalysisConfig.analyzerExcludedPatterns,
+        ],
+      );
 
       final analyzedFiles =
           filePaths.intersection(context.contextRoot.analyzedFiles().toSet());
@@ -112,7 +136,10 @@ class UnnecessaryNullableAnalyzer {
           _logger
               ?.infoVerbose('Found declarations: ${declarationsUsages.length}');
 
-          declarationsUsages[filePath] = _analyzeDeclarationsUsage(unit);
+          declarationsUsages[filePath] = _analyzeDeclarationsUsage(
+            unit,
+            baseline == null ? null : baselineNames,
+          );
         }
       }
     }
@@ -124,7 +151,35 @@ class UnnecessaryNullableAnalyzer {
       invocationsUsages.exports.forEach(declarationsUsages.remove);
     }
 
-    return _getReports(invocationsUsages, declarationsUsages, rootFolder);
+    final baselineKeys = Map<UnnecessaryNullableIssue, String>.identity();
+    final reports = _getReports(
+      invocationsUsages,
+      declarationsUsages,
+      rootFolder,
+      baselineNames,
+      baselineKeys,
+    );
+
+    return baseline?.filterReports<UnnecessaryNullableFileReport,
+            UnnecessaryNullableIssue>(
+          reports,
+          collection: collection,
+          issuesOf: (report) => report.issues,
+          describe: (report, issue) => BaselineFinding(
+            report.path,
+            baselineGroup,
+            baselineKeys[issue] ??
+                '${issue.declarationType} ${issue.declarationName}',
+          ),
+          rebuild: (report, issues) => UnnecessaryNullableFileReport(
+            path: report.path,
+            relativePath: report.relativePath,
+            issues: issues,
+          ),
+          groupState: (group) =>
+              group == baselineGroup ? GroupState.ran : GroupState.unknown,
+        ) ??
+        reports;
   }
 
   UnnecessaryNullableAnalysisConfig _getAnalysisConfig(
@@ -156,7 +211,10 @@ class UnnecessaryNullableAnalyzer {
     return null;
   }
 
-  DeclarationUsages _analyzeDeclarationsUsage(SomeResolvedUnitResult unit) {
+  DeclarationUsages _analyzeDeclarationsUsage(
+    SomeResolvedUnitResult unit,
+    Map<Element, String>? baselineNames,
+  ) {
     if (unit is ResolvedUnitResult) {
       final suppression = Suppression(unit.content, unit.lineInfo);
       final isSuppressed = suppression.isSuppressed(_ignoreName);
@@ -164,8 +222,13 @@ class UnnecessaryNullableAnalyzer {
         return {};
       }
 
-      final visitor = DeclarationsVisitor(suppression, _ignoreName);
+      final visitor = DeclarationsVisitor(
+        suppression,
+        _ignoreName,
+        baselineNames == null ? null : SourceNames(unit.content),
+      );
       unit.unit.visitChildren(visitor);
+      baselineNames?.addAll(visitor.baselineNames);
 
       return visitor.declarations;
     }
@@ -177,6 +240,8 @@ class UnnecessaryNullableAnalyzer {
     InvocationsUsage invocationsUsage,
     Map<String, DeclarationUsages> declarationsByPath,
     String rootFolder,
+    Map<Element, String> baselineNames,
+    Map<UnnecessaryNullableIssue, String> baselineKeys,
   ) {
     final unnecessaryNullableReports = <UnnecessaryNullableFileReport>[];
 
@@ -188,6 +253,8 @@ class UnnecessaryNullableAnalyzer {
           invocationsUsage,
           entry.key,
           entry.value,
+          baselineNames[entry.key],
+          baselineKeys,
         );
         if (issue != null) {
           issues.add(issue);
@@ -212,6 +279,8 @@ class UnnecessaryNullableAnalyzer {
     InvocationsUsage invocationsUsage,
     Element element,
     Iterable<FormalParameter> parameters,
+    String? baselineName,
+    Map<UnnecessaryNullableIssue, String> baselineKeys,
   ) {
     final usages = invocationsUsage.elements[element];
     final unit = element.firstFragment.libraryFragment?.element;
@@ -255,10 +324,16 @@ class UnnecessaryNullableAnalyzer {
       return null;
     }
 
-    return _createUnnecessaryNullableIssue(
+    final issue = _createUnnecessaryNullableIssue(
       element as ElementImpl,
       unnecessaryNullable,
     );
+    if (baselineName != null) {
+      final names = unnecessaryNullable.map((p) => p.name?.lexeme ?? '');
+      baselineKeys[issue] = '$baselineName(${names.join(', ')})';
+    }
+
+    return issue;
   }
 
   // AstNode, not Expression: analyzer 13 named args are not Expressions.

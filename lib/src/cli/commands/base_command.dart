@@ -9,6 +9,8 @@ import 'package:path/path.dart';
 
 import '../../baseline/baseline.dart';
 import '../../baseline/baseline_location.dart';
+import '../../baseline/baseline_session.dart';
+import '../../logger/logger.dart';
 import '../exceptions/invalid_argument_exception.dart';
 import '../models/baseline_options.dart';
 import '../models/flag_names.dart';
@@ -113,6 +115,37 @@ abstract class BaseCommand extends Command<void> {
         'or add --write-baseline to create it.',
       );
     }
+  }
+
+  /// Runs [analysis] with a baseline session for [command] and completes the
+  /// [logger]'s progress.
+  ///
+  /// A baseline file that cannot be read stops the run with exit 1, naming the
+  /// file: silently dropping it would report every old finding, and CI would
+  /// read that as a regression. Warnings, such as a configured file that does
+  /// not exist, are printed once the analysis is complete.
+  @protected
+  Future<(T, BaselineSession)> runWithBaseline<T>(
+    BaselineCommand command,
+    Logger logger,
+    Future<T> Function(BaselineSession baseline) analysis,
+  ) async {
+    final baseline = BaselineSession(command, creating: baselineOptions.write);
+
+    final T result;
+    try {
+      result = await analysis(baseline);
+    } on BaselineFormatException catch (e) {
+      logger
+        ..progress.fail('Analysis is aborted.')
+        ..error(e.toString());
+      exit(1);
+    }
+
+    logger.progress.complete('Analysis is completed. Preparing the results:');
+    baseline.warnings.forEach(logger.warn);
+
+    return (result, baseline);
   }
 
   void validateRootFolderExist() {

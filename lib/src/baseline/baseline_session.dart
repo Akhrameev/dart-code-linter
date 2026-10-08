@@ -212,6 +212,46 @@ class BaselineSession {
     ];
   }
 
+  /// Returns the [reports] with the issues no baseline hides, dropping
+  /// reports left without issues, in their original order.
+  ///
+  /// [issuesOf] lists a report's issues, [describe] gives each issue's path,
+  /// group and key, and [rebuild] makes a report with only the given issues;
+  /// the report models are const classes without `copyWith`, so it constructs
+  /// a new one.
+  List<R> filterReports<R extends Object, I extends Object>(
+    Iterable<R> reports, {
+    required AnalysisContextCollection collection,
+    required Iterable<I> Function(R report) issuesOf,
+    required BaselineFinding Function(R report, I issue) describe,
+    required R Function(R report, List<I> issues) rebuild,
+    required GroupState Function(String group) groupState,
+  }) {
+    final pairs = [
+      for (final report in reports)
+        for (final issue in issuesOf(report)) (report, issue),
+    ];
+    final kept = filter(
+      pairs,
+      collection: collection,
+      describe: (pair) => describe(pair.$1, pair.$2),
+      groupState: groupState,
+    );
+
+    final issuesByReport = Map<R, List<I>>.identity();
+    for (final (report, issue) in kept) {
+      issuesByReport.putIfAbsent(report, () => []).add(issue);
+    }
+
+    return [
+      for (final report in reports)
+        if (issuesByReport[report] case final issues?)
+          issues.length == issuesOf(report).length
+              ? report
+              : rebuild(report, issues),
+    ];
+  }
+
   _File? _read(BaselineLocation location, String rootFolder) {
     final displayPath = p.posix.joinAll(
       p.split(p.relative(location.path, from: p.absolute(rootFolder))),

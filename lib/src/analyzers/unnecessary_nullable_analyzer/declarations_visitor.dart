@@ -4,6 +4,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 
+import '../../baseline/source_names.dart';
 import '../../utils/ast_compat.dart';
 import '../../utils/dart_types_utils.dart';
 import '../../utils/node_utils.dart';
@@ -14,10 +15,16 @@ typedef DeclarationUsages = Map<Element, Iterable<FormalParameter>>;
 class DeclarationsVisitor extends RecursiveAstVisitor<void> {
   final DeclarationUsages declarations = {};
 
+  /// The kind and qualified name of each declaration, as written in the
+  /// source, for baseline keys: `method Cart.total`. Filled only when
+  /// [_names] is given.
+  final Map<Element, String> baselineNames = {};
+
   final Suppression _suppression;
   final String _pattern;
+  final SourceNames? _names;
 
-  DeclarationsVisitor(this._suppression, this._pattern);
+  DeclarationsVisitor(this._suppression, this._pattern, [this._names]);
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
@@ -90,6 +97,24 @@ class DeclarationsVisitor extends RecursiveAstVisitor<void> {
 
     if (element != null) {
       declarations[element] = parameters;
+
+      final name = _names?.qualifiedNameOf(node);
+      if (name != null) {
+        baselineNames[element] = '${_kindOf(node)} $name';
+      }
     }
   }
+
+  static String _kindOf(Declaration node) => switch (node) {
+        ConstructorDeclaration() => 'constructor',
+        MethodDeclaration(isGetter: true) ||
+        FunctionDeclaration(isGetter: true) =>
+          'getter',
+        MethodDeclaration(isSetter: true) ||
+        FunctionDeclaration(isSetter: true) =>
+          'setter',
+        MethodDeclaration(operatorKeyword: _?) => 'operator',
+        MethodDeclaration() => 'method',
+        _ => 'function',
+      };
 }

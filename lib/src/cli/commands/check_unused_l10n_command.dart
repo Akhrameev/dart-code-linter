@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../../analyzers/unused_l10n_analyzer/reporters/unused_l10n_report_params.dart';
 import '../../analyzers/unused_l10n_analyzer/unused_l10n_analyzer.dart';
+import '../../baseline/baseline.dart';
 import '../../config_builder/config_builder.dart';
 import '../../logger/logger.dart';
 import '../models/flag_names.dart';
@@ -51,14 +52,17 @@ class CheckUnusedL10nCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final unusedL10nResult = await _analyzer.runCliAnalysis(
-      folders,
-      rootFolder,
-      config,
-      sdkPath: findSdkPath(),
+    final (unusedL10nResult, _) = await runWithBaseline(
+      BaselineCommand.checkUnusedL10n,
+      _logger,
+      (baseline) => _analyzer.runCliAnalysis(
+        folders,
+        rootFolder,
+        config,
+        sdkPath: findSdkPath(),
+        baseline: baseline,
+      ),
     );
-
-    _logger.progress.complete('Analysis is completed. Preparing the results:');
 
     await _analyzer
         .getReporter(

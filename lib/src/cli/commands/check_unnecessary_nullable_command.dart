@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../../analyzers/unnecessary_nullable_analyzer/reporters/unnecessary_nullable_report_params.dart';
 import '../../analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_analyzer.dart';
+import '../../baseline/baseline.dart';
 import '../../config_builder/config_builder.dart';
 import '../../logger/logger.dart';
 import '../models/flag_names.dart';
@@ -51,14 +52,17 @@ class CheckUnnecessaryNullableCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final unusedCodeResult = await _analyzer.runCliAnalysis(
-      folders,
-      rootFolder,
-      config,
-      sdkPath: findSdkPath(),
+    final (unusedCodeResult, _) = await runWithBaseline(
+      BaselineCommand.checkUnnecessaryNullable,
+      _logger,
+      (baseline) => _analyzer.runCliAnalysis(
+        folders,
+        rootFolder,
+        config,
+        sdkPath: findSdkPath(),
+        baseline: baseline,
+      ),
     );
-
-    _logger.progress.complete('Analysis is completed. Preparing the results:');
 
     await _analyzer
         .getReporter(

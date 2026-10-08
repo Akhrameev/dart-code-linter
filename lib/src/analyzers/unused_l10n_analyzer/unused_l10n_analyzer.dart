@@ -9,6 +9,9 @@ import 'package:analyzer/src/dart/element/element.dart';
 import 'package:path/path.dart';
 import 'package:source_span/source_span.dart';
 
+import '../../baseline/baseline_matcher.dart';
+import '../../baseline/baseline_session.dart';
+import '../../baseline/source_names.dart';
 import '../../config_builder/config_builder.dart';
 import '../../config_builder/models/analysis_options.dart';
 import '../../logger/logger.dart';
@@ -43,11 +46,17 @@ class UnusedL10nAnalyzer {
   /// Returns a list of unused localization reports
   /// for analyzing all files in the given [folders].
   /// The analysis is configured with the [config].
+  ///
+  /// With a [baseline] session, issues recorded in the baseline of the
+  /// analysis context that owns their file are left out. The baseline group
+  /// of an issue is its class name and the key its member name, both as
+  /// written in the source.
   Future<Iterable<UnusedL10nFileReport>> runCliAnalysis(
     Iterable<String> folders,
     String rootFolder,
     UnusedL10nConfig config, {
     String? sdkPath,
+    BaselineSession? baseline,
   }) async {
     final collection =
         createAnalysisContextCollection(folders, rootFolder, sdkPath);
@@ -67,6 +76,14 @@ class UnusedL10nAnalyzer {
       // analyzed for usages: generated code is often the only user of a
       // localization member.
       final filePaths = getFilePaths(folders, context, rootFolder, const []);
+
+      baseline?.addContext(
+        context,
+        unusedLocalizationAnalysisConfig.baseline,
+        folders: folders,
+        rootFolder: rootFolder,
+        excludes: unusedLocalizationAnalysisConfig.globalExcludes,
+      );
 
       final analyzedFiles =
           filePaths.intersection(context.contextRoot.analyzedFiles().toSet());
@@ -91,8 +108,30 @@ class UnusedL10nAnalyzer {
       }
     }
 
-    return _checkUnusedL10n(localizationUsages, rootFolder)
-        .where((report) => !excludedFiles.contains(report.path));
+    final keys = _BaselineKeys(baseline == null ? null : SourceNamesCache());
+    final reports = _checkUnusedL10n(localizationUsages, rootFolder, keys)
+        .where((report) => !excludedFiles.contains(report.path))
+        .toList();
+
+    return baseline?.filterReports<UnusedL10nFileReport, UnusedL10nIssue>(
+          reports,
+          collection: collection,
+          issuesOf: (report) => report.issues,
+          describe: (report, issue) => BaselineFinding(
+            report.path,
+            keys.groups[report] ?? report.className,
+            keys.members[issue] ?? issue.memberName,
+          ),
+          rebuild: (report, issues) => UnusedL10nFileReport(
+            path: report.path,
+            relativePath: report.relativePath,
+            issues: issues,
+            className: report.className,
+          ),
+          // Every class matching the pattern is checked, so every group ran.
+          groupState: (_) => GroupState.ran,
+        ) ??
+        reports;
   }
 
   UnusedL10nAnalysisConfig _getAnalysisConfig(
@@ -127,14 +166,18 @@ class UnusedL10nAnalyzer {
   Iterable<UnusedL10nFileReport> _checkUnusedL10n(
     Map<ClassElement, Iterable<String>> localizationUsages,
     String rootFolder,
+    _BaselineKeys keys,
   ) {
     final unusedLocalizationIssues = <UnusedL10nFileReport>[];
 
     localizationUsages.forEach((classElement, usages) {
+      final group = keys.names?.nameOf(classElement.firstFragment);
       final report = _getUnusedReports(
         classElement,
         usages,
         rootFolder,
+        keys,
+        group: group,
       );
       if (report != null) {
         unusedLocalizationIssues.add(report);
@@ -149,7 +192,9 @@ class UnusedL10nAnalyzer {
             supertype.element,
             usages,
             rootFolder,
+            keys,
             overriddenClassName: classElement.name,
+            group: group,
           );
           if (report != null) {
             unusedLocalizationIssues.add(report);
@@ -164,8 +209,10 @@ class UnusedL10nAnalyzer {
   UnusedL10nFileReport? _getUnusedReports(
     InterfaceElement classElement,
     Iterable<String> usages,
-    String rootFolder, {
+    String rootFolder,
+    _BaselineKeys keys, {
     String? overriddenClassName,
+    String? group,
   }) {
     final unit = classElement.firstFragment.libraryFragment;
 
@@ -175,8 +222,10 @@ class UnusedL10nAnalyzer {
       return null;
     }
 
-    final accessorSourceSpans = _getUnusedAccessors(classElement, usages, unit);
-    final methodSourceSpans = _getUnusedMethods(classElement, usages, unit);
+    final accessorSourceSpans =
+        _getUnusedAccessors(classElement, usages, unit, keys);
+    final methodSourceSpans =
+        _getUnusedMethods(classElement, usages, unit, keys);
 
     final filePath = unit.source.toString();
     final relativePath = relative(filePath, from: rootFolder);
@@ -187,12 +236,17 @@ class UnusedL10nAnalyzer {
     ];
 
     if (issues.isNotEmpty) {
-      return UnusedL10nFileReport(
+      final report = UnusedL10nFileReport(
         path: filePath,
         relativePath: relativePath,
         className: overriddenClassName ?? classElement.name!,
         issues: issues,
       );
+      if (group != null) {
+        keys.groups[report] = group;
+      }
+
+      return report;
     }
 
     return null;
@@ -202,6 +256,7 @@ class UnusedL10nAnalyzer {
     InterfaceElement classElement,
     Iterable<String> usages,
     LibraryFragment unit,
+    _BaselineKeys keys,
   ) {
     final unusedAccessors = classElement.fields
         .where((field) => !field.isPrivate && !usages.contains(field.name))
@@ -209,7 +264,8 @@ class UnusedL10nAnalyzer {
             (field) => !field.isOriginDeclaration ? field.nonSynthetic : field);
 
     return unusedAccessors
-        .map((accessor) => _createL10nIssue(accessor as ElementImpl, unit))
+        .map(
+            (accessor) => _createL10nIssue(accessor as ElementImpl, unit, keys))
         .toList();
   }
 
@@ -217,6 +273,7 @@ class UnusedL10nAnalyzer {
     InterfaceElement classElement,
     Iterable<String> usages,
     LibraryFragment unit,
+    _BaselineKeys keys,
   ) {
     final unusedMethods = classElement.methods
         .where((method) => !method.isPrivate && !usages.contains(method.name))
@@ -224,13 +281,14 @@ class UnusedL10nAnalyzer {
             !method.isOriginDeclaration ? method.nonSynthetic : method);
 
     return unusedMethods
-        .map((method) => _createL10nIssue(method as ElementImpl, unit))
+        .map((method) => _createL10nIssue(method as ElementImpl, unit, keys))
         .toList();
   }
 
   UnusedL10nIssue _createL10nIssue(
     ElementImpl element,
     LibraryFragment unit,
+    _BaselineKeys keys,
   ) {
     final offset = element.firstFragment.codeOffset!;
     final lineInfo = unit.lineInfo;
@@ -242,7 +300,7 @@ class UnusedL10nAnalyzer {
         ? '${element.displayName}(${(element as MethodElement).formalParameters.join(', ')})'
         : element.displayName;
 
-    return UnusedL10nIssue(
+    final issue = UnusedL10nIssue(
       memberName: name,
       location: SourceLocation(
         offset,
@@ -251,5 +309,24 @@ class UnusedL10nAnalyzer {
         column: offsetLocation.columnNumber,
       ),
     );
+
+    final member = keys.names?.nameOf(element.firstFragment);
+    if (member != null) {
+      keys.members[issue] = member;
+    }
+
+    return issue;
   }
+}
+
+/// Baseline groups and keys of the reports and issues of one run, as
+/// written in the source: the class name and the member name.
+class _BaselineKeys {
+  /// Reads the names, null when the run has no baseline.
+  final SourceNamesCache? names;
+
+  final groups = Map<UnusedL10nFileReport, String>.identity();
+  final members = Map<UnusedL10nIssue, String>.identity();
+
+  _BaselineKeys(this.names);
 }

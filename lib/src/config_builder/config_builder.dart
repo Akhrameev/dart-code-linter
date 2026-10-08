@@ -171,6 +171,7 @@ class ConfigBuilder {
       UnusedL10nAnalysisConfig(
         createAbsolutePatterns(config.excludePatterns, rootPath),
         config.classPattern,
+        baseline: config.baseline,
       );
 
   /// Creates a raw unnecessary nullable config from given [excludePatterns].
@@ -202,5 +203,6 @@ class ConfigBuilder {
         createAbsolutePatterns(config.excludePatterns, rootPath),
         createAbsolutePatterns(config.analyzerExcludePatterns, rootPath),
         isMonorepo: config.isMonorepo,
+        baseline: config.baseline,
       );
 }

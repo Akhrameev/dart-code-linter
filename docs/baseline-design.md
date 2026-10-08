@@ -174,12 +174,12 @@ For a lint issue, take every token of the compilation unit that lies inside `iss
 
 ### Scope
 
-The qualified name of the enclosing top-level declaration and, inside a type, of the enclosing member. Every part of it is a name as written in the source, read from the declaration's name token, never from an element's `displayName` or `name`. Element names are analyzer output and change between analyzer versions: analyzer 14.4.0 changed the display name of unnamed constructors (#279), which would have turned every key in such a constructor stale on upgrade. A name token is the user's own text and changes only when the user renames something. AST accessors whose names moved between analyzer versions go through the existing shims, such as `extensionTypeName`.
+The qualified name of the enclosing top-level declaration and, inside a type, of the enclosing member. Every part of it is a name as written in the source, read from the declaration's name token, never from an element's `displayName` or `name`. Element names are analyzer output and change between analyzer versions: analyzer 14.4.0 changed the display name of unnamed constructors (#279), which would have turned every key in such a constructor stale on upgrade. A name token is the user's own text and changes only when the user renames something. Each name is read from the source text at the declared fragment's `nameOffset`, not through AST name accessors, which moved between analyzer versions (`ClassDeclaration.name` became `namePart` in analyzer 14), so no shims are needed.
 
 | Finding inside | Scope | Example |
 |---|---|---|
 | Class, mixin, mixin class, enum, extension type, named extension, typedef (outside any member) | The type name | `Cart` |
-| Unnamed extension | `<extension on T>`, where `T` is the extended type's lexemes joined as in the token hash | `<extension on List<int>>` |
+| Unnamed extension | `<extension on T>`, where `T` is the extended type's tokens with a space only between two adjacent words and no trailing comma, so formatting never changes it | `<extension on List<int>>`, `<extension on Map<String,int>>`, `<extension on void Function(int)>` |
 | Method | `Type.method` | `Cart.total` |
 | Getter / setter | `Type.name` / `Type.name=` | `Cart.count`, `Cart.count=` |
 | Operator | `Type.` plus the operator; unary minus is `unary-`, as in the language specification | `Money.==`, `Grid.[]=`, `Money.unary-` |
