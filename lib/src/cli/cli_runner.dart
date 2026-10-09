@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:meta/meta.dart';
+import 'package:pub_semver/pub_semver.dart';
 import 'package:pub_updater/pub_updater.dart';
 
 import '../logger/logger.dart';
@@ -68,7 +70,7 @@ class CliRunner extends CommandRunner<void> {
       exit(1);
     }
 
-    await _checkForUpdates();
+    await checkForUpdates();
 
     exit(0);
   }
@@ -89,12 +91,15 @@ class CliRunner extends CommandRunner<void> {
       );
   }
 
-  Future<void> _checkForUpdates() async {
+  @visibleForTesting
+  Future<void> checkForUpdates() async {
     try {
       final latestVersion =
           await _pubUpdater?.getLatestVersion('dart_code_linter');
-      final isUpToDate = packageVersion == latestVersion;
-      if (!isUpToDate && latestVersion != null) {
+      // Only a newer release is an update: a build of an unreleased version,
+      // such as a release branch, is ahead of pub.dev, not behind it.
+      if (latestVersion != null &&
+          Version.parse(latestVersion) > Version.parse(packageVersion)) {
         final changelogLink =
             'https://github.com/bancolombia/dart-code-linter/releases/tag/v$latestVersion';
         _logger.updateAvailable(packageVersion, latestVersion, changelogLink);

@@ -28,6 +28,7 @@ dependencies:
   meta: ^1.7.0
   path: ^1.8.0
   platform: ^3.1.0
+  pub_semver: ^2.1.4
   pub_updater: ">=0.3.0 <0.7.0"
   source_span: ^1.9.0
   uuid: ^4.1.0
