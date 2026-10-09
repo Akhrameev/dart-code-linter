@@ -1,0 +1,19 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_magic_number/examples/array_example.dart": {
+      "no-magic-number": [
+        "ContainerWidget.build#7d7116e23efef729",
+        "ContainerWidget.build#7d7116e23efef729"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_magic_number/examples/incorrect_example.dart": {
+      "no-magic-number": [
+        "bad_f1#92cfceb39d57d914",
+        "bad_f2#7b52009b64fd0a2a",
+        "bad_f4#983b34771fb7185d",
+        "bad_f5#7b52009b64fd0a2a"
+      ]
+    }
+  }
+}

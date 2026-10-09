@@ -1,0 +1,17 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/missing_test_assertion/examples/custom_assertions_example.dart": {
+      "missing-test-assertion": [
+        "main#c859944baf8ac259"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/missing_test_assertion/examples/incorrect_example.dart": {
+      "missing-test-assertion": [
+        "main#2f0d4a80d0391a95",
+        "main#746523811c5b3c94",
+        "main#a7323970182d8c95"
+      ]
+    }
+  }
+}

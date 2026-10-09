@@ -1,0 +1,26 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_equal_arguments/examples/incorrect_example.dart": {
+      "no-equal-arguments": [
+        "createUser#e579150a91a7fe0c",
+        "getUserData#00998565ba33b472",
+        "getUserData#13acb40dee157206",
+        "getUserData#6f7efbdaa38f053c",
+        "getUserData#7202e4f17c395c99",
+        "getUserData#c52e342744b77be0",
+        "getUserData#e0e867d3230fa778"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_equal_arguments/examples/keyword_named_duplicate_example.dart": {
+      "no-equal-arguments": [
+        "main#139f4b9d2e31f7f0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_equal_arguments/examples/named_parameters_example.dart": {
+      "no-equal-arguments": [
+        "image#6f0b09699f8cac4e"
+      ]
+    }
+  }
+}

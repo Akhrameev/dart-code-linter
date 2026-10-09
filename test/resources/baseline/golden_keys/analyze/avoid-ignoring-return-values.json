@@ -1,0 +1,24 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_ignoring_return_values/examples/example.dart": {
+      "avoid-ignoring-return-values": [
+        "SomeService.voidMethod#14f5befa5226513c",
+        "SomeService.voidMethod#1be6c234aac65e37",
+        "SomeService.voidMethod#45971ef63d8474eb",
+        "SomeService.voidMethod#5aea08a592dd2e94",
+        "SomeService.voidMethod#5cdc3d0e9c41e6db",
+        "SomeService.voidMethod#7379e2ffc6190073",
+        "SomeService.voidMethod#7d382aaa2271f14e",
+        "SomeService.voidMethod#7e2ef98534b95e5a",
+        "SomeService.voidMethod#985c750fc0b8b404",
+        "SomeService.voidMethod#a2d8d32811b3c32d",
+        "SomeService.voidMethod#a57bf0fd510d4c0d",
+        "SomeService.voidMethod#ad0fc29f6e78b4ac",
+        "SomeService.voidMethod#d481888643a92756",
+        "main#3284a8d44d184e74",
+        "main#bffadecc62c4feac"
+      ]
+    }
+  }
+}

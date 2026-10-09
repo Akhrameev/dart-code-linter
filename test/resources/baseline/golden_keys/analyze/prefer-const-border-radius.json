@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_const_border_radius/examples/example.dart": {
+      "prefer-const-border-radius": [
+        "MyWidget.build#2b0bfddd7ddd1281",
+        "MyWidget.build#78b2f44da1f6b9d6",
+        "MyWidget.build#982a68021ec1c5c7",
+        "MyWidget.build#e7972557406518d9",
+        "MyWidget.staticRadius#ffbbca9cbbdf55a9",
+        "_finalRadius#e713c5b97437085f"
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/arguments_ordering/examples/class_example.dart": {
+      "arguments-ordering": [
+        "badPerson1#0c85acd386d7dc9d",
+        "badPerson2#93659f8a432872b5",
+        "badPerson3#45c3e547d1d97ba5",
+        "badPerson4#39f6172b1809f9a3",
+        "badPerson5#11b7cc9e7a2fd5a8",
+        "badPerson6#aa9b5e298ac14bb3"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/arguments_ordering/examples/function_example.dart": {
+      "arguments-ordering": [
+        "badPerson1#0c85acd386d7dc9d",
+        "badPerson2#93659f8a432872b5",
+        "badPerson3#45c3e547d1d97ba5",
+        "badPerson4#39f6172b1809f9a3",
+        "badPerson5#11b7cc9e7a2fd5a8",
+        "badPerson6#aa9b5e298ac14bb3"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/arguments_ordering/examples/mixed_example.dart": {
+      "arguments-ordering": [
+        "bad1#f7b80a2a56e60b0c",
+        "bad2#a3d44c1eda1dc4d3",
+        "bad3#a2220040bf2e738b",
+        "bad4#95411e3bff7f187f",
+        "bad5#0f7ffa0495ee3a47"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/arguments_ordering/examples/widget_example.dart": {
+      "arguments-ordering": [
+        "badPerson1#5bc5662e023e24c3",
+        "badPerson2#9b9fc97431f48424",
+        "badPerson3#5439415a954aacb0",
+        "badPerson4#cbaaae0268bd7ea9",
+        "badPerson5#3a9e56c7051f8b00"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/arguments_ordering/examples/widget_example_child_last.dart": {
+      "arguments-ordering": [
+        "badPerson1#2d1c23ecae05e355",
+        "badPerson3#da10bbf7478bd900",
+        "badPerson4#e068f56e85e2aef0",
+        "badPerson5#0c3cde6e069ad0dd",
+        "goodPerson#2d1c23ecae05e355"
+      ]
+    }
+  }
+}

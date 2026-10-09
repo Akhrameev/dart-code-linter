@@ -1,0 +1,17 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_provide_intl_description/examples/incorrect_example.dart": {
+      "prefer-provide-intl-description": [
+        "SomeClassI18n.gender#bdaeb54f28c969ed",
+        "SomeClassI18n.gender2#3577362b8a444401",
+        "SomeClassI18n.message#e58a9c347320f098",
+        "SomeClassI18n.message2#e3eecc0d3c600668",
+        "SomeClassI18n.plural#c368e3d93a5124e6",
+        "SomeClassI18n.plural2#c4001a7ee73992a6",
+        "SomeClassI18n.select#2148a6e9cd145fdd",
+        "SomeClassI18n.select2#0768a291a93a6354"
+      ]
+    }
+  }
+}

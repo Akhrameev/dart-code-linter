@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_banned_imports/examples/example.dart": {
+      "avoid-banned-imports": [
+        "<file>#9a5e2dea0c56bed0",
+        "<file>#b2e6fe68dd5a02b2"
+      ]
+    }
+  }
+}

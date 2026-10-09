@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/binary_expression_operand_order/examples/example.dart": {
+      "binary-expression-operand-order": [
+        "bad1#6c0cadc3b729aa6d",
+        "bad2#6c0cadc3b729aa6d",
+        "bad3#334b1b2ccc9bf8da",
+        "bad4#3ca06f5f021457f5",
+        "bad5#73cfde9f01986efe",
+        "bad6#ccfb9b0e5b4d1ba9"
+      ]
+    }
+  }
+}

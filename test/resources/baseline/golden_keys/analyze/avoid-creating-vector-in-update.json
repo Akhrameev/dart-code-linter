@@ -1,0 +1,12 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_creating_vector_in_update/examples/example.dart": {
+      "avoid-creating-vector-in-update": [
+        "MyComponent.update#56ffd312285b5b68",
+        "MyComponent.update#9afaf45f64842a7a",
+        "MyComponent.update#b07a81d05ffd1808"
+      ]
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_collection_methods_with_unrelated_types/examples/dynamic_example.dart": {
+      "avoid-collection-methods-with-unrelated-types": [
+        "main#596dcb2cc2cfacb3",
+        "main#596dcb2cc2cfacb3"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_collection_methods_with_unrelated_types/examples/example.dart": {
+      "avoid-collection-methods-with-unrelated-types": [
+        "main#07fe6d15bb75e1f6",
+        "main#07fe6d15bb75e1f6",
+        "main#1e736b894dcd847b",
+        "main#1e99fc17c08f2d32",
+        "main#239caa1be744a35e",
+        "main#3032186bf7e69c48",
+        "main#4ae9b3858040f663",
+        "main#5007f55193ef03e3",
+        "main#530b8568f12cc633",
+        "main#61ae1bc52dd22b97",
+        "main#63c7c3ed89da6e01",
+        "main#7e201af57726d389",
+        "main#886b8cf598a057c7",
+        "main#96a0901a9d90a0d5",
+        "main#96a0901a9d90a0d5",
+        "main#9cf6c78cdcad6268",
+        "main#a11bc5dc8aa610a3",
+        "main#a38062f788d3592b",
+        "main#c0ef91d215f2158b",
+        "main#d388d3c1b4d00f8e",
+        "main#db7e7a7f19649188",
+        "main#de9007dca3a3b8eb",
+        "main#f64270b2b3f5ea98",
+        "main#fd92b469ada02ca2"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_collection_methods_with_unrelated_types/examples/nullable_example.dart": {
+      "avoid-collection-methods-with-unrelated-types": [
+        "main#284ba41c6f132a66",
+        "main#334fd451829f7dd1",
+        "main#443e519364f9ce97",
+        "main#510053108a059051",
+        "main#619b8e65c335965c",
+        "main#6aa265425155099c"
+      ]
+    }
+  }
+}

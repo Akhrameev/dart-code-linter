@@ -1,0 +1,86 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/class_with_factory_constructors.dart": {
+      "long-method": [
+        "Logger.fromJson@2",
+        "Logger.log@3",
+        "Logger.new@2"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "long-method": [
+        "functionWithTest@13",
+        "veryComplexFunction@34",
+        "visitBlock@14"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "long-method": [
+        "main@2"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "long-method": [
+        "HalsteadVolumeMetric.computeImplementation@6"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "long-method": [
+        "LinesOfCodeMetric.computeImplementation@6"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "long-method": [
+        "MaintainabilityIndexMetric.computeImplementation@17"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "long-method": [
+        "NestingLevelVisitor.visitBlock@15",
+        "SimpleClass.lettersCount@7",
+        "SimpleClass.new@6",
+        "simpleFunction@11"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "long-method": [
+        "Musical.entertainMe@7"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "long-method": [
+        "Foo.copyWith@7",
+        "NumberOfParametersMetric.computeImplementation@7"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "long-method": [
+        "SourceLinesOfCodeMetric.computeImplementation@6",
+        "SourceLinesOfCodeMetric.recommendationMessage@4"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "long-method": [
+        "SimpleClass.lettersCount@6",
+        "SimpleClass.new@2",
+        "Spacecraft.describe@7"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "long-method": [
+        "main@29"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "long-method": [
+        "main@138"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "long-method": [
+        "main@86"
+      ]
+    }
+  }
+}

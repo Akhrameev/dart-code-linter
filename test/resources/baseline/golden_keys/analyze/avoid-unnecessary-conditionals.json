@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unnecessary_conditionals/examples/example.dart": {
+      "avoid-unnecessary-conditionals": [
+        "bar#6dca9fa5cfead8f6",
+        "baz#5f7c24a349c56cee",
+        "foo#c85dde4cf7f3450e",
+        "main#2013cde8e2cdf0e1"
+      ]
+    }
+  }
+}

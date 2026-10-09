@@ -1,0 +1,127 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "number-of-parameters": [
+        "Doer.doSomething@0"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "number-of-parameters": [
+        "Logger.log@1"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "number-of-parameters": [
+        "Calculator.addOne@1",
+        "_increaseComplexity@1",
+        "functionWithTest@0",
+        "veryComplexFunction@0",
+        "visitBlock@2"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "number-of-parameters": [
+        "NumberParsing.parseInt@0"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "number-of-parameters": [
+        "main@0",
+        "printInteger@1"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "number-of-parameters": [
+        "HalsteadVolumeMetric._log2@1",
+        "HalsteadVolumeMetric.computeImplementation@4"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "number-of-parameters": [
+        "LinesOfCodeMetric.commentMessage@3",
+        "LinesOfCodeMetric.computeImplementation@4",
+        "simpleFunction@0"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "number-of-parameters": [
+        "MaintainabilityIndexMetric.computeImplementation@5"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "number-of-parameters": [
+        "NestingLevelVisitor.deepestNestingNodesChain@0",
+        "NestingLevelVisitor.visitBlock@1",
+        "SimpleClass.lettersCount@0",
+        "simpleFunction@1"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "number-of-parameters": [
+        "Musical.entertainMe@0"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "number-of-parameters": [
+        "NumberOfParametersMetric.commentMessage@3",
+        "NumberOfParametersMetric.computeImplementation@5",
+        "simpleFunction@0",
+        "simpleFunctionWithArguments@2",
+        "simpleGetter@0",
+        "simpleSetter=@1"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "number-of-parameters": [
+        "SourceLinesOfCodeMetric.computeImplementation@4",
+        "SourceLinesOfCodeMetric.recommendationMessage@3",
+        "simpleFunction@0"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "number-of-parameters": [
+        "fooBar@0"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "number-of-parameters": [
+        "fooBar@0"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "number-of-parameters": [
+        "SimpleClass.lettersCount@0",
+        "Spacecraft.describe@0",
+        "Spacecraft.launchYear@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "number-of-parameters": [
+        "main@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "number-of-parameters": [
+        "CupertinoStoreHomePage.build@1"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "number-of-parameters": [
+        "main@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/examples/example.dart": {
+      "number-of-parameters": [
+        "func2@5",
+        "func@4",
+        "main@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "number-of-parameters": [
+        "main@0"
+      ]
+    }
+  }
+}

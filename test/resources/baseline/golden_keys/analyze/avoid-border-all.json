@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_border_all/examples/example.dart": {
+      "avoid-border-all": [
+        "MyWidget.build#1dc33ca322e5b0e3",
+        "MyWidget.build#7ce30229ea8816a1",
+        "MyWidget.build#7f641f0a88dafda0",
+        "MyWidget.build#e86320006cade612"
+      ]
+    }
+  }
+}

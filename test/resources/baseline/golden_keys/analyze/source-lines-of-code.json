@@ -1,0 +1,138 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "source-lines-of-code": [
+        "Doer.doSomething@0"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "source-lines-of-code": [
+        "Logger._internal@0",
+        "Logger.fromJson@2",
+        "Logger.log@3",
+        "Logger.new@2"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "source-lines-of-code": [
+        "Calculator.addOne@1",
+        "_increaseComplexity@0",
+        "functionWithTest@13",
+        "veryComplexFunction@34",
+        "visitBlock@14"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "source-lines-of-code": [
+        "NumberParsing.parseInt@1"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "source-lines-of-code": [
+        "main@2",
+        "printInteger@1"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "source-lines-of-code": [
+        "HalsteadVolumeMetric._log2@1",
+        "HalsteadVolumeMetric.computeImplementation@6"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "source-lines-of-code": [
+        "LinesOfCodeMetric.commentMessage@1",
+        "LinesOfCodeMetric.computeImplementation@6",
+        "simpleFunction@1"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "source-lines-of-code": [
+        "MaintainabilityIndexMetric.computeImplementation@17"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "source-lines-of-code": [
+        "NestingLevelVisitor.deepestNestingNodesChain@1",
+        "NestingLevelVisitor.new@0",
+        "NestingLevelVisitor.visitBlock@15",
+        "SimpleClass.lettersCount@7",
+        "SimpleClass.new@6",
+        "simpleFunction@11"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "source-lines-of-code": [
+        "Musical.entertainMe@7"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "source-lines-of-code": [
+        "Foo.copyWith@7",
+        "Foo.new@0",
+        "NumberOfParametersMetric.commentMessage@1",
+        "NumberOfParametersMetric.computeImplementation@7",
+        "NumberOfParametersMetric.new@0",
+        "simpleFunction@1",
+        "simpleFunctionWithArguments@0",
+        "simpleGetter@1",
+        "simpleSetter=@0"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "source-lines-of-code": [
+        "SourceLinesOfCodeMetric.computeImplementation@6",
+        "SourceLinesOfCodeMetric.recommendationMessage@4",
+        "simpleFunction@1"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "source-lines-of-code": [
+        "fooBar@1"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "source-lines-of-code": [
+        "fooBar@1"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "source-lines-of-code": [
+        "SimpleClass.lettersCount@6",
+        "SimpleClass.new@2",
+        "Spacecraft.describe@7",
+        "Spacecraft.launchYear@1",
+        "Spacecraft.new@0",
+        "Spacecraft.unLaunched@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "source-lines-of-code": [
+        "main@29"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "source-lines-of-code": [
+        "CupertinoStoreHomePage.build@45"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "source-lines-of-code": [
+        "main@138"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/examples/example.dart": {
+      "source-lines-of-code": [
+        "func2@0",
+        "func@0",
+        "main@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "source-lines-of-code": [
+        "main@86"
+      ]
+    }
+  }
+}

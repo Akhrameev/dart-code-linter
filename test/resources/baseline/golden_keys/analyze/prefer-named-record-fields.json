@@ -1,0 +1,14 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_named_record_fields/examples/example.dart": {
+      "prefer-named-record-fields": [
+        "SomeClass.method#a6ec65a7d319358b",
+        "badLiteral#6ad3e4d830c2b1b9",
+        "badRecord1#f5fb94f590a2dbee",
+        "badRecord2#89eca8e055c27cc9",
+        "badRecord3#7ea4bb92ca861291"
+      ]
+    }
+  }
+}

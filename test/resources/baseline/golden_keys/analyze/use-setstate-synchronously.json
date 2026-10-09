@@ -1,0 +1,43 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/use_setstate_synchronously/examples/assert_example.dart": {
+      "use-setstate-synchronously": [
+        "_FooState.build#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/use_setstate_synchronously/examples/example.dart": {
+      "use-setstate-synchronously": [
+        "_FooState.build#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba",
+        "_FooState.pathologicalCases#9eeae7bdf56500ba"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/use_setstate_synchronously/examples/extras_try_switch.dart": {
+      "use-setstate-synchronously": [
+        "MyState.switchStatements#9eeae7bdf56500ba",
+        "MyState.switchStatements#9eeae7bdf56500ba",
+        "MyState.tryStatements#9eeae7bdf56500ba",
+        "MyState.tryStatements#9eeae7bdf56500ba"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/use_setstate_synchronously/examples/known_errors.dart": {
+      "use-setstate-synchronously": [
+        "_MyState.awaitEmptyFuture#9eeae7bdf56500ba"
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unnecessary_type_casts/examples/example.dart": {
+      "avoid-unnecessary-type-casts": [
+        "Example1.main#5f6caa4946f39211",
+        "Example1.main#77b979b1c7b60208",
+        "Example1.main#93d2649887c3d0d9",
+        "Example2.main#0934be77cca93f5f",
+        "Example2.main#1118b46f74c22956",
+        "Example2.main#16ad132b3937f370",
+        "Example2.main#9d41d77d4f6ec81f",
+        "Example2.main#b497c2708f5e05b7",
+        "Example2.main#d7bd465f66e76723",
+        "Example3.main#49cd35f7848037f3"
+      ]
+    }
+  }
+}

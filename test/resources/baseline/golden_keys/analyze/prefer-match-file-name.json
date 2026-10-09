@@ -1,0 +1,35 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_match_file_name/examples/example_with_enum_before.dart": {
+      "prefer-match-file-name": [
+        "ExampleWithEnumBeforeStates#b5d8c2158f2fb353"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_match_file_name/examples/example_with_issue.dart": {
+      "prefer-match-file-name": [
+        "Example#0f01ed56a1e32a05"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_match_file_name/examples/example_with_typedef_before.dart": {
+      "prefer-match-file-name": [
+        "ValueCallback#4796502d49203888"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_match_file_name/examples/multiple_enums.dart": {
+      "prefer-match-file-name": [
+        "MultipleEnumExample#ebe4fadef0ad4c24"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_match_file_name/examples/multiple_extensions.dart": {
+      "prefer-match-file-name": [
+        "MultipleExtensionExample#b542871d3e8958c4"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_match_file_name/examples/multiple_mixins.dart": {
+      "prefer-match-file-name": [
+        "MultipleMixinExample#5290d08f5429d0c8"
+      ]
+    }
+  }
+}

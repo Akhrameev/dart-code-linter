@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_substring/examples/example.dart": {
+      "avoid-substring": [
+        "main#57d2d209fc8bea55",
+        "main#fc550761ea9e94e3"
+      ]
+    }
+  }
+}

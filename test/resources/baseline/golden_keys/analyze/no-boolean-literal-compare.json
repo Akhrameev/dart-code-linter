@@ -1,0 +1,20 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_boolean_literal_compare/examples/example.dart": {
+      "no-boolean-literal-compare": [
+        "main#03afde073e445361",
+        "main#26846d025d240fae",
+        "main#28d05c134e1dd352",
+        "main#4d176b0d4aebf7fd",
+        "main#4e52de56b94bd760",
+        "main#549331bc4ca52933",
+        "main#727d2cf7e677a17a",
+        "main#c66e9159faea37e9",
+        "main#ce39485fe41b46f7",
+        "main#d952ff18a88b072b",
+        "main#dc89aa4e0ac0450a"
+      ]
+    }
+  }
+}

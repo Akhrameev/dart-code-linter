@@ -1,0 +1,12 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_shrink_wrap_in_lists/examples/example.dart": {
+      "avoid-shrink-wrap-in-lists": [
+        "WidgetWithColumn.build#9486046a5e6baa15",
+        "WidgetWithList.build#9486046a5e6baa15",
+        "WidgetWithRow.build#9486046a5e6baa15"
+      ]
+    }
+  }
+}

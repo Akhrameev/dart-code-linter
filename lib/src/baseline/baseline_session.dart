@@ -90,6 +90,7 @@ class BaselineSession {
   final _files = <String, _File>{};
   final _warnings = <String>[];
   final _results = <BaselineFileResult>[];
+  final _findings = <BaselineFinding>[];
 
   BaselineSession(this.command, {this.creating = false});
 
@@ -98,6 +99,10 @@ class BaselineSession {
 
   /// What the run did with each baseline file it used, sorted by path.
   List<BaselineFileResult> get results => List.unmodifiable(_results);
+
+  /// Every finding passed through [filter], hidden or not, whether or not
+  /// its context has a baseline file: what a write records.
+  List<BaselineFinding> get findings => List.unmodifiable(_findings);
 
   /// Registers an analysis [context] and the baseline [location] its
   /// configuration names.
@@ -155,6 +160,7 @@ class BaselineSession {
     final indices = <_File, Map<String, Map<String, List<int>>>>{};
     for (var i = 0; i < all.length; i++) {
       final finding = describe(all[i]);
+      _findings.add(finding);
       final file = _contexts[_ownerOf(collection, finding.path)]?.file;
       if (file == null) {
         continue;

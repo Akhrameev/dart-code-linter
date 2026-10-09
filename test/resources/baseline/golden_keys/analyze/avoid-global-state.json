@@ -1,0 +1,17 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_global_state/examples/example.dart": {
+      "avoid-global-state": [
+        "Extension.a#86f7e437faa5a7fc",
+        "Extension.c#84a516841ba77a5b",
+        "Foo.a#86f7e437faa5a7fc",
+        "Foo.c#84a516841ba77a5b",
+        "Mixin.a#86f7e437faa5a7fc",
+        "Mixin.c#84a516841ba77a5b",
+        "answer#3a1b467e677ed753",
+        "evenNumbers#63fdb3a94024884f"
+      ]
+    }
+  }
+}

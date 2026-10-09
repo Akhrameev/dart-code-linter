@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_empty_block/examples/example.dart": {
+      "no-empty-block": [
+        "emptyFunction#4448e1dbcb7f6e8f",
+        "simpleFunction#4448e1dbcb7f6e8f",
+        "simpleFunction#4448e1dbcb7f6e8f",
+        "simpleFunction#4448e1dbcb7f6e8f"
+      ]
+    }
+  }
+}

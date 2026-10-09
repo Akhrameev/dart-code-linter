@@ -1,0 +1,23 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_returning_widgets/examples/example.dart": {
+      "avoid-returning-widgets": [
+        "AnotherWidget.build#1e46de78318370bf",
+        "AnotherWidget.build#2e6803f4ba9db6eb",
+        "AnotherWidget.build#5f940e194421fd5f",
+        "AnotherWidget.build#5f940e194421fd5f",
+        "AnotherWidget.build#e96ae4c8c1ba0b18",
+        "AnotherWidget.build#f52963d9ecddd97b",
+        "AnotherWidget.widgetGetter#26db45f9f6ed74ae",
+        "_getWidgetWithIgnoredAnnotation#47ed4fafb00524a1",
+        "_globalBuildMyWidget#de4aea819d9b71ce"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_returning_widgets/examples/nullable_example.dart": {
+      "avoid-returning-widgets": [
+        "AnotherWidget.build#2e6803f4ba9db6eb"
+      ]
+    }
+  }
+}

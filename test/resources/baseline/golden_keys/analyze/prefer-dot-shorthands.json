@@ -1,0 +1,20 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_dot_shorthands/examples/example.dart": {
+      "prefer-dot-shorthands": [
+        "describeLevel#291c1a406a242563",
+        "describeLevel#71229d9bd9af0cf7",
+        "describeLevel#c5d855ea7fa76246",
+        "logByLevel#291c1a406a242563",
+        "logByLevel#c5d855ea7fa76246",
+        "unnamedConstructorCall#f2ffe0ca25b11705",
+        "useNamedArgument#291c1a406a242563",
+        "useNamedConstructor#d6eea14bb7a97500",
+        "usePositionalArgument#c5d855ea7fa76246",
+        "useStaticMethod#75ca47fb5de5a0e1",
+        "useVariableDeclaration#71229d9bd9af0cf7"
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/double_literal_format/examples/example.dart": {
+      "double-literal-format": [
+        "main#0b3a2df5c4d6e9c9",
+        "main#1652912625afc926",
+        "main#35a25beb3c997a27",
+        "main#3e047acaf5ae4711",
+        "main#3e081030eb777955",
+        "main#70961aec06831fdd",
+        "main#7ba1df6d8a526462",
+        "main#849f05048e8a5238",
+        "main#89a527150231f180",
+        "main#8ac75a80138db2b9",
+        "main#a00a3e81d1c59750",
+        "main#c097e897c8b99fe9"
+      ]
+    }
+  }
+}

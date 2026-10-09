@@ -1,0 +1,32 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_media_query_direct_access/examples/example.dart": {
+      "prefer-media-query-direct-access": [
+        "MediaQueryExamples.build#13c99f0c9cc86751",
+        "MediaQueryExamples.build#18373343fe7e7dd1",
+        "MediaQueryExamples.build#18e3301622185ed0",
+        "MediaQueryExamples.build#1ffd642dc5244235",
+        "MediaQueryExamples.build#30952d8b6e93fd1c",
+        "MediaQueryExamples.build#570d67b91ee80cca",
+        "MediaQueryExamples.build#6c85117cc0aa9e0c",
+        "MediaQueryExamples.build#6c85117cc0aa9e0c",
+        "MediaQueryExamples.build#6cb197fc4e6164af",
+        "MediaQueryExamples.build#7094a774c8fbe809",
+        "MediaQueryExamples.build#98b6c9e056d50781",
+        "MediaQueryExamples.build#ab5baf10b53f4aef",
+        "MediaQueryExamples.build#ab5baf10b53f4aef",
+        "MediaQueryExamples.build#ab5baf10b53f4aef",
+        "MediaQueryExamples.build#ab5baf10b53f4aef",
+        "MediaQueryExamples.build#ab5baf10b53f4aef",
+        "MediaQueryExamples.build#bc9dd82713846584",
+        "MediaQueryExamples.build#d075a53de896ba7f",
+        "MediaQueryExamples.build#ede5e2d40ab867ab",
+        "MediaQueryExamples.otherMethod#18e3301622185ed0",
+        "MediaQueryExamples.otherMethod#1ffd642dc5244235",
+        "MediaQueryExamples.otherMethod#6cb197fc4e6164af",
+        "MediaQueryExamples.otherMethod#ab5baf10b53f4aef"
+      ]
+    }
+  }
+}

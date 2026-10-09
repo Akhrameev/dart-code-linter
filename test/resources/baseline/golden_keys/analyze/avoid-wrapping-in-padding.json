@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_wrapping_in_padding/examples/example.dart": {
+      "avoid-wrapping-in-padding": [
+        "CoolWidget.build#687cdaf09f1aaee5"
+      ]
+    }
+  }
+}

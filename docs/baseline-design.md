@@ -1,6 +1,6 @@
 # Baseline: design and implementation plan
 
-Status: in progress on `feat/baseline` (steps 1 to 5 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
+Status: in progress on `feat/baseline` (steps 1 to 6 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
 
 ## Goal
 
@@ -165,12 +165,13 @@ The IDE does not take part: it runs lint rules only, which belong to `analyze`.
 
 ### Token hash
 
-For a lint issue, take every token of the compilation unit that lies inside `issue.location`, join their lexemes with a single space, and hash the result (SHA-1 from `package:crypto`, already a dependency, truncated to 16 hex characters).
+For a lint issue, take every token of the compilation unit that overlaps `issue.location` (a token the span covers only in part, such as a string literal, counts whole), join their lexemes with a single space, and hash the result (SHA-1 from `package:crypto`, already a dependency, truncated to 16 hex characters).
 
 - Whitespace and line breaks never appear, since only lexemes are joined.
 - Comments never appear: the scanner keeps them on `precedingComments`, outside the `Token.next` chain.
 - A comma directly followed by `)`, `]`, `}` or `>` is dropped, so adding or removing a trailing comma does not change the key.
-- Spans that start inside leading whitespace or a comment (`newline-before-return`, `member-ordering` with comments, `avoid-duplicate-exports`) are handled by selecting tokens by offset, not by trimming text.
+- Spans that start inside leading whitespace or a comment (`newline-before-return`, `member-ordering` with comments, `avoid-duplicate-exports`) are handled by selecting tokens by offset, not by trimming text. The scope is taken at the first selected token, so such a span belongs to the declaration it covers.
+- A span with no token in it lies inside a comment (`format-comment`). Its text is hashed instead, trimmed and with whitespace runs collapsed to one space, so findings in different comments of one scope keep different keys.
 
 ### Scope
 
@@ -237,12 +238,14 @@ const keyVersionChanges = <int, KeyChange>{
 };
 ```
 
+`KeyChange.commands({'check-unused-l10n'})` marks every group of a command as changed. `check-unused-l10n` needs it: its group ids are the user's class names, which the table cannot list.
+
 Reading a section:
 
 | Section `keyVersion` | Matching |
 |---|---|
 | Equal to `currentKeyVersion` | As described in [Matching](#matching) |
-| Older | Groups listed in any change after the section's version are matched by count, as with `count` sensitivity; a `KeyChange.all()` puts the whole section in count mode. Other groups match normally. One warning line per section: "Baseline keys for analyze are from key version 1; member-ordering findings are matched by count until the next --write-baseline." |
+| Older | Groups listed in any change after the section's version are matched by count, as with `count` sensitivity; a `KeyChange.all()`, or a `KeyChange.commands` naming the section's command, puts the whole section in count mode. Other groups match normally. One warning line per section: "Baseline keys for analyze are from key version 1; member-ordering findings are matched by count until the next --write-baseline." |
 | Newer | The whole section is matched by count, since this DCL cannot know which keys changed. Warning: "... written by a newer dart_code_linter; upgrade it." |
 
 Count mode keeps an upgrade quiet: no finding resurfaces for a change the user did not make. Its cost is the slack of `count` sensitivity for the affected groups, and for metrics and anti-patterns that a value getting worse is not detected, until the section is rewritten.
@@ -261,15 +264,15 @@ A key version is never reused once released. The first key-changing MR after a r
 
 Nothing in the normal test suite notices a key change: rule tests assert messages and positions, not keys. A golden test does, so a key change cannot ship without a `keyVersion` bump.
 
-- **Input.** The existing rule examples (`test/src/analyzers/lint_analyzer/rules/rules_list/<rule>/examples/`, 87 rules today) with each rule's default configuration; a rule that reports nothing on defaults gets a configuration in the test. Anti-patterns and metrics run over the existing metric fixtures in `test/resources/`. The four semantic analyzers run over their existing fixtures.
-- **Goldens.** One JSON file per group under `test/resources/baseline/golden_keys/`, for example `analyze/no-magic-number.json`, holding the keys per fixture file and the `keyVersion` at which those keys were last changed. One file per group keeps a change local in review.
+- **Input.** The existing rule examples (`test/src/analyzers/lint_analyzer/rules/rules_list/<rule>/examples/`, 86 rules today) with each rule's default configuration; a rule that reports nothing on defaults gets the configuration of its own rule test. Anti-patterns and metrics run over the existing metric fixtures in `test/resources/` and the anti-pattern examples, with every metric value keyed whatever its level. The test passes the function metrics' thresholds explicitly: `getLintAnalysisConfig` drops the thresholds of the metrics an anti-pattern depends on, so no anti-pattern would report. The four semantic analyzers run over their existing fixtures.
+- **Goldens.** One JSON file per group under `test/resources/baseline/golden_keys/`, for example `analyze/no-magic-number.json`, holding the keys per fixture file and group, and the `keyVersion` at which those keys were last changed. One file per group keeps a change local in review. `check-unused-l10n` has one golden for all its groups, `check-unused-l10n/all-groups.json`, since its group ids are class names from the fixtures.
 - **Checks.**
   - The computed keys equal the golden ones. On a mismatch the failure names the group and says what to do: keep the old keys if the change was not intended, otherwise bump `currentKeyVersion`, list the group in `keyVersionChanges`, and regenerate.
   - Every golden stamped with `currentKeyVersion` (above 1) is listed in that version's entry in `keyVersionChanges`, and every group listed there has its golden stamped with it. So keys cannot change without the table saying so, and the table cannot claim a change that did not happen.
-  - Every rule, anti-pattern, metric and semantic check has a golden with at least one key, so a new rule cannot be added without one.
+  - Every rule, anti-pattern, metric and semantic check has a golden with at least one key, so a new rule cannot be added without one, and every golden file belongs to one, so a removed rule's golden is deleted with it.
 - **Regenerating.** `DCL_UPDATE_GOLDEN_KEYS=1 dart test test/src/baseline/golden_keys_test.dart` rewrites only the goldens whose keys changed and stamps them with `currentKeyVersion`; unchanged goldens keep their stamp.
 
-The golden test also covers the scope grammar: each row of the table in [Scope](#scope) has a fixture.
+The scope grammar has its own test, `lint_baseline_keys_test.dart`: each row of the table in [Scope](#scope) has a marker in one fixture, and a short-style and a tall-style fixture must produce identical keys.
 
 ## Matching
 
@@ -552,7 +555,7 @@ New code under `lib/src/baseline/`:
 
 - `baseline.dart`: the model, JSON read and write, deterministic output.
 - `baseline_matcher.dart`: multiset matching and sensitivity levels. Pure, no analyzer types.
-- `lint_baseline_keys.dart`: token hash and scope for a lint issue, from a `CompilationUnit`.
+- `lint_baseline_keys.dart`: token hash and scope for a lint issue, and scope and value for a metric value or an anti-pattern, from a `CompilationUnit`.
 - `baseline_registry.dart`: resolves the baseline of an analysis context (`--baseline`, then the YAML key, then the conventional file), and caches parsed files keyed by path and modification time, including the absence of a conventional file, so the IDE does not touch the disk on every rule.
 
 Per analyzer, a small adapter: the key of a finding, and how to rebuild a report with the remaining findings. The report models are const classes with no `copyWith`, so the adapters construct new instances.

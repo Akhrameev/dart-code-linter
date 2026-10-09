@@ -1,0 +1,138 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "halstead-volume": [
+        "Doer.doSomething@0"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "halstead-volume": [
+        "Logger._internal@0",
+        "Logger.fromJson@4.75",
+        "Logger.log@8",
+        "Logger.new@20.9"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "halstead-volume": [
+        "Calculator.addOne@2",
+        "_increaseComplexity@0",
+        "functionWithTest@325.55",
+        "veryComplexFunction@320.63",
+        "visitBlock@105.49"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "halstead-volume": [
+        "NumberParsing.parseInt@2"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "halstead-volume": [
+        "main@6.34",
+        "printInteger@2"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "halstead-volume": [
+        "HalsteadVolumeMetric._log2@11.61",
+        "HalsteadVolumeMetric.computeImplementation@138.3"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "halstead-volume": [
+        "LinesOfCodeMetric.commentMessage@0",
+        "LinesOfCodeMetric.computeImplementation@64.53",
+        "simpleFunction@0"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "halstead-volume": [
+        "MaintainabilityIndexMetric.computeImplementation@366.86"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "halstead-volume": [
+        "NestingLevelVisitor.deepestNestingNodesChain@0",
+        "NestingLevelVisitor.new@0",
+        "NestingLevelVisitor.visitBlock@231.89",
+        "SimpleClass.lettersCount@57",
+        "SimpleClass.new@28.43",
+        "simpleFunction@8"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "halstead-volume": [
+        "Musical.entertainMe@7.92"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "halstead-volume": [
+        "Foo.copyWith@58.95",
+        "Foo.new@0",
+        "NumberOfParametersMetric.commentMessage@0",
+        "NumberOfParametersMetric.computeImplementation@98.99",
+        "NumberOfParametersMetric.new@0",
+        "simpleFunction@0",
+        "simpleFunctionWithArguments@0",
+        "simpleGetter@0",
+        "simpleSetter=@0"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "halstead-volume": [
+        "SourceLinesOfCodeMetric.computeImplementation@70.31",
+        "SourceLinesOfCodeMetric.recommendationMessage@11.61",
+        "simpleFunction@0"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "halstead-volume": [
+        "fooBar@11.61"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "halstead-volume": [
+        "fooBar@11.61"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "halstead-volume": [
+        "SimpleClass.lettersCount@83.05",
+        "SimpleClass.new@28.07",
+        "Spacecraft.describe@57.36",
+        "Spacecraft.launchYear@4.75",
+        "Spacecraft.new@0",
+        "Spacecraft.unLaunched@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "halstead-volume": [
+        "main@849.61"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "halstead-volume": [
+        "CupertinoStoreHomePage.build@451.71"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "halstead-volume": [
+        "main@4800.47"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/examples/example.dart": {
+      "halstead-volume": [
+        "func2@0",
+        "func@0",
+        "main@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "halstead-volume": [
+        "main@1991.19"
+      ]
+    }
+  }
+}

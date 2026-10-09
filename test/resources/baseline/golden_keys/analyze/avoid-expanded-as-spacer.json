@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_expanded_as_spacer/examples/example.dart": {
+      "avoid-expanded-as-spacer": [
+        "MyWidget.build#3360f269b9cfcb2f",
+        "MyWidget.build#b913bd891ffc42fa"
+      ]
+    }
+  }
+}

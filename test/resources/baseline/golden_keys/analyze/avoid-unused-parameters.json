@@ -1,0 +1,27 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unused_parameters/examples/incorrect_example.dart": {
+      "avoid-unused-parameters": [
+        "AbstractMixin.secondMethod#6d7fc6b021ad180b",
+        "TestClass.firstMethod#6d7fc6b021ad180b",
+        "TestClass.forthMethod#2773d80805c2f6e5",
+        "fifthFunction#6d7fc6b021ad180b",
+        "fifthFunction#b3ecd854359c0527",
+        "firstFunction#6d7fc6b021ad180b",
+        "forthFunction#a535159b7288a420",
+        "shadowing#b3ce4daad18101d6",
+        "sixthFunction#b3ecd854359c0527"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unused_parameters/examples/tear_off_example.dart": {
+      "avoid-unused-parameters": [
+        "TestClass._anotherMethod#2773d80805c2f6e5",
+        "TestClass._anotherMethod#a535159b7288a420",
+        "TestClass._someAnotherMethod#3a416e9d1a23b691",
+        "TestClass._someAnotherMethod#5233278cb3ddd461",
+        "TestClass._someOtherMethod#b3ce4daad18101d6"
+      ]
+    }
+  }
+}

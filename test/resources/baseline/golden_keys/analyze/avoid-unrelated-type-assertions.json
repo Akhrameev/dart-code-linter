@@ -1,0 +1,20 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unrelated_type_assertions/examples/example.dart": {
+      "avoid-unrelated-type-assertions": [
+        "Example1.main#2e32dd39ac3a427b",
+        "Example1.main#31167b07fcc16940",
+        "Example1.main#cf279800b66611d3",
+        "Example2.main#22b60badefbd1fd6",
+        "Example2.main#2c55e57fa5224f1f",
+        "Example2.main#99ff9ca0e4224516",
+        "Example2.main#db773ed5d6b3cc3e",
+        "Example3.main#3addc7a84a59e851",
+        "checkNullability#a636171a728d3e68",
+        "checkNullability#b37d92bdc5b0b0d2",
+        "checkSameOrInheritor#50259c8a4af97422"
+      ]
+    }
+  }
+}

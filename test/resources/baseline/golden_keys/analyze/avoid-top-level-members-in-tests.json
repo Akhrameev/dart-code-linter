@@ -1,0 +1,16 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_top_level_members_in_tests/examples/example.dart": {
+      "avoid-top-level-members-in-tests": [
+        "Class#a95bbcfac1d227a9",
+        "Enum#e9eb7711dfed6005",
+        "Extension#1300b6770af55ffc",
+        "Mixin#ee2eb43327d4a74e",
+        "Public#d209c089396a1672",
+        "function#e654c1ababd1584c",
+        "public#7bfd4a3668c71df7"
+      ]
+    }
+  }
+}

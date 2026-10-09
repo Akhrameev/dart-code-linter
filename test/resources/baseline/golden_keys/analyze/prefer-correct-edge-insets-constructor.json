@@ -1,0 +1,79 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_edge_insets_constructor/examples/example_direction_only.dart": {
+      "prefer-correct-edge-insets-constructor": [
+        "MyWidget.build#0b1a85429de1cad7",
+        "MyWidget.build#0b1d4eb016000c02",
+        "MyWidget.build#15273b963a6586f2",
+        "MyWidget.build#280b17014949cb37",
+        "MyWidget.build#372d67fa084873f3",
+        "MyWidget.build#5b6cc70f72fb5dc2",
+        "MyWidget.build#71b85a0077bec923",
+        "MyWidget.build#71b85a0077bec923",
+        "MyWidget.build#999257d893704dfc",
+        "MyWidget.build#d32842bdee189476"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_edge_insets_constructor/examples/example_ltrb.dart": {
+      "prefer-correct-edge-insets-constructor": [
+        "MyWidget.build#0c5dd228768ffccb",
+        "MyWidget.build#2ac29e630d765d46",
+        "MyWidget.build#46c04e5a1024178b",
+        "MyWidget.build#6785fc625df8d8f0",
+        "MyWidget.build#758ade5e0d1777ab",
+        "MyWidget.build#ad2262dfb1fc8247",
+        "MyWidget.build#c124911e4214675f",
+        "MyWidget.build#d5a87c77e4c9f6b9",
+        "MyWidget.build#e9052225c87dd229",
+        "MyWidget.build#f38abcccd61d0ff6",
+        "MyWidget.build#fcfda17bb5053d4c"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_edge_insets_constructor/examples/example_only.dart": {
+      "prefer-correct-edge-insets-constructor": [
+        "MyWidget.build#135991632dbf3334",
+        "MyWidget.build#21a9d83b6d0ef6a2",
+        "MyWidget.build#33a4e040983cc3f3",
+        "MyWidget.build#3cdb73d31f68571e",
+        "MyWidget.build#5309fcfe65e5c0dc",
+        "MyWidget.build#64f427335cea6ff9",
+        "MyWidget.build#a2b42d3628e7382c",
+        "MyWidget.build#a2b42d3628e7382c",
+        "MyWidget.build#b4d3ec8a650664eb",
+        "MyWidget.build#fb89ee59a3f2f283"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_edge_insets_constructor/examples/example_steb.dart": {
+      "prefer-correct-edge-insets-constructor": [
+        "MyWidget.build#0506587b385c5937",
+        "MyWidget.build#093760cc042c3abb",
+        "MyWidget.build#1cc7f1e6195f2fca",
+        "MyWidget.build#2468d69bd48577e3",
+        "MyWidget.build#a49c2b7d27dedfb3",
+        "MyWidget.build#b5df88263ed88e0a",
+        "MyWidget.build#b992102d75087ac7",
+        "MyWidget.build#d3795b078d870751",
+        "MyWidget.build#e0c6894ed57a9ba2",
+        "MyWidget.build#e261bf16a98d6368",
+        "MyWidget.build#eb53faa242f8a980"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_edge_insets_constructor/examples/example_symmetric.dart": {
+      "prefer-correct-edge-insets-constructor": [
+        "MyWidget.build#2e8f23b4f0c6d9e6",
+        "MyWidget.build#3ccce6b9b0b88781",
+        "MyWidget.build#6dd40e724ca46b2b",
+        "MyWidget.build#95d2f559c4d282b4",
+        "MyWidget.build#a5f57370a9dddb3e",
+        "MyWidget.build#be6be2f6d6a9a729"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_edge_insets_constructor/examples/flutter_defines.dart": {
+      "prefer-correct-edge-insets-constructor": [
+        "EdgeInsets.zero#3420717f5ed97105",
+        "EdgeInsetsDirectional.zero#3420717f5ed97105"
+      ]
+    }
+  }
+}

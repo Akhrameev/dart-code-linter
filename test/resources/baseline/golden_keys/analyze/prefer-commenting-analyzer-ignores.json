@@ -1,0 +1,12 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_commenting_analyzer_ignores/examples/example.dart": {
+      "prefer-commenting-analyzer-ignores": [
+        "main#74e233a266269339",
+        "main#a3467d96e3d443a9",
+        "main#c39efb83a902bcbc"
+      ]
+    }
+  }
+}

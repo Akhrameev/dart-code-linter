@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_passing_async_when_sync_expected/examples/example.dart": {
+      "avoid-passing-async-when-sync-expected": [
+        "_MyHomePageState.build#aa244557d1c9501b",
+        "_MyHomePageState.initialize#3628c4c27664b511",
+        "_MyHomePageState.initialize#c4925b3c0aa6e0db",
+        "_MyHomePageState.initialize#f95b44087d5e71c8"
+      ]
+    }
+  }
+}

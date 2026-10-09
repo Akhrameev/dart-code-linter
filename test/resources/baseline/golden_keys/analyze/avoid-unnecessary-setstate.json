@@ -1,0 +1,18 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unnecessary_setstate/examples/example.dart": {
+      "avoid-unnecessary-setstate": [
+        "_MyWidgetState.build#433e642e58f1a656",
+        "_MyWidgetState.build#5e557ffd8f8ce4a6",
+        "_MyWidgetState.build#5e557ffd8f8ce4a6",
+        "_MyWidgetState.didChangeDependencies#433e642e58f1a656",
+        "_MyWidgetState.didChangeDependencies#5e557ffd8f8ce4a6",
+        "_MyWidgetState.didUpdateWidget#5e557ffd8f8ce4a6",
+        "_MyWidgetState.initState#433e642e58f1a656",
+        "_MyWidgetState.initState#5e557ffd8f8ce4a6",
+        "_MyWidgetState.initState#5e557ffd8f8ce4a6"
+      ]
+    }
+  }
+}

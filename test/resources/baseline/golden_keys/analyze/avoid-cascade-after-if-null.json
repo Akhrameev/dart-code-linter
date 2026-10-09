@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_cascade_after_if_null/examples/example.dart": {
+      "avoid-cascade-after-if-null": [
+        "Ranch.new#c826fa30e19966bf",
+        "main#cf5cec26dbdc25f7"
+      ]
+    }
+  }
+}

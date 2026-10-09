@@ -59,6 +59,22 @@ void main() {
       expect(mode.appliesTo('unused-file'), isTrue);
     });
 
+    test('puts only the commands of KeyChange.commands() in count mode', () {
+      CountMode mode(String command) => countModeFor(
+            command: command,
+            sectionKeyVersion: 2,
+            current: 3,
+            changes: {
+              ...changes,
+              3: const KeyChange.commands({'check-unused-l10n'}),
+            },
+          );
+
+      expect(mode('check-unused-l10n').isAll, isTrue);
+      expect(mode('check-unused-l10n').appliesTo('TestI18n'), isTrue);
+      expect(mode('analyze').isNone, isTrue);
+    });
+
     test('puts the whole section in count mode for a newer version', () {
       final mode = countMode('analyze', 4);
 

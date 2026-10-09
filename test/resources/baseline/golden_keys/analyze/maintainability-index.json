@@ -1,0 +1,138 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "maintainability-index": [
+        "Doer.doSomething@100"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "maintainability-index": [
+        "Logger._internal@100",
+        "Logger.fromJson@89",
+        "Logger.log@83",
+        "Logger.new@85"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "maintainability-index": [
+        "Calculator.addOne@98",
+        "_increaseComplexity@100",
+        "functionWithTest@58",
+        "veryComplexFunction@48",
+        "visitBlock@61"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "maintainability-index": [
+        "NumberParsing.parseInt@98"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "maintainability-index": [
+        "main@88",
+        "printInteger@98"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "maintainability-index": [
+        "HalsteadVolumeMetric._log2@93",
+        "HalsteadVolumeMetric.computeImplementation@68"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "maintainability-index": [
+        "LinesOfCodeMetric.commentMessage@100",
+        "LinesOfCodeMetric.computeImplementation@71",
+        "simpleFunction@100"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "maintainability-index": [
+        "MaintainabilityIndexMetric.computeImplementation@56"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "maintainability-index": [
+        "NestingLevelVisitor.deepestNestingNodesChain@100",
+        "NestingLevelVisitor.new@100",
+        "NestingLevelVisitor.visitBlock@57",
+        "SimpleClass.lettersCount@70",
+        "SimpleClass.new@73",
+        "simpleFunction@71"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "maintainability-index": [
+        "Musical.entertainMe@75"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "maintainability-index": [
+        "Foo.copyWith@69",
+        "Foo.new@100",
+        "NumberOfParametersMetric.commentMessage@100",
+        "NumberOfParametersMetric.computeImplementation@67",
+        "NumberOfParametersMetric.new@100",
+        "simpleFunction@100",
+        "simpleFunctionWithArguments@100",
+        "simpleGetter@100",
+        "simpleSetter=@100"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "maintainability-index": [
+        "SourceLinesOfCodeMetric.computeImplementation@70",
+        "SourceLinesOfCodeMetric.recommendationMessage@80",
+        "simpleFunction@100"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "maintainability-index": [
+        "fooBar@93"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "maintainability-index": [
+        "fooBar@93"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "maintainability-index": [
+        "SimpleClass.lettersCount@70",
+        "SimpleClass.new@84",
+        "Spacecraft.describe@69",
+        "Spacecraft.launchYear@95",
+        "Spacecraft.new@100",
+        "Spacecraft.unLaunched@100"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "maintainability-index": [
+        "main@48"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "maintainability-index": [
+        "CupertinoStoreHomePage.build@46"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "maintainability-index": [
+        "main@26"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/examples/example.dart": {
+      "maintainability-index": [
+        "func2@100",
+        "func@100",
+        "main@100"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "maintainability-index": [
+        "main@34"
+      ]
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unused_code_private_members_analyzer/private_constructors.dart": {
+      "unused-private-member": [
+        "constructor FactoryRedirect._unusedInFactoryClass",
+        "constructor GenerativeRedirect._unusedInRedirectClass",
+        "constructor InstanceCreation._unusedNamed",
+        "constructor Meters._unusedSecondary",
+        "constructor SelectorEnum._unusedEnumCtor",
+        "constructor SuperBase._unusedInBase",
+        "constructor TearOff._unusedInTearOffClass"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_enum_constant.dart": {
+      "unused-private-member": [
+        "enum constant PrivateEnumConstant._unusedConstant"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_members.dart": {
+      "unused-private-member": [
+        "field SomeClass._unusedField",
+        "getter IntPrivateMembersExtension._unusedExtensionGetter",
+        "getter SomeClass._unusedGetter",
+        "method IntPrivateMembersExtension._unusedExtensionMethod",
+        "method SomeClass._unusedMethod",
+        "setter SomeClass._unusedSetter="
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_type_kinds.dart": {
+      "unused-private-member": [
+        "field PrivateEnumMembers._unusedStaticInEnum",
+        "field PrivateStaticMembers._unusedStaticConst",
+        "getter PrivateEnumMembers._unusedEnumGetter",
+        "getter PrivateExtensionTypeMembers._unusedInExtensionType",
+        "getter PrivateStaticMembers._unusedStaticGetter",
+        "method PrivateEnumMembers._unusedEnumMethod",
+        "method PrivateMixinMembers._unusedInMixin",
+        "method PrivateStaticMembers._unusedStaticMethod",
+        "method SuppressedMember._reportedUnusedMethod"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/private_named_enum_constant.dart": {
+      "unused-private-member": [
+        "enum constant PublicEnumConstant._unusedPrivateConstant"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/public_members.dart": {
+      "unused-private-member": [
+        "method Api._privateUnusedMethod"
+      ]
+    }
+  }
+}

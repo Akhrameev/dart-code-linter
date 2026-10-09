@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_throw_in_catch_block/examples/example.dart": {
+      "avoid-throw-in-catch-block": [
+        "networkDataProvider#d0b508ecbb1c13f3",
+        "repository#cf87c8babcf3abcc"
+      ]
+    }
+  }
+}

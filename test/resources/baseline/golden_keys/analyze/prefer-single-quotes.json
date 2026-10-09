@@ -1,0 +1,12 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_single_quotes/examples/example.dart": {
+      "prefer-single-quotes": [
+        "func#560128074194fa35",
+        "func#b66dc0e43fd5515b",
+        "func#fd7f17966b7df826"
+      ]
+    }
+  }
+}

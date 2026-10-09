@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/tag_name/examples/example.dart": {
+      "tag-name": [
+        "Apple._kTag#c00608c6115068c8"
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_non_configurable_callbacks_in_init_state/examples/example.dart": {
+      "avoid-non-configurable-callbacks-in-init-state": [
+        "_BcWebviewTemplateState.initState#2aea51c69fc86e79",
+        "_DoubleConfigurationWebviewState.initState#7b849bce8bd90ee1",
+        "_DoubleConfigurationWebviewState.initState#f8e70661730e5a39",
+        "_HardcodedTearOffWebviewState.initState#83317134321554d2",
+        "_NamedArgumentWidgetWebviewState.initState#7c459c18a63b9afd"
+      ]
+    }
+  }
+}

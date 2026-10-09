@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/only_barrel_import/examples/example_with_wrong_core_import.dart": {
+      "only-barrel-import": [
+        "<file>#d49e064c3b0eb917"
+      ]
+    }
+  }
+}

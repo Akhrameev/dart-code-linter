@@ -1,0 +1,73 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "weight-of-class": [
+        "Doer@1"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "weight-of-class": [
+        "Logger@0.33"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "weight-of-class": [
+        "Calculator@1"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "weight-of-class": [
+        "NumberParsing@1"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "weight-of-class": [
+        "HalsteadVolumeMetric@1"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "weight-of-class": [
+        "LinesOfCodeMetric@1"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "weight-of-class": [
+        "MaintainabilityIndexMetric@1"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "weight-of-class": [
+        "NestingLevelVisitor@0.33",
+        "SimpleClass@0"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "weight-of-class": [
+        "Musical@1"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "weight-of-class": [
+        "Foo@0.5",
+        "NumberOfParametersMetric@0.67"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "weight-of-class": [
+        "SourceLinesOfCodeMetric@1"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "weight-of-class": [
+        "SimpleClass@0",
+        "Spacecraft@0.25"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "weight-of-class": [
+        "CupertinoStoreHomePage@1"
+      ]
+    }
+  }
+}

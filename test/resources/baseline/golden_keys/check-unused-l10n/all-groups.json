@@ -1,0 +1,17 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unused_l10n_analyzer/base_localization.dart": {
+      "TestI18n": [
+        "anotherBaseGetter"
+      ]
+    },
+    "test/resources/unused_l10n_analyzer/test_i18n.dart": {
+      "TestI18n": [
+        "getter",
+        "regularGetter",
+        "secondMethod"
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unnecessary_nullable_analyzer/nullable_class_parameters.dart": {
+      "unnecessary-nullable": [
+        "constructor AlwaysUsedAsNonNullable.new(anotherValue)",
+        "constructor NamedConstructorNonNullable.withValue(value)",
+        "constructor NamedNonNullable.new(value)"
+      ]
+    },
+    "test/resources/unnecessary_nullable_analyzer/nullable_function_parameters.dart": {
+      "unnecessary-nullable": [
+        "function alwaysNonNullableDoSomething(anotherValue)",
+        "function multipleParametersWithNamed(value, name)",
+        "function multipleParametersWithOptional(value, name)"
+      ]
+    },
+    "test/resources/unnecessary_nullable_analyzer/nullable_method_parameters.dart": {
+      "unnecessary-nullable": [
+        "method ClassWithMethods.alwaysNonNullable(anotherValue)",
+        "method ClassWithMethods.multipleParametersWithNamed(value, name)"
+      ]
+    }
+  }
+}

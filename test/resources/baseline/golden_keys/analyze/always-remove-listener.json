@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/always_remove_listener/examples/example.dart": {
+      "always-remove-listener": [
+        "_ShinyWidgetState.didUpdateWidget#31fc6f655f7c4854",
+        "_ShinyWidgetState.didUpdateWidget#d4375939ebf1d3e4",
+        "_ShinyWidgetState.initState#9b1732cca8db155f",
+        "_ShinyWidgetState.initState#bcbd154bae1626d0",
+        "_ShinyWidgetState.initState#e32f36d2c195b15a",
+        "_ShinyWidgetState.initState#f30d489821f67445"
+      ]
+    }
+  }
+}

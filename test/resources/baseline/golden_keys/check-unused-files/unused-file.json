@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unused_files_analyzer/unused_file.dart": {
+      "unused-file": [
+        ""
+      ]
+    }
+  }
+}

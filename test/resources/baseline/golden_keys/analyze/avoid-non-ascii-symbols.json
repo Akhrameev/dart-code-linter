@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_non_ascii_symbols/examples/example.dart": {
+      "avoid-non-ascii-symbols": [
+        "main#37f06e2b9ddb6148",
+        "main#82c43bd1fe7155ee",
+        "main#b3ff16173cf9d41b",
+        "main#f93c13e6cc0eb73e"
+      ]
+    }
+  }
+}

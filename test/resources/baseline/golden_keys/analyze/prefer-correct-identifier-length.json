@@ -1,0 +1,46 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_identifier_length/examples/class_example.dart": {
+      "prefer-correct-identifier-length": [
+        "Example._#042dc4512fa3d391",
+        "Example._#51e69892ab49df85",
+        "Example.o#7a81af3e591ac713",
+        "Example.p=#516b9783fca517ee",
+        "Example.test#042dc4512fa3d391",
+        "Example.test#51e69892ab49df85",
+        "Example.todo#042dc4512fa3d391",
+        "Example.todo#51e69892ab49df85",
+        "Example.x#11f6ad8ec52a2984",
+        "Example.y#95cb0bfd2977c761",
+        "Example.z#395df8f7c51f0070"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_identifier_length/examples/common_example.dart": {
+      "prefer-correct-identifier-length": [
+        "i#042dc4512fa3d391",
+        "test#6cdac73731b57561",
+        "test#dcccef1c61b9892f",
+        "u#51e69892ab49df85"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_identifier_length/examples/enum_example.dart": {
+      "prefer-correct-identifier-length": [
+        "Enum.i#042dc4512fa3d391",
+        "Enum.u#51e69892ab49df85"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_identifier_length/examples/extension_example.dart": {
+      "prefer-correct-identifier-length": [
+        "Extension.onExtension#042dc4512fa3d391",
+        "Extension.onExtension#51e69892ab49df85"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_identifier_length/examples/mixin_example.dart": {
+      "prefer-correct-identifier-length": [
+        "Mixin.i#042dc4512fa3d391",
+        "Mixin.u#51e69892ab49df85"
+      ]
+    }
+  }
+}

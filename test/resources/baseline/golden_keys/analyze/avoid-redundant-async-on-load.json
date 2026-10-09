@@ -1,0 +1,12 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_redundant_async_on_load/examples/example.dart": {
+      "avoid-redundant-async-on-load": [
+        "MyComponent.onLoad#7cc7966dc0df659b",
+        "MyComponent.onLoad#9c84bd6bdce7afc8",
+        "MyComponent.onLoad#a53fa6aa64f3b245"
+      ]
+    }
+  }
+}

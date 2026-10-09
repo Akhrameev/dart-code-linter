@@ -1,0 +1,43 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/correct_ignore_annotation_example.dart": {
+      "prefer-static-class": [
+        "_privateGlobalConstant#605578de0971ef7d",
+        "_privateGlobalFinalVariable#12c3f37f15b39fd3",
+        "_privateGlobalFunction#72c303e98a9fc552",
+        "_privateGlobalVariable#e4f9d22fc92ab8be",
+        "globalConstant#a7c27abd09b93a98",
+        "globalFinalVariable#a0f0562fcd4d930d",
+        "globalFunction#d442747a73d954d5",
+        "globalVariable#6ee326f98bf37768"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/correct_ignore_names_example.dart": {
+      "prefer-static-class": [
+        "someRiverpodProvider#0279648537fdff36",
+        "useSomeRiverpodHook#962ecbfa9823872c"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/correct_ignore_private_example.dart": {
+      "prefer-static-class": [
+        "_privateGlobalConstant#605578de0971ef7d",
+        "_privateGlobalFinalVariable#12c3f37f15b39fd3",
+        "_privateGlobalFunction#72c303e98a9fc552",
+        "_privateGlobalVariable#e4f9d22fc92ab8be"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/incorrect_example.dart": {
+      "prefer-static-class": [
+        "_privateGlobalConstant#605578de0971ef7d",
+        "_privateGlobalFinalVariable#12c3f37f15b39fd3",
+        "_privateGlobalFunction#72c303e98a9fc552",
+        "_privateGlobalVariable#e4f9d22fc92ab8be",
+        "globalConstant#a7c27abd09b93a98",
+        "globalFinalVariable#a0f0562fcd4d930d",
+        "globalFunction#d442747a73d954d5",
+        "globalVariable#6ee326f98bf37768"
+      ]
+    }
+  }
+}

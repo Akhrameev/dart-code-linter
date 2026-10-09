@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_initializing_in_on_mount/examples/example.dart": {
+      "avoid-initializing-in-on-mount": [
+        "MyComponent.onMount#34bce5f775de97f5"
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_test_file_name/examples/correct_example.dart": {
+      "prefer-correct-test-file-name": [
+        "main#d4a505201dbd683e"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_test_file_name/examples/example.dart": {
+      "prefer-correct-test-file-name": [
+        "main#1785670f24a10b4d"
+      ]
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "maximum-nesting-level": [
+        "Doer.doSomething@0"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "maximum-nesting-level": [
+        "Logger._internal@0",
+        "Logger.fromJson@0",
+        "Logger.log@2",
+        "Logger.new@0"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "maximum-nesting-level": [
+        "Calculator.addOne@0",
+        "_increaseComplexity@1",
+        "functionWithTest@5",
+        "veryComplexFunction@2",
+        "visitBlock@3"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "maximum-nesting-level": [
+        "NumberParsing.parseInt@0"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "maximum-nesting-level": [
+        "main@1",
+        "printInteger@1"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "maximum-nesting-level": [
+        "HalsteadVolumeMetric._log2@0",
+        "HalsteadVolumeMetric.computeImplementation@1"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "maximum-nesting-level": [
+        "LinesOfCodeMetric.commentMessage@0",
+        "LinesOfCodeMetric.computeImplementation@0",
+        "simpleFunction@1"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "maximum-nesting-level": [
+        "MaintainabilityIndexMetric.computeImplementation@1"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "maximum-nesting-level": [
+        "NestingLevelVisitor.deepestNestingNodesChain@0",
+        "NestingLevelVisitor.new@0",
+        "NestingLevelVisitor.visitBlock@3",
+        "SimpleClass.lettersCount@2",
+        "SimpleClass.new@2",
+        "simpleFunction@3"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "maximum-nesting-level": [
+        "Musical.entertainMe@2"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "maximum-nesting-level": [
+        "Foo.copyWith@0",
+        "Foo.new@0",
+        "NumberOfParametersMetric.commentMessage@0",
+        "NumberOfParametersMetric.computeImplementation@2",
+        "NumberOfParametersMetric.new@0",
+        "simpleFunction@1",
+        "simpleFunctionWithArguments@1",
+        "simpleGetter@0",
+        "simpleSetter=@1"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "maximum-nesting-level": [
+        "SourceLinesOfCodeMetric.computeImplementation@1",
+        "SourceLinesOfCodeMetric.recommendationMessage@0",
+        "simpleFunction@1"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "maximum-nesting-level": [
+        "fooBar@1"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "maximum-nesting-level": [
+        "fooBar@1"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "maximum-nesting-level": [
+        "SimpleClass.lettersCount@0",
+        "SimpleClass.new@1",
+        "Spacecraft.describe@2",
+        "Spacecraft.launchYear@0",
+        "Spacecraft.new@1",
+        "Spacecraft.unLaunched@0"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "maximum-nesting-level": [
+        "main@2"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "maximum-nesting-level": [
+        "CupertinoStoreHomePage.build@3"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "maximum-nesting-level": [
+        "main@5"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/examples/example.dart": {
+      "maximum-nesting-level": [
+        "func2@1",
+        "func@1",
+        "main@1"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "maximum-nesting-level": [
+        "main@4"
+      ]
+    }
+  }
+}

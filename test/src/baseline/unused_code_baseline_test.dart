@@ -143,6 +143,24 @@ void main() {
         expect(found(reports), isEmpty);
         expect(session.results.single.hidden, _allKeysCount);
         expect(session.results.single.stale, isEmpty);
+        expect(
+          {
+            for (final finding in session.findings)
+              finding.group: [
+                for (final other in session.findings)
+                  if (other.group == finding.group) other.key,
+              ],
+          },
+          _allKeys,
+          reason: 'the session keeps hidden findings too, for a write',
+        );
+      });
+
+      test('keeps the findings of a run without a baseline file', () async {
+        final (_, session) = await run();
+
+        expect(session.findings, hasLength(_allKeysCount));
+        expect(session.results, isEmpty);
       });
 
       test('tells same-named members of one file apart', () async {

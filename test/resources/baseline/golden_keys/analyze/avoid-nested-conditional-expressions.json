@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_nested_conditional_expressions/examples/example.dart": {
+      "avoid-nested-conditional-expressions": [
+        "func#507682f0a36dcd00",
+        "func#510fbaaa83f4c0e1",
+        "func#54a0600d2224be22",
+        "func#54a0600d2224be22",
+        "func#6d0f3c60959cb123",
+        "func#6d0f3c60959cb123"
+      ]
+    }
+  }
+}

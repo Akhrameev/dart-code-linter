@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_non_null_assertion/examples/example.dart": {
+      "avoid-non-null-assertion": [
+        "Test.method#2a7ada1afb92888f",
+        "Test.method#2a7ada1afb92888f",
+        "Test.method#4999e2578e6e889e",
+        "Test.method#78ec4052d1e5ac79"
+      ]
+    }
+  }
+}

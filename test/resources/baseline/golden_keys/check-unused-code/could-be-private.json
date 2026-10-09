@@ -1,0 +1,456 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unused_code_analyzer/conditional_file.dart": {
+      "could-be-private": [
+        "function calculateResults"
+      ]
+    },
+    "test/resources/unused_code_analyzer/conditional_prefixed_file.dart": {
+      "could-be-private": [
+        "function calculate"
+      ]
+    },
+    "test/resources/unused_code_analyzer/public_members.dart": {
+      "could-be-private": [
+        "class BaseState",
+        "class BuildContext",
+        "class ElevatedButton",
+        "class SomeService",
+        "class State",
+        "class StatefulWidget",
+        "class Text",
+        "class Widget",
+        "method BaseState.initState",
+        "method BaseState.setState",
+        "method SomeService.fetchData",
+        "mixin Mixin"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/annotated_members.dart": {
+      "could-be-private": [
+        "class Annotated",
+        "function useTopLevels",
+        "method Annotated.plainMember",
+        "method Annotated.useEverything"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/callable_members.dart": {
+      "could-be-private": [
+        "class Callable",
+        "class NotCallableField",
+        "class NotCallableGetter",
+        "class NotCallableStatic",
+        "field NotCallableField.call",
+        "getter NotCallableGetter.call",
+        "method Callable.viaImplicitInvocation",
+        "method NotCallableField.viaExplicitInvocation",
+        "method NotCallableGetter.viaExplicitInvocation",
+        "method NotCallableStatic.call",
+        "method NotCallableStatic.viaTypeName"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/could_be_private.dart": {
+      "could-be-private": [
+        "class ApiCaller",
+        "constructor Api.localNamed",
+        "field Api.localField",
+        "getter Api.localGetter",
+        "method Api.localMethod",
+        "method Api.localStatic",
+        "method Api.usesThePrivateOne",
+        "method ApiCaller.run",
+        "setter Api.localSetter="
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/could_be_private_consumer.dart": {
+      "could-be-private": [
+        "function useForeignMembers"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/dynamic_name_collision.dart": {
+      "could-be-private": [
+        "class DynamicHost",
+        "method DynamicHost.callBoth",
+        "method DynamicHost.notShared"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/enums_and_operators.dart": {
+      "could-be-private": [
+        "class Vector",
+        "enum Season",
+        "field Vector.x",
+        "method Vector.combine"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/extension_members.dart": {
+      "could-be-private": [
+        "extension LocalExtension",
+        "function useTheExtension",
+        "getter LocalExtension.doubled"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_implementer.dart": {
+      "could-be-private": [
+        "method Interface.neverInherited"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_implementer_consumer.dart": {
+      "could-be-private": [
+        "class Helper",
+        "class Implementer"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_subclass.dart": {
+      "could-be-private": [
+        "method Base.untouchedBySubclass"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_subclass_consumer.dart": {
+      "could-be-private": [
+        "class Derived"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_subtype_kinds.dart": {
+      "could-be-private": [
+        "function callEnumInterface",
+        "method AliasHost.aliasUntouched",
+        "method AliasHost.callAlias",
+        "method EnumInterface.enumNeverInherited",
+        "method ExtensionTypeHost.callWrapped",
+        "method ExtensionTypeHost.wrappedUntouched",
+        "method MixinHost.callMixed",
+        "method MixinHost.mixedUntouched"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_subtype_kinds_consumer.dart": {
+      "could-be-private": [
+        "enum RedeclaringEnum",
+        "extension type WrappingExtensionType",
+        "function useTheMixin",
+        "method AliasMixin.aliasRedeclared",
+        "mixin AliasMixin",
+        "mixin RedeclaringMixin",
+        "type alias AliasSubtype"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/field_write_only.dart": {
+      "could-be-private": [
+        "field WriteOnly.readLocally",
+        "method WriteOnly.read"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/known_limitation_mock_implementer.dart": {
+      "could-be-private": [
+        "method MockedService.caller",
+        "method MockedService.stubbedByName"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/known_limitation_mock_implementer_consumer.dart": {
+      "could-be-private": [
+        "class Mock"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/named_initializing_formals.dart": {
+      "could-be-private": [
+        "class Config",
+        "constructor Config.positional",
+        "field Config.viaPositionalFormal",
+        "method Config.sum"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/parts_owner.dart": {
+      "could-be-private": [
+        "class PartOwner",
+        "method PartOwner.usedFromThePart"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/parts_part.dart": {
+      "could-be-private": [
+        "function usePartOwner"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/precedence.dart": {
+      "could-be-private": [
+        "class Precedence",
+        "method Precedence.caller",
+        "method Precedence.usedLocally"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/prefixed_usage.dart": {
+      "could-be-private": [
+        "function makeLocally",
+        "method PrefixedType.member"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/prefixed_usage_consumer.dart": {
+      "could-be-private": [
+        "top level variable held"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/private_enclosing_types.dart": {
+      "could-be-private": [
+        "class PublicHost",
+        "class PublicMixesInPrivate",
+        "getter <extension on String>.unnamedExtensionMember",
+        "method PublicHost.publicHostMember"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/same_library_subtype.dart": {
+      "could-be-private": [
+        "class LocalBase",
+        "class LocalDerived",
+        "method LocalBase.callIt",
+        "method LocalBase.overriddenLocally"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/super_constructor.dart": {
+      "could-be-private": [
+        "constructor SuperBase.onlyLocal",
+        "method SuperBase.makeLocal"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/super_constructor_consumer.dart": {
+      "could-be-private": [
+        "class SubOfSuperBase"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/suppressed.dart": {
+      "could-be-private": [
+        "class Suppressed",
+        "method Suppressed.callBoth",
+        "method Suppressed.reportedMember"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/unused_enclosing_type.dart": {
+      "could-be-private": [
+        "class Referenced",
+        "method Referenced.caller",
+        "method Referenced.sharedName"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_constructors.dart": {
+      "could-be-private": [
+        "class FactoryRedirect",
+        "class GenerativeRedirect",
+        "class InstanceCreation",
+        "class PublicCtors",
+        "class StaticOnly",
+        "class SuperBase",
+        "class SuperUser",
+        "class SuppressedCtor",
+        "class TearOff",
+        "enum SelectorEnum",
+        "extension type Meters",
+        "field SelectorEnum.value",
+        "function enumValue",
+        "method StaticOnly.answer"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_enum_constant.dart": {
+      "could-be-private": [
+        "enum PrivateEnumConstant",
+        "function pickUsed"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_members.dart": {
+      "could-be-private": [
+        "class SomeClass",
+        "extension IntPrivateMembersExtension",
+        "method SomeClass.publicUsedMethod"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_override.dart": {
+      "could-be-private": [
+        "class Base",
+        "class Base2",
+        "class Derived",
+        "class Derived2"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_type_kinds.dart": {
+      "could-be-private": [
+        "class MixinUser",
+        "class PrivateStaticMembers",
+        "class SuppressedMember",
+        "enum PrivateEnumMembers",
+        "extension type PrivateExtensionTypeMembers",
+        "method MixinUser.use",
+        "method PrivateEnumMembers.describe",
+        "method PrivateExtensionTypeMembers.describe",
+        "method PrivateStaticMembers.use",
+        "method SuppressedMember.describe",
+        "mixin PrivateMixinMembers"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/annotated_members.dart": {
+      "could-be-private": [
+        "class AnnotatedMembers"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/compound_assignment.dart": {
+      "could-be-private": [
+        "class Accumulator",
+        "field Accumulator.total",
+        "function useCompoundAssignment"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/constructor_supertype_collision.dart": {
+      "could-be-private": [
+        "class Derived"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/cross_library_override.dart": {
+      "could-be-private": [
+        "class TimerPoller"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/enums_and_dynamic.dart": {
+      "could-be-private": [
+        "class DynamicHost",
+        "enum IteratedStatus",
+        "enum NamedStatus",
+        "function callDynamically",
+        "function countIterated",
+        "function pickUsed",
+        "function readDynamically",
+        "function readDynamicallyThroughExpression"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/index_operator_write.dart": {
+      "could-be-private": [
+        "class Dead",
+        "field Dead.value",
+        "function writeIndex"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/js_binding_members.dart": {
+      "could-be-private": [
+        "function openConsole"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/js_exported_members.dart": {
+      "could-be-private": [
+        "class PartiallyExported",
+        "class PlainControl",
+        "class PrefixExported"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/non_writing_operators.dart": {
+      "could-be-private": [
+        "class DynamicOperatorTarget",
+        "class OperatorTarget",
+        "field OperatorTarget.asserted",
+        "field OperatorTarget.complemented",
+        "field OperatorTarget.negated",
+        "field OperatorTarget.negatedNumber"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/non_writing_operators_name_twin.dart": {
+      "could-be-private": [
+        "class UnrelatedToTheDynamicOperator",
+        "class UnrelatedToTheOperators"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/operators_and_extensions.dart": {
+      "could-be-private": [
+        "class Callable",
+        "class Vector",
+        "class Wrapper",
+        "extension PublicIntExtension",
+        "extension WrapperMath",
+        "field Vector.value",
+        "field Wrapper.value",
+        "function useCallable",
+        "function useExtension",
+        "function useExtensionCompound",
+        "function useOperators",
+        "getter PublicIntExtension.doubled"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/overrides.dart": {
+      "could-be-private": [
+        "class Base",
+        "class Derived",
+        "method Base.hook",
+        "method Base.template",
+        "method Derived.derivedUsed"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/prefixed_entry_point_pragma.dart": {
+      "could-be-private": [
+        "class Bridge"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/private_named_enum_constant.dart": {
+      "could-be-private": [
+        "enum PublicEnumConstant",
+        "function pickUsed"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/public_members.dart": {
+      "could-be-private": [
+        "class Api",
+        "constructor Api.usedNamed",
+        "field Api.usedField",
+        "getter Api.usedGetter",
+        "method Api.usedMethod",
+        "method Api.usedStatic",
+        "setter Api.usedSetter="
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/public_type_kinds.dart": {
+      "could-be-private": [
+        "class MixinUser",
+        "enum PublicEnumMembers",
+        "extension type PublicExtensionTypeMembers",
+        "function useEnum",
+        "function useExtensionType",
+        "function useMixin",
+        "getter PublicExtensionTypeMembers.usedInExtensionType",
+        "method MixinUser.use",
+        "method PublicEnumMembers.usedEnumMethod",
+        "method PublicMixinMembers.usedInMixin",
+        "mixin PublicMixinMembers"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/record_field_access.dart": {
+      "could-be-private": [
+        "class RecordFieldNamesake",
+        "function readRecordName"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/setter_write_name_twin.dart": {
+      "could-be-private": [
+        "class UnrelatedToTheDynamicWrite",
+        "class UnrelatedToTheWrite"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/setter_write_resolution.dart": {
+      "could-be-private": [
+        "class DynamicWriteTarget",
+        "class WriteTarget",
+        "method WriteTarget.read",
+        "setter WriteTarget.shared="
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/static_name_collision.dart": {
+      "could-be-private": [
+        "class Derived"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/unary_operators.dart": {
+      "could-be-private": [
+        "class Counter",
+        "field Counter.value",
+        "function useIncrement",
+        "function useUnaryMinus"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/unresolved_supertype.dart": {
+      "could-be-private": [
+        "class Derived"
+      ]
+    }
+  }
+}

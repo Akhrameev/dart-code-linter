@@ -22,15 +22,31 @@ const keyVersionChanges = <int, KeyChange>{};
 /// The groups whose keys changed in one key version.
 class KeyChange {
   final Map<String, Set<String>>? _groups;
+  final Set<String> _commands;
 
   /// Keys of the given groups changed, keyed by command id.
-  const KeyChange.groups(Map<String, Set<String>> groups) : _groups = groups;
+  const KeyChange.groups(Map<String, Set<String>> groups)
+      : _groups = groups,
+        _commands = const {};
+
+  /// Keys of every group of the given commands changed.
+  ///
+  /// Needed for `check-unused-l10n`, whose group ids are the user's class
+  /// names and cannot be listed here.
+  const KeyChange.commands(Set<String> commands)
+      : _groups = const {},
+        _commands = commands;
 
   /// Every key changed, for example because the token hash changed.
-  const KeyChange.all() : _groups = null;
+  const KeyChange.all()
+      : _groups = null,
+        _commands = const {};
 
   /// Whether every key of every command changed.
   bool get isAll => _groups == null;
+
+  /// Whether every key of the given [command] changed.
+  bool coversCommand(String command) => isAll || _commands.contains(command);
 
   /// The changed groups of the given [command].
   Set<String> groupsOf(String command) => _groups?[command] ?? const {};
@@ -85,7 +101,7 @@ CountMode countModeFor({
     if (change == null) {
       continue;
     }
-    if (change.isAll) {
+    if (change.coversCommand(command)) {
       return const CountMode.all();
     }
     groups.addAll(change.groupsOf(command));

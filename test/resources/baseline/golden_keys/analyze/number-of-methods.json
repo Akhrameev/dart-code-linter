@@ -1,0 +1,86 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "number-of-methods": [
+        "Doer@1"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "number-of-methods": [
+        "Logger@4"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "number-of-methods": [
+        "Calculator@1"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "number-of-methods": [
+        "NumberParsing@1"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "number-of-methods": [
+        "HalsteadVolumeMetric@2"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "number-of-methods": [
+        "LinesOfCodeMetric@2"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "number-of-methods": [
+        "MaintainabilityIndexMetric@1"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "number-of-methods": [
+        "NestingLevelVisitor@3",
+        "SimpleClass@2"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "number-of-methods": [
+        "Musical@1"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "number-of-methods": [
+        "Foo@2",
+        "NumberOfParametersMetric@3"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "number-of-methods": [
+        "SourceLinesOfCodeMetric@2"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "number-of-methods": [
+        "Foo@0"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "number-of-methods": [
+        "Foo@0"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "number-of-methods": [
+        "EmptyAbstractClass@0",
+        "SimpleClass@2",
+        "Spacecraft@4"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "number-of-methods": [
+        "CupertinoStoreHomePage@1",
+        "StatelessWidget@0",
+        "Widget@0"
+      ]
+    }
+  }
+}

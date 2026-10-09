@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_async_await/examples/example.dart": {
+      "prefer-async-await": [
+        "function#086758c5303c41fa",
+        "function#5e33de9cf044d1a5",
+        "function#9d835858a3ccfb4f",
+        "getFuture#4012c409feccc0ad"
+      ]
+    }
+  }
+}

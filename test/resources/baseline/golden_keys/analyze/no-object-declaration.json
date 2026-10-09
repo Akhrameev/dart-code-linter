@@ -1,0 +1,12 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_object_declaration/examples/example.dart": {
+      "no-object-declaration": [
+        "Test.data#87ae2997b85e233f",
+        "Test.doWork#afeb2db80c536b21",
+        "Test.getter#f10cde37ca179c1a"
+      ]
+    }
+  }
+}

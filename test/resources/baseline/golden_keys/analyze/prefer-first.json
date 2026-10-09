@@ -1,0 +1,37 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_first/examples/example.dart": {
+      "prefer-first": [
+        "func#03967675115eaee5",
+        "func#1ae9124d337e4ca1",
+        "func#2013d2c41f0b3116",
+        "func#2013d2c41f0b3116",
+        "func#2013d2c41f0b3116",
+        "func#2013d2c41f0b3116",
+        "func#2218c8be709eb2fb",
+        "func#2f55a61d6a9bd02b",
+        "func#35af13587d0d958f",
+        "func#4c9ce7ec3481c493",
+        "func#5418ed8f4d96fcb5",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#5c8ddf2e41093ea4",
+        "func#654be85c11034860",
+        "func#83abdbde2a711db5",
+        "func#a3aef06d5b7c4333",
+        "func#ad9e0a6607d20cfc",
+        "func#e3812608d181ff9a",
+        "func#e438e357ce114b64"
+      ]
+    }
+  }
+}

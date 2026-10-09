@@ -1,0 +1,14 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_equal_then_else/examples/example.dart": {
+      "no-equal-then-else": [
+        "anotherTestFunction#cd53372837e54883",
+        "testFunction#1f61031c7e5682f4",
+        "testFunction#313b711386c10c8e",
+        "testFunction#86403f7c95f1f679",
+        "testFunction#a62ff46574f573cb"
+      ]
+    }
+  }
+}

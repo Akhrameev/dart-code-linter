@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_using_list_view/examples/example.dart": {
+      "prefer-using-list-view": [
+        "MyApp.build#c60a47e52a073d16"
+      ]
+    }
+  }
+}

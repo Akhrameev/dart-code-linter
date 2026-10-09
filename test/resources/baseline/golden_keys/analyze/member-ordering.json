@@ -1,0 +1,26 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/member_ordering/examples/alphabetical_correct_example.dart": {
+      "member-ordering": [
+        "OrderExample._privateField#a8d6b207f4ce722a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/member_ordering/examples/example.dart": {
+      "member-ordering": [
+        "Test.data#41c4d62d61d39c7f",
+        "Test.lateNullableField#ea70f6b1d52d96a5",
+        "Test.nullableField#ae235009af8a75ea",
+        "Test.staticConstField#542ad50e15988900",
+        "Test.staticLateFinalField#3185e30e415fce4d",
+        "Test.value#b2077c90620c0a15"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/member_ordering/examples/flutter_widget_example.dart": {
+      "member-ordering": [
+        "StatelessWidget.initState#6d8ff3f64b2b53b9",
+        "_MyStatelessWidget.initState#077cbaa352ea2087"
+      ]
+    }
+  }
+}

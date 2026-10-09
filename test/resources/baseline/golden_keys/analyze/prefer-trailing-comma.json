@@ -1,0 +1,19 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_trailing_comma/examples/incorrect_example.dart": {
+      "prefer-trailing-comma": [
+        "FirstClass.new#a8131beee37dcedc",
+        "TestClass.firstMethod#09fa52f61c1aa102",
+        "TestClass.secondMethod#4d58895ec5873eaf",
+        "TestClass.secondMethod#9bd6e7cef4fb3dbc",
+        "firstFunction#09fa52f61c1aa102",
+        "secondArray#9bd6e7cef4fb3dbc",
+        "secondFunction#9bd6e7cef4fb3dbc",
+        "secondMap#005eb4fce7cbcdbb",
+        "secondSet#9bd6e7cef4fb3dbc",
+        "thirdFunction#77501dbc3f5a4535"
+      ]
+    }
+  }
+}

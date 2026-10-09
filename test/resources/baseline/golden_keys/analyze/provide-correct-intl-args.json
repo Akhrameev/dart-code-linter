@@ -1,0 +1,31 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/provide_correct_intl_args/examples/incorrect_example.dart": {
+      "provide-correct-intl-args": [
+        "SomeButtonClassI18n.simpleArgsItemMustBeOmittedIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleArgsMustBeInParameterIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleArgsMustBeInParameterIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleInterpolationMustBeInArgsIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleInterpolationMustBeInArgsIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleInterpolationMustBeInParameterIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleInterpolationMustBeInParameterIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleMustBeSimpleIdentifierIssue1#a58c847cda5137af",
+        "SomeButtonClassI18n.simpleMustBeSimpleIdentifierIssue2#a58c847cda5137af",
+        "SomeButtonClassI18n.simpleMustBeSimpleIdentifierIssue2#f32b67c7e26342af",
+        "SomeButtonClassI18n.simpleMustBeSimpleIdentifierIssue2#f32b67c7e26342af",
+        "SomeButtonClassI18n.simpleParameterMustBeInArgsIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleParameterMustBeInArgsIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleTitleArgsMustBeOmittedIssue1#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleTitleArgsMustBeOmittedIssue1#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleTitleArgsMustBeOmittedIssue1#dadd2f645427901a",
+        "SomeButtonClassI18n.simpleTitleArgsMustBeOmittedIssue2#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleTitleArgsMustBeOmittedIssue2#dadd2f645427901a",
+        "SomeButtonClassI18n.simpleTitleNotExistArgsIssue#1b1cb5a8bf0d0248",
+        "SomeButtonClassI18n.simpleTitleNotExistArgsIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleTitleNotExistArgsIssue#6ae999552a0d2dca",
+        "SomeButtonClassI18n.simpleTitleNotExistArgsIssue#6ae999552a0d2dca"
+      ]
+    }
+  }
+}

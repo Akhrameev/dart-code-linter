@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_late_keyword/examples/example.dart": {
+      "avoid-late-keyword": [
+        "Test.field#0beb030fec8b8a32",
+        "Test.method#9fed71ba822307b6",
+        "Test.method#b7eb2600ea472f6a",
+        "Test.uninitializedField#7fe899fdac998668",
+        "topLevelUninitializedVariable#229c0cac97030de5",
+        "topLevelVariable#980ebf110aa3c9fd"
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_non_exhaustive_switch_on_sealed_classes/examples/example.dart": {
+      "avoid-non-exhaustive-switch-on-sealed-classes": [
+        "describeExpressionWithWildcard#7b827269b8cd8e25",
+        "describeStatementWithDefault#a7a8517986228e17",
+        "describeStatementWithParenthesizedWildcard#7267df222f96e1ac",
+        "describeStatementWithWildcard#6126ab446b2b1901"
+      ]
+    }
+  }
+}

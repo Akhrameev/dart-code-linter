@@ -1,0 +1,30 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_enums_by_name/examples/example.dart": {
+      "prefer-enums-by-name": [
+        "main#12e30c1af002636d",
+        "main#2171ce881da3e80a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_enums_by_name/examples/fix.after.dart": {
+      "prefer-enums-by-name": [
+        "main#1f562be49105d371",
+        "main#a9cff37ad1d7f2ed",
+        "main#dfa01d2f16b22601",
+        "main#e20b437a5ce48d6e"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_enums_by_name/examples/fix.before.dart": {
+      "prefer-enums-by-name": [
+        "main#1f562be49105d371",
+        "main#a828a4a2eb6e0a41",
+        "main#a9cff37ad1d7f2ed",
+        "main#dfa01d2f16b22601",
+        "main#e132d9924415bffd",
+        "main#e20b437a5ce48d6e",
+        "main#f26822431ebe6d6e"
+      ]
+    }
+  }
+}

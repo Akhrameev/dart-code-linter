@@ -1,0 +1,10 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/use_design_system_item/examples/example_with_suppression.dart": {
+      "use-design-system-item": [
+        "Example.build#9ed0030dfe5539e5"
+      ]
+    }
+  }
+}

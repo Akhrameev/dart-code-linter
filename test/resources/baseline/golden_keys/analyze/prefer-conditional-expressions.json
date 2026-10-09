@@ -1,0 +1,28 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_conditional_expressions/examples/example.dart": {
+      "prefer-conditional-expressions": [
+        "newCase#118cba0391ce8336",
+        "newCase#76e522bade2b85cb",
+        "newCase#939c71fb9534c131",
+        "newCase#e058b865d745b212",
+        "newCase#e5272a91b56c6144",
+        "testFunction#017358a3acf318bc",
+        "testFunction#031d4e5a06fd3cf9",
+        "testFunction#0bae4c83d2839e2f",
+        "testFunction#19221e5c8682e97a",
+        "testFunction#676ffd52a1e38498",
+        "testFunction#7c560a5da8cdf27f",
+        "testFunction#b3e40a51c1e73956",
+        "testFunction#b6a2f81eff307e8a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_conditional_expressions/examples/nested_example.dart": {
+      "prefer-conditional-expressions": [
+        "main#47bd8e00f9f2a46d",
+        "main#cefdbcf3ac7ae45d"
+      ]
+    }
+  }
+}

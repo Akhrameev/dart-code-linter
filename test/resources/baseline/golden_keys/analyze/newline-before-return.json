@@ -1,0 +1,32 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/newline_before_return/examples/bare_return.before.dart": {
+      "newline-before-return": [
+        "bareReturn#042a136cd301e2b8"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/newline_before_return/examples/before_fix.dart": {
+      "newline-before-return": [
+        "beforeFixExample#83c444b27ae24d8b"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/newline_before_return/examples/comments_before_return.before.dart": {
+      "newline-before-return": [
+        "commentsBeforeReturn#83c444b27ae24d8b"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/newline_before_return/examples/example.dart": {
+      "newline-before-return": [
+        "simpleFunction#1a1b1b033f09eed7",
+        "simpleFunction#7ed6566712c1fbfe",
+        "simpleFunction#7ed6566712c1fbfe"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/newline_before_return/examples/tab_indentation.before.dart": {
+      "newline-before-return": [
+        "tabIndentation#83c444b27ae24d8b"
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/correct_game_instantiating/examples/example.dart": {
+      "correct-game-instantiating": [
+        "MyGamePage.build#7541d6cc9908783d",
+        "_MyGamePageState.build#7541d6cc9908783d"
+      ]
+    }
+  }
+}

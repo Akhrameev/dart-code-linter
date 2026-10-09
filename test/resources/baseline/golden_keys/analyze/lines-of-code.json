@@ -1,0 +1,138 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/abstract_class.dart": {
+      "lines-of-code": [
+        "Doer.doSomething@1"
+      ]
+    },
+    "test/resources/class_with_factory_constructors.dart": {
+      "lines-of-code": [
+        "Logger._internal@1",
+        "Logger.fromJson@2",
+        "Logger.log@5",
+        "Logger.new@2"
+      ]
+    },
+    "test/resources/cyclomatic_complexity_metric_example.dart": {
+      "lines-of-code": [
+        "Calculator.addOne@2",
+        "_increaseComplexity@1",
+        "functionWithTest@15",
+        "veryComplexFunction@62",
+        "visitBlock@18"
+      ]
+    },
+    "test/resources/extension.dart": {
+      "lines-of-code": [
+        "NumberParsing.parseInt@1"
+      ]
+    },
+    "test/resources/functions.dart": {
+      "lines-of-code": [
+        "main@4",
+        "printInteger@3"
+      ]
+    },
+    "test/resources/halstead_volume_metric_example.dart": {
+      "lines-of-code": [
+        "HalsteadVolumeMetric._log2@1",
+        "HalsteadVolumeMetric.computeImplementation@18"
+      ]
+    },
+    "test/resources/lines_of_code_metric_example.dart": {
+      "lines-of-code": [
+        "LinesOfCodeMetric.commentMessage@2",
+        "LinesOfCodeMetric.computeImplementation@12",
+        "simpleFunction@5"
+      ]
+    },
+    "test/resources/maintability_index_metric_example.dart": {
+      "lines-of-code": [
+        "MaintainabilityIndexMetric.computeImplementation@31"
+      ]
+    },
+    "test/resources/maximum_nesting_level_metric_example.dart": {
+      "lines-of-code": [
+        "NestingLevelVisitor.deepestNestingNodesChain@1",
+        "NestingLevelVisitor.new@1",
+        "NestingLevelVisitor.visitBlock@22",
+        "SimpleClass.lettersCount@7",
+        "SimpleClass.new@8",
+        "simpleFunction@15"
+      ]
+    },
+    "test/resources/mixin.dart": {
+      "lines-of-code": [
+        "Musical.entertainMe@9"
+      ]
+    },
+    "test/resources/number_of_parameters_metric_example.dart": {
+      "lines-of-code": [
+        "Foo.copyWith@7",
+        "Foo.new@7",
+        "NumberOfParametersMetric.commentMessage@2",
+        "NumberOfParametersMetric.computeImplementation@17",
+        "NumberOfParametersMetric.new@1",
+        "simpleFunction@5",
+        "simpleFunctionWithArguments@4",
+        "simpleGetter@1",
+        "simpleSetter=@1"
+      ]
+    },
+    "test/resources/source_lines_of_code_metric_example.dart": {
+      "lines-of-code": [
+        "SourceLinesOfCodeMetric.computeImplementation@15",
+        "SourceLinesOfCodeMetric.recommendationMessage@5",
+        "simpleFunction@5"
+      ]
+    },
+    "test/resources/technical_debt_metric_example.dart": {
+      "lines-of-code": [
+        "fooBar@4"
+      ]
+    },
+    "test/resources/technical_debt_metric_example2.dart": {
+      "lines-of-code": [
+        "fooBar@3"
+      ]
+    },
+    "test/resources/weight_of_class_example.dart": {
+      "lines-of-code": [
+        "SimpleClass.lettersCount@6",
+        "SimpleClass.new@4",
+        "Spacecraft.describe@9",
+        "Spacecraft.launchYear@1",
+        "Spacecraft.new@3",
+        "Spacecraft.unLaunched@1"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/example.dart": {
+      "lines-of-code": [
+        "main@35"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/examples/widget.dart": {
+      "lines-of-code": [
+        "CupertinoStoreHomePage.build@48"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method/long_method_test.dart": {
+      "lines-of-code": [
+        "main@159"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/examples/example.dart": {
+      "lines-of-code": [
+        "func2@1",
+        "func@1",
+        "main@1"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_parameter_list/long_parameter_list_test.dart": {
+      "lines-of-code": [
+        "main@100"
+      ]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_extracting_callbacks/examples/example.dart": {
+      "prefer-extracting-callbacks": [
+        "MyAnotherWidget.build#2b3405f7021c8040",
+        "MyWidget.build#2b3405f7021c8040",
+        "MyWidgetWithNestedWidget.build#2b3405f7021c8040"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_extracting_callbacks/examples/example_max_line_count.dart": {
+      "prefer-extracting-callbacks": [
+        "MyWidget.build#849cd7c641a3fa49",
+        "MyWidget.build#a919756a7716882b"
+      ]
+    }
+  }
+}

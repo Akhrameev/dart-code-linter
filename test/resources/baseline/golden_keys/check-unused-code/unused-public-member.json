@@ -1,0 +1,171 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unused_code_analyzer/library/resources/app_icons.dart": {
+      "unused-public-member": [
+        "field AppIcons.authError"
+      ]
+    },
+    "test/resources/unused_code_analyzer/library/src/usage.dart": {
+      "unused-public-member": [
+        "getter Awesome.isAwesome"
+      ]
+    },
+    "test/resources/unused_code_analyzer/public_members.dart": {
+      "unused-public-member": [
+        "enum constant SomeOtherEnum.world",
+        "field ElevatedButton.child",
+        "field ElevatedButton.onLongPress",
+        "field ElevatedButton.onPressed",
+        "field SomeOtherService.value",
+        "field Text.value",
+        "method IntX.doOtherNothing",
+        "method SomeOtherService.init"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/external_implementer_consumer.dart": {
+      "unused-public-member": [
+        "method Helper.suppliedByASuperclass"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/precedence.dart": {
+      "unused-public-member": [
+        "method Precedence.neverUsed"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_constructors.dart": {
+      "unused-public-member": [
+        "constructor PublicCtors.publicUnused"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_members.dart": {
+      "unused-public-member": [
+        "method SomeClass.publicUnusedMethod"
+      ]
+    },
+    "test/resources/unused_code_private_members_analyzer/private_type_kinds.dart": {
+      "unused-public-member": [
+        "enum constant PrivateEnumMembers.second"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/annotated_members.dart": {
+      "unused-public-member": [
+        "method AnnotatedMembers.plainUnused",
+        "method NativeAllocated.notAnEntryPoint"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/compound_assignment.dart": {
+      "unused-public-member": [
+        "operator Accumulator.-"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/constructor_supertype_collision.dart": {
+      "unused-public-member": [
+        "constructor Derived.build"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/cross_library_base.dart": {
+      "unused-public-member": [
+        "method Poller.unusedInBase"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/cross_library_override.dart": {
+      "unused-public-member": [
+        "method TimerPoller.unusedInSubclass"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/enums_and_dynamic.dart": {
+      "unused-public-member": [
+        "enum constant NamedStatus.unused",
+        "method DynamicHost.notInvoked"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/index_operator_write.dart": {
+      "unused-public-member": [
+        "operator Dead.[]="
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/js_binding_members.dart": {
+      "unused-public-member": [
+        "method JsConsole.clear"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/js_exported_members.dart": {
+      "unused-public-member": [
+        "field ExportedService.unusedStaticField",
+        "method ExportedService.unusedStatic",
+        "method PartiallyExported.unusedMember",
+        "method PlainControl.alsoUnused",
+        "method PrefixExported.prefixUnusedMember"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/non_writing_operators_name_twin.dart": {
+      "unused-public-member": [
+        "field UnrelatedToTheOperators.asserted",
+        "field UnrelatedToTheOperators.complemented",
+        "field UnrelatedToTheOperators.negated",
+        "field UnrelatedToTheOperators.negatedNumber"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/operators_and_extensions.dart": {
+      "unused-public-member": [
+        "getter PublicIntExtension.tripled",
+        "operator Vector.*"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/overrides.dart": {
+      "unused-public-member": [
+        "method Base.unusedInBase",
+        "method Derived.derivedUnused"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/prefixed_entry_point_pragma.dart": {
+      "unused-public-member": [
+        "method Bridge.deadControl"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/public_members.dart": {
+      "unused-public-member": [
+        "constructor Api.unusedNamed",
+        "field Api.unusedField",
+        "getter Api.unusedGetter",
+        "method Api.unusedMethod",
+        "method Api.unusedStatic",
+        "setter Api.unusedSetter="
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/public_type_kinds.dart": {
+      "unused-public-member": [
+        "enum constant PublicEnumMembers.second",
+        "getter PublicExtensionTypeMembers.unusedInExtensionType",
+        "method PublicEnumMembers.unusedEnumMethod",
+        "method PublicMixinMembers.unusedInMixin"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/record_field_access.dart": {
+      "unused-public-member": [
+        "method RecordFieldNamesake.name"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/reexported_members.dart": {
+      "unused-public-member": [
+        "method ReexportedApi.deadMethod"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/setter_write_name_twin.dart": {
+      "unused-public-member": [
+        "method UnrelatedToTheWrite.shared"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/static_name_collision.dart": {
+      "unused-public-member": [
+        "method Derived.log"
+      ]
+    },
+    "test/resources/unused_code_public_members_analyzer/unary_operators.dart": {
+      "unused-public-member": [
+        "operator Counter.~"
+      ]
+    }
+  }
+}

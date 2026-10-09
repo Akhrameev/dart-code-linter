@@ -1,0 +1,35 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/format_comment/examples/example.dart": {
+      "format-comment": [
+        "<file>#5eb251674a8d3e68",
+        "Test#eb62183b98e33332",
+        "Test.function#1856e4f51208d44c",
+        "Test.function#b43ff0c72358db44",
+        "Test.new#95cd5672dfbdf819"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/format_comment/examples/example_documentation.dart": {
+      "format-comment": [
+        "<file>#fc6258227d61d8de",
+        "Box._value#0d3e0bfcd0f929e4",
+        "Box.hasValue#e7b34231b20bc5ae",
+        "delete#a8f2935ee1217826",
+        "greet#ebf3f485a7704cde"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/format_comment/examples/multiline_example.dart": {
+      "format-comment": [
+        "Test#0bef026dd807f142",
+        "Test#2ad24e148985f2f6",
+        "Test#6ae0e20803b59038",
+        "Test#af2da86975adbb5d",
+        "Test#ee239f87f3cf1974",
+        "Test.new#205c583334444669",
+        "Test.new#95cd5672dfbdf819",
+        "Test.new#ac3ef8e9e47faab3"
+      ]
+    }
+  }
+}

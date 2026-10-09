@@ -1,0 +1,18 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_immediate_return/examples/example.dart": {
+      "prefer-immediate-return": [
+        "Geometry.calculateRectangleArea#f8b4fbd9cbdaee93",
+        "calculateSomething#37acd4a78509d2fa",
+        "calculateSomething#a3930a2a681781f6",
+        "calculateSum#4557dc8047335486",
+        "calculateSum#4557dc8047335486",
+        "calculateSum#629349f24fa94a1d",
+        "calculateSum#dbeb74aecdb6fff2",
+        "calculateSum#dbeb74aecdb6fff2",
+        "returnNull#5d0857667b6da4e1"
+      ]
+    }
+  }
+}

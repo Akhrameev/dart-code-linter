@@ -1,0 +1,11 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_double_slash_imports/examples/example.dart": {
+      "avoid-double-slash-imports": [
+        "<file>#05c146ae3cfc0549",
+        "<file>#c7e2dee06713a804"
+      ]
+    }
+  }
+}

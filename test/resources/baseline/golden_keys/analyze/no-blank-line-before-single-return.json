@@ -1,0 +1,29 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_blank_line_before_single_return/examples/example.dart": {
+      "no-blank-line-before-single-return": [
+        "simpleFunction#1e25207893ad8e90",
+        "simpleFunction#1e25207893ad8e90",
+        "simpleFunction#1e25207893ad8e90",
+        "simpleFunction#1e25207893ad8e90",
+        "simpleFunction#1e25207893ad8e90",
+        "simpleFunction#1e25207893ad8e90",
+        "simpleFunction#1e25207893ad8e90"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/no_blank_line_before_single_return/examples/fix.before.dart": {
+      "no-blank-line-before-single-return": [
+        "f#0ad357c1acdf1f88",
+        "f#11d02c58db483d55",
+        "f#1a1b1b033f09eed7",
+        "f#343aadfdf840120f",
+        "f#5526bcbee0902f38",
+        "f#5df6d6d3422f68cb",
+        "f#6b1009f954a8ed1b",
+        "f#7ed6566712c1fbfe",
+        "f#b51453ea12a37f0b"
+      ]
+    }
+  }
+}

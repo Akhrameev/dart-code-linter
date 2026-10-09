@@ -1,0 +1,15 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_define_hero_tag/examples/example.dart": {
+      "prefer-define-hero-tag": [
+        "MyWidget.build#949e68f80fbe057e",
+        "MyWidget2.build#87e21c47896dbd46",
+        "MyWidget3.build#e71e88cf22644850",
+        "MyWidget4.build#adc8e1a1d7f8216f",
+        "NavBarExample.build#b62355443c36aafb",
+        "SliverNavBarExample.build#68c403699fe6bf7b"
+      ]
+    }
+  }
+}

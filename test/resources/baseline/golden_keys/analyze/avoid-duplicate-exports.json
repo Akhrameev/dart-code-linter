@@ -1,0 +1,16 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_duplicate_exports/examples/example.dart": {
+      "avoid-duplicate-exports": [
+        "<file>#047b762d476c2b76"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_duplicate_exports/examples/fix.before.dart": {
+      "avoid-duplicate-exports": [
+        "<file>#047b762d476c2b76",
+        "<file>#d82022251755be4c"
+      ]
+    }
+  }
+}

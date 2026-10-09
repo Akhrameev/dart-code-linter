@@ -1,0 +1,56 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/resources/unused_code_analyzer/conditional_file.dart": {
+      "unused": [
+        "function hello"
+      ]
+    },
+    "test/resources/unused_code_analyzer/conditional_prefixed_file.dart": {
+      "unused": [
+        "function helloWorld"
+      ]
+    },
+    "test/resources/unused_code_analyzer/library/resources/app_icons.dart": {
+      "unused": [
+        "class AppIcons"
+      ]
+    },
+    "test/resources/unused_code_analyzer/not_used.dart": {
+      "unused": [
+        "class NotUsed",
+        "function someFunction",
+        "top level variable value"
+      ]
+    },
+    "test/resources/unused_code_analyzer/public_members.dart": {
+      "unused": [
+        "class MyOtherWidget",
+        "class SomeClassWithMethod",
+        "class SomeOtherService",
+        "enum SomeOtherEnum",
+        "extension IntX",
+        "function printInteger",
+        "top level variable someVariable",
+        "type alias World"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/known_limitation_mock_implementer_consumer.dart": {
+      "unused": [
+        "class GeneratedMock",
+        "class HandWrittenMock",
+        "class PartialImplementer"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/private_enclosing_types.dart": {
+      "unused": [
+        "function usePrivateEnclosingTypes"
+      ]
+    },
+    "test/resources/unused_code_could_be_private_analyzer/unused_enclosing_type.dart": {
+      "unused": [
+        "class NeverReferenced"
+      ]
+    }
+  }
+}

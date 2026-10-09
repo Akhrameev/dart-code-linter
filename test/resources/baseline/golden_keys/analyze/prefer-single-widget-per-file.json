@@ -1,0 +1,23 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_single_widget_per_file/examples/flutter_defines.dart": {
+      "prefer-single-widget-per-file": [
+        "StatelessWidget#93ec2b5e77efc139"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_single_widget_per_file/examples/incorrect_example.dart": {
+      "prefer-single-widget-per-file": [
+        "SomeOtherWidget#c77ec562d4aa5ce1",
+        "SomeStatefulWidget#8cf6cc2ae9c9ae70",
+        "_SomeOtherWidget#f774c496b29c249e"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_single_widget_per_file/examples/multi_widgets_example.dart": {
+      "prefer-single-widget-per-file": [
+        "_AnotherPrivateWidget#fac8e7462fdc099c",
+        "_PrivateWidget#d3bd58e25b401510"
+      ]
+    }
+  }
+}

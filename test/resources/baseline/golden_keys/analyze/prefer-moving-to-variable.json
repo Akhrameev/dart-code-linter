@@ -1,0 +1,87 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/arguments_example.dart": {
+      "prefer-moving-to-variable": [
+        "main#053444ec041c5c80",
+        "main#053444ec041c5c80",
+        "main#303b26e181bc5db8",
+        "main#303b26e181bc5db8",
+        "main#386b5340ef28d698",
+        "main#386b5340ef28d698",
+        "main#7a427c5b55fceea7",
+        "main#7a427c5b55fceea7",
+        "main#7a6a658d273aeb4c",
+        "main#7a6a658d273aeb4c",
+        "main#7a6a658d273aeb4c"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/arguments_with_object_example.dart": {
+      "prefer-moving-to-variable": [
+        "main#82ea5193e9469968",
+        "main#82ea5193e9469968",
+        "main#979b3bae6d9f6207",
+        "main#979b3bae6d9f6207",
+        "main#9aa4908b0613d477",
+        "main#9aa4908b0613d477",
+        "main#9aa4908b0613d477",
+        "main#a368cc25a864fddd",
+        "main#a368cc25a864fddd",
+        "main#c2750a92867a8c48",
+        "main#c2750a92867a8c48"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/example.dart": {
+      "prefer-moving-to-variable": [
+        "Theme.someMethod#c7fbbaa36c931d33",
+        "Theme.someMethod#c7fbbaa36c931d33",
+        "main#014115a41831a0f7",
+        "main#014115a41831a0f7",
+        "main#1ed2744f982737fe",
+        "main#1ed2744f982737fe",
+        "main#2706e81098b1db39",
+        "main#2706e81098b1db39",
+        "main#c7fbbaa36c931d33",
+        "main#c7fbbaa36c931d33",
+        "main#d80be74a27f7e39e",
+        "main#d80be74a27f7e39e",
+        "main#fc3c726fb8e1f7a2",
+        "main#fc3c726fb8e1f7a2",
+        "main#fc3c726fb8e1f7a2",
+        "main#fc3c726fb8e1f7a2",
+        "main#fc3c726fb8e1f7a2",
+        "main#fc3c726fb8e1f7a2"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/expression_body_example.dart": {
+      "prefer-moving-to-variable": [
+        "MyWidget.info#8d288d520c76d28e",
+        "MyWidget.info#8d288d520c76d28e",
+        "join#8927300f8374709c",
+        "join#8927300f8374709c"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/expression_body_lambda_example.dart": {
+      "prefer-moving-to-variable": [
+        "processService#8927300f8374709c",
+        "processService#8927300f8374709c"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/ignored_invocations_example.dart": {
+      "prefer-moving-to-variable": [
+        "main#4fa99a3f587e0784",
+        "main#4fa99a3f587e0784",
+        "main#f0db75a40d2ed0bc",
+        "main#f0db75a40d2ed0bc"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_moving_to_variable/examples/ignored_targets_example.dart": {
+      "prefer-moving-to-variable": [
+        "main#0a9c3d694e7fd596",
+        "main#0a9c3d694e7fd596",
+        "main#b56fe1daf190aee6",
+        "main#b56fe1daf190aee6"
+      ]
+    }
+  }
+}

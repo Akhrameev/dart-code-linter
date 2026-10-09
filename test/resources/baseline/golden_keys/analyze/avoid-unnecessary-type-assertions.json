@@ -1,0 +1,52 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unnecessary_type_assertions/examples/example_cases.dart": {
+      "avoid-unnecessary-type-assertions": [
+        "checkTypeAssertion#1136aac3247052ab",
+        "checkTypeAssertion#35dc8fc51d0aa8aa",
+        "checkTypeAssertion#a8309d876c93debd",
+        "checkTypeAssertion#f5ee0c7dad3767b8",
+        "checkWhereType#0bcbd485270159e1",
+        "checkWhereType#2860aac685c847cb",
+        "checkWhereType#79ef074f6b12e9af",
+        "checkWhereType#bf9c70272a5faa0d",
+        "checkWhereType#df1eaaa7724f9477"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unnecessary_type_assertions/examples/example_with_is.dart": {
+      "avoid-unnecessary-type-assertions": [
+        "Example1.main#0c3ebf6ca8c11087",
+        "Example1.main#3acd2b1aa68e0944",
+        "Example1.main#7f3e530f4e53b833",
+        "Example2.main#2fc5bb1d4e2e405b",
+        "Example2.main#4c5a95bf9d762e5b",
+        "Example2.main#58a9514416aa1f29",
+        "Example2.main#5af4fb6466820cca",
+        "Example2.main#d461e27a14c35458",
+        "Example3.main#35dc8fc51d0aa8aa",
+        "checkNullability#0b3a43d42150ba52",
+        "checkNullability#4b2f28a2b0020b14",
+        "checkNullability#63f8fa6a7907305c",
+        "checkNullability#7e5be12e8c2bf2b4",
+        "checkNullability#9ee89ae489f200da",
+        "checkNullability#a88b58a041e1ca92",
+        "checkSameOrInheritor#00337118068b9c49",
+        "checkSameOrInheritor#0d6a889a6b485b96",
+        "checkSameOrInheritor#2fc5bb1d4e2e405b",
+        "checkSameOrInheritor#66a7c4f91f36184f",
+        "checkSameOrInheritor#7a5b65b2fae67954",
+        "checkSameOrInheritor#c2523e643065b357",
+        "checkSameOrInheritor#d235f281cf572699",
+        "checkSameOrInheritor#e955353b33fdd02a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_unnecessary_type_assertions/examples/example_with_not_is.dart": {
+      "avoid-unnecessary-type-assertions": [
+        "checkSameOrInheritor#d235f281cf572699",
+        "checkSameOrInheritor#d62c69eb64d98bf9",
+        "checkSameOrInheritor#e47500143cacb0e7"
+      ]
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/double_linked_queue_example.dart": {
+      "prefer-last": [
+        "func#7b240b1023fdfb4b",
+        "func#cf62e52f9cf59308"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/hash_set_example.dart": {
+      "prefer-last": [
+        "func#7cdefb58df970de4",
+        "func#d19a99d85818677f"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/iterable_example.dart": {
+      "prefer-last": [
+        "func#23daf8af256b5d7e",
+        "func#41e3b09bd865fd8a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/linked_hash_set_example.dart": {
+      "prefer-last": [
+        "func#087a145d5811f2b6",
+        "func#93cf4e8d1b7f7d2a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/list_example.dart": {
+      "prefer-last": [
+        "func#3dd26a7f7ae8dab8",
+        "func#3dd26a7f7ae8dab8",
+        "func#3dd26a7f7ae8dab8",
+        "func#5ea8e39c654378b5",
+        "func#c0f31388eb9246e9",
+        "func#f7bc1ca02338b5ba"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/list_queue_example.dart": {
+      "prefer-last": [
+        "func#1f4f30575aa2805a",
+        "func#a59da406914eabc5"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/queue_example.dart": {
+      "prefer-last": [
+        "func#55e2e5f6df9fcc63",
+        "func#6fbb438fa165ca9a"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/set_example.dart": {
+      "prefer-last": [
+        "func#13ffe3ec22638e19",
+        "func#6231f11c93a35596"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/splay_tree_set_example.dart": {
+      "prefer-last": [
+        "func#5572cf7ac61d17cc",
+        "func#88f51db615e2eb41"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/unmodifiable_list_view_example.dart": {
+      "prefer-last": [
+        "func#1ed1e6849767cebc",
+        "func#ba1a3d662605e472",
+        "func#ba1a3d662605e472",
+        "func#ba1a3d662605e472",
+        "func#d25806ede94c23f9",
+        "func#f8ca4449568a080b"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_last/examples/unmodifiable_set_view_example.dart": {
+      "prefer-last": [
+        "func#1f5249ff7c2d3f09",
+        "func#720a2cc5d26b8bfd"
+      ]
+    }
+  }
+}

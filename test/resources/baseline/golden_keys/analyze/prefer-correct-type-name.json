@@ -1,0 +1,41 @@
+{
+  "keyVersion": 1,
+  "keys": {
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_type_name/examples/class_example.dart": {
+      "prefer-correct-type-name": [
+        "_ex#a978fdac0b251b3f",
+        "_example#2efa882a89d6e97a",
+        "_exampleExclude#cd76da1d25fd1283",
+        "ex#e066133fdba5e507",
+        "example#c3499c2729730a7f"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_type_name/examples/enum_example.dart": {
+      "prefer-correct-type-name": [
+        "_ex#a978fdac0b251b3f",
+        "_example#2efa882a89d6e97a",
+        "_exampleExclude#cd76da1d25fd1283",
+        "ex#e066133fdba5e507",
+        "example#c3499c2729730a7f"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_type_name/examples/extension_example.dart": {
+      "prefer-correct-type-name": [
+        "_ex#a978fdac0b251b3f",
+        "_example#2efa882a89d6e97a",
+        "_exampleExclude#cd76da1d25fd1283",
+        "ex#e066133fdba5e507",
+        "example#c3499c2729730a7f"
+      ]
+    },
+    "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_type_name/examples/mixin_example.dart": {
+      "prefer-correct-type-name": [
+        "_ex#a978fdac0b251b3f",
+        "_example#2efa882a89d6e97a",
+        "_exampleExclude#cd76da1d25fd1283",
+        "ex#e066133fdba5e507",
+        "example#c3499c2729730a7f"
+      ]
+    }
+  }
+}
