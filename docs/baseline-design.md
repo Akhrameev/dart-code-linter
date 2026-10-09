@@ -1,6 +1,6 @@
 # Baseline: design and implementation plan
 
-Status: in progress on `feat/baseline` (steps 1 to 10 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
+Status: in progress on `feat/baseline` (steps 1 to 11 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
 
 ## Goal
 

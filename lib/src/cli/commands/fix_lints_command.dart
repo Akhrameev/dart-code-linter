@@ -47,6 +47,9 @@ class FixCommand extends BaseCommand {
         .complete('Fixes have been applied. Preparing the results:');
   }
 
+  // No usesBaselineOptions(): fix applies every available fix, including
+  // fixes for findings the baseline hides. A fixed finding's entry turns
+  // stale, and --update-baseline removes it, which the run's reminder says.
   void _addFlags() {
     _usesReporterOption();
     addCommonFlags();
