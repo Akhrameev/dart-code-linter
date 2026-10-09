@@ -1,6 +1,6 @@
 # Baseline: design and implementation plan
 
-Status: in progress on `feat/baseline` (steps 1 to 9 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
+Status: in progress on `feat/baseline` (steps 1 to 10 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
 
 ## Goal
 
@@ -561,7 +561,8 @@ New code under `lib/src/baseline/`:
 - `lint_baseline.dart`: the `analyze` adapter. It keys each file's findings while its resolved unit is at hand and matches them all at the end of the run.
 - `baseline_writer.dart`: builds the section `--write-baseline` and `--update-baseline` write, one function each, pure and tested against every row of [Writing and updating](#writing-and-updating), and writes the file atomically. `BaselineSession.write` and `update` apply them to every baseline file of the run, after matching, so both modes see the same coverage and matches as the run itself.
 - `tool_versions.dart`: the versions recorded in `generatedWith`.
-- `baseline_registry.dart`: resolves the baseline of an analysis context (`--baseline`, then the YAML key, then the conventional file), and caches parsed files keyed by path and modification time, including the absence of a conventional file, so the IDE does not touch the disk on every rule.
+- `baseline_location.dart`: resolves the baseline of an analysis context (`--baseline`, then the YAML key, then the conventional file).
+- `baseline_registry.dart`: the IDE's cache of parsed files, keyed by path and modification time, including the absence of a file, so the plugin reads a file's modification time once per analyzed file and parses it only after it changes.
 
 Per analyzer, a small adapter: the key of a finding, and how to rebuild a report with the remaining findings. The report models are const classes with no `copyWith`, so the adapters construct new instances.
 
@@ -570,7 +571,7 @@ Per analyzer, a small adapter: the key of a finding, and how to rebuild a report
 | `analyze` (CLI) | `LintAnalyzer.runCliAnalysis`: keys are computed right after `_analyzeFile`, while the file's `CompilationUnit` is in scope, and matching happens once at the end, since an entry is stale only when nothing in the whole run consumed it. Baselined metric values reuse `MetricValue.suppressed()`, the same mechanism as an ignore comment. |
 | `check-unused-code`, `check-unnecessary-nullable`, `check-unused-l10n` | The end of each `runCliAnalysis`, where the per-context config is known. |
 | `check-unused-files` | The end of `runCliAnalysis`, which runs before `--delete-files`, so a baselined file is never deleted. |
-| Analysis Server plugin | `_DclVisitor.visitCompilationUnit` in `dcl_analysis_rule.dart`, filtering `_dclRule.check(source)` before `reportAtOffset`. The server keeps reported diagnostics to itself, so filtering after reporting is impossible. The config-error report is never filtered. |
+| Analysis Server plugin | `_DclVisitor.visitCompilationUnit` in `dcl_analysis_rule.dart`, filtering `_dclRule.check(source)` before `reportAtOffset`. The server keeps reported diagnostics to itself, so filtering after reporting is impossible. The config-error report is never filtered. The rules of one library analysis share a `PluginBaseline` (`lib/src/analysis_server_plugin/plugin_baseline.dart`), keyed by the visitor registry the server creates for that analysis: it reads the baseline once per unit, computes keys only for units with entries, and picks the rule that reports a broken file. Findings suppressed by an ignore comment take no part in matching, as on the command line, and are reported for the server to drop. |
 
 Public API stays compatible. The analyzers, `Issue` and the report params are exported, so every change is additive: optional named parameters and fields only.
 

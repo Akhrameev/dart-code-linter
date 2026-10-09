@@ -190,7 +190,84 @@ dart_code_linter:
     expect(invalid.output, isNot(contains('unexpected error')));
     expect(invalid.output, contains('no-magic-number'));
   }, skip: skip, timeout: const Timeout(Duration(minutes: 5)));
+
+  test('hides findings recorded in the baseline', () async {
+    final project = Directory.systemTemp.createTempSync('dcl-plugin-baseline-');
+    addTearDown(() => project.deleteSync(recursive: true));
+
+    final packageRoot = p.normalize(Directory.current.absolute.path);
+    File(p.join(project.path, 'pubspec.yaml')).writeAsStringSync('''
+name: dcl_plugin_baseline_fixture
+environment:
+  sdk: ^3.9.0
+dev_dependencies:
+  dart_code_linter:
+    path: ${_yamlString(packageRoot)}
+''');
+    Directory(p.join(project.path, 'lib')).createSync();
+    File(p.join(project.path, 'lib', 'main.dart'))
+        .writeAsStringSync('void check(dynamic value) {}\n');
+    final options = '''
+plugins:
+  dart_code_linter:
+    path: ${_yamlString(packageRoot)}
+    diagnostics:
+      avoid-dynamic: true
+
+dart_code_linter:
+  rules:
+    - avoid-dynamic
+''';
+    File(p.join(project.path, 'analysis_options.yaml'))
+        .writeAsStringSync(options);
+
+    final pubGet = await Process.run(dart!, ['pub', 'get'],
+        workingDirectory: project.path);
+    expect(pubGet.exitCode, 0, reason: '${pubGet.stdout}\n${pubGet.stderr}');
+
+    final write = await Process.run(
+      dart,
+      ['run', 'dart_code_linter:metrics', 'analyze', 'lib', '--write-baseline'],
+      workingDirectory: project.path,
+    );
+    expect(write.exitCode, 0, reason: '${write.stdout}\n${write.stderr}');
+    final baseline = File(p.join(project.path, 'dcl_baseline.json'));
+    expect(baseline.existsSync(), isTrue, reason: '${write.stdout}');
+
+    File(p.join(project.path, 'lib', 'other.dart'))
+        .writeAsStringSync('void other(dynamic value) {}\n');
+
+    final filtered = await _analyze(dart, project, options);
+    expect(
+      _findingsOf(filtered.output, 'avoid-dynamic'),
+      [contains('other.dart')],
+      reason: filtered.output,
+    );
+
+    baseline.writeAsStringSync('{');
+    final broken = await _analyze(dart, project, options);
+    expect(
+      broken.output,
+      contains(
+        'dcl_baseline.json cannot be read: invalid JSON at line 1, column 2',
+      ),
+    );
+    expect(broken.output, contains('Findings are shown without the baseline'));
+    expect(
+      _findingsOf(broken.output, 'avoid-dynamic'),
+      containsAll([contains('main.dart'), contains('other.dart')]),
+      reason: broken.output,
+    );
+  }, skip: skip, timeout: const Timeout(Duration(minutes: 5)));
 }
+
+/// The lines of [output] that report a finding of [ruleId] in a file.
+List<String> _findingsOf(String output, String ruleId) => [
+      for (final line in output.split('\n'))
+        if (line.trimRight().endsWith(' - $ruleId') &&
+            !line.contains('cannot be read'))
+          line,
+    ];
 
 Future<({String output})> _analyze(
   String dart,

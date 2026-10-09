@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_code_linter/src/analysis_server_plugin/rule_config_loader.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/severity.dart';
+import 'package:dart_code_linter/src/baseline/baseline_location.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -275,6 +276,49 @@ dart_code_linter:
       loadAnalysisServerRule(project.path, 'no-magic-number').rule?.severity,
       Severity.warning,
     );
+  });
+
+  test('returns the conventional baseline next to the options', () {
+    _writeOptions(project, '''
+dart_code_linter:
+  rules:
+    - no-magic-number
+''');
+
+    final baseline =
+        loadAnalysisServerRule(project.path, 'no-magic-number').baseline;
+
+    expect(baseline?.source, BaselineSource.conventional);
+    expect(baseline?.path, endsWith('/dcl_baseline.json'));
+  });
+
+  test('returns the baseline named by the options key', () {
+    _writeOptions(project, '''
+dart_code_linter:
+  baseline: tool/baseline.json
+  rules:
+    - no-magic-number
+''');
+
+    final baseline =
+        loadAnalysisServerRule(project.path, 'no-magic-number').baseline;
+
+    expect(baseline?.source, BaselineSource.optionsKey);
+    expect(baseline?.path, endsWith('/tool/baseline.json'));
+  });
+
+  test('returns the baseline when a rule is misconfigured', () {
+    _writeOptions(project, '''
+dart_code_linter:
+  rules:
+    - no-magic-number:
+        severity: loud
+''');
+
+    final loaded = loadAnalysisServerRule(project.path, 'no-magic-number');
+
+    expect(loaded.error, isNotNull);
+    expect(loaded.baseline?.source, BaselineSource.conventional);
   });
 }
 

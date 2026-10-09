@@ -6,6 +6,7 @@ import '../analyzers/lint_analyzer/lint_config.dart';
 import '../analyzers/lint_analyzer/models/severity.dart';
 import '../analyzers/lint_analyzer/rules/models/rule.dart';
 import '../analyzers/lint_analyzer/rules/rules_factory.dart';
+import '../baseline/baseline_location.dart';
 import '../config_builder/config_builder.dart';
 import '../config_builder/models/analysis_options.dart';
 import '../utils/analyzer_utils.dart';
@@ -37,11 +38,14 @@ AnalysisContextCollection _analysisContextCollectionFor(String packageRoot) {
   return collection;
 }
 
-/// Loads [ruleId]'s full DCL configuration for Analysis Server integration.
+/// Loads [ruleId]'s full DCL configuration for Analysis Server integration,
+/// with the baseline of the analysis options: the `dart_code_linter:
+/// baseline:` key, or else the conventional file next to them.
 ({
   Rule? rule,
   Iterable<String> rulesExcludes,
   String? optionsFolderPath,
+  BaselineLocation? baseline,
   FormatException? error,
 }) loadAnalysisServerRule(String packageRoot, String ruleId) {
   LintConfig? loadedConfig;
@@ -62,6 +66,7 @@ AnalysisContextCollection _analysisContextCollectionFor(String packageRoot) {
         rule: null,
         rulesExcludes: config.excludeForRulesPatterns,
         optionsFolderPath: optionsFolderPath,
+        baseline: config.baseline,
         error: null,
       );
     }
@@ -71,6 +76,7 @@ AnalysisContextCollection _analysisContextCollectionFor(String packageRoot) {
       rule: getRulesById({ruleId: ruleConfig}).firstOrNull,
       rulesExcludes: config.excludeForRulesPatterns,
       optionsFolderPath: optionsFolderPath,
+      baseline: config.baseline,
       error: null,
     );
   } on FormatException catch (error) {
@@ -78,6 +84,7 @@ AnalysisContextCollection _analysisContextCollectionFor(String packageRoot) {
       rule: null,
       rulesExcludes: loadedConfig?.excludeForRulesPatterns ?? const [],
       optionsFolderPath: optionsFolderPath,
+      baseline: loadedConfig?.baseline,
       error: error,
     );
   } on Object catch (error) {
@@ -85,6 +92,7 @@ AnalysisContextCollection _analysisContextCollectionFor(String packageRoot) {
       rule: null,
       rulesExcludes: loadedConfig?.excludeForRulesPatterns ?? const [],
       optionsFolderPath: optionsFolderPath,
+      baseline: loadedConfig?.baseline,
       error: FormatException(
         "Invalid configuration for '$ruleId': $error",
         loadedConfig?.analysisOptionsPath ?? optionsFolderPath ?? packageRoot,

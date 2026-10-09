@@ -8,7 +8,9 @@ import 'package:glob/glob.dart';
 
 import '../analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
 import '../analyzers/lint_analyzer/rules/models/rule.dart';
+import '../baseline/baseline_location.dart';
 import '../utils/exclude_utils.dart';
+import 'plugin_baseline.dart';
 import 'rule_config_loader.dart';
 
 /// Bridges a DCL [Rule] into the [AnalysisRule] interface required by
@@ -22,6 +24,10 @@ import 'rule_config_loader.dart';
 /// per-issue message from DCL is forwarded verbatim to the IDE/CLI.
 /// The optional [LintCode.correctionMessage] uses `{1}` for the verbose message.
 final class DclAnalysisRule extends AnalysisRule {
+  /// The baseline of each library analysis, keyed by the registry the
+  /// plugin creates for it.
+  static final _baselines = Expando<PluginBaseline>();
+
   final Rule _dclRule;
 
   /// The [LintCode] is created lazily and cached so it is only allocated once
@@ -47,12 +53,14 @@ final class DclAnalysisRule extends AnalysisRule {
     var configuredRule = _dclRule;
     Iterable<String> rulesExcludes = const [];
     String? optionsFolderPath;
+    BaselineLocation? baselineLocation;
     String? configError;
     if (packageRoot != null) {
       try {
         final loaded = loadAnalysisServerRule(packageRoot, _dclRule.id);
         rulesExcludes = loaded.rulesExcludes;
         optionsFolderPath = loaded.optionsFolderPath;
+        baselineLocation = loaded.baseline;
         if (loaded.error != null) {
           configError = loaded.error!.message;
         } else if (loaded.rule != null) {
@@ -77,17 +85,23 @@ final class DclAnalysisRule extends AnalysisRule {
         ? const <Glob>[]
         : createAbsolutePatterns(rulesExcludes, patternRoot);
 
+    bool runsOn(String path) =>
+        isIncluded(path, includes) &&
+        !isExcluded(path, excludes) &&
+        !isExcluded(path, globalExcludes);
+
+    final baseline = (_baselines[registry] ??=
+        PluginBaseline(pluginBaselineFiles))
+      ..addRule(
+        _dclRule.id,
+        runsOn: runsOn,
+        location: baselineLocation,
+        optionsFolder: optionsFolderPath,
+      );
+
     registry.addCompilationUnit(
       this,
-      _DclVisitor(
-        this,
-        context,
-        configuredRule,
-        configError,
-        includes,
-        excludes,
-        globalExcludes,
-      ),
+      _DclVisitor(this, context, configuredRule, configError, runsOn, baseline),
     );
   }
 }
@@ -97,18 +111,16 @@ class _DclVisitor extends SimpleAstVisitor<void> {
   final RuleContext _context;
   final Rule _dclRule;
   final String? _configError;
-  final Iterable<Glob> _includes;
-  final Iterable<Glob> _excludes;
-  final Iterable<Glob> _rulesExcludes;
+  final bool Function(String path) _runsOn;
+  final PluginBaseline _baseline;
 
   _DclVisitor(
     this._rule,
     this._context,
     this._dclRule,
     this._configError,
-    this._includes,
-    this._excludes,
-    this._rulesExcludes,
+    this._runsOn,
+    this._baseline,
   );
 
   @override
@@ -118,10 +130,17 @@ class _DclVisitor extends SimpleAstVisitor<void> {
       return;
     }
 
-    if (!isIncluded(contextUnit.file.path, _includes) ||
-        isExcluded(contextUnit.file.path, _excludes) ||
-        isExcluded(contextUnit.file.path, _rulesExcludes)) {
+    final path = contextUnit.file.path;
+    if (!_runsOn(path)) {
       return;
+    }
+
+    final baseline = _baseline.unitAt(path, node, contextUnit.content);
+    // A baseline that cannot be read is ignored: every rule keeps reporting
+    // all of its findings, and one rule says why, once per file.
+    final baselineError = baseline.error;
+    if (baselineError != null && baseline.errorReportedBy == _dclRule.id) {
+      _rule.reportAtOffset(0, 0, arguments: [baselineError, '']);
     }
 
     final configError = _configError;
@@ -131,13 +150,20 @@ class _DclVisitor extends SimpleAstVisitor<void> {
     }
 
     final source = InternalResolvedUnitResult(
-      contextUnit.file.path,
+      path,
       contextUnit.content,
       node,
       node.lineInfo,
     );
 
-    for (final issue in _dclRule.check(source)) {
+    // The server keeps reported diagnostics to itself, so findings are
+    // filtered before they are reported. The plugin server watches only
+    // `*.dart` files: editing the baseline does not refresh diagnostics shown
+    // already, only the next analysis of each file, or a restart of the
+    // analysis server, picks up the change.
+    final issues =
+        baseline.filter(_dclRule.id, _dclRule.check(source).toList());
+    for (final issue in issues) {
       _rule.reportAtOffset(
         issue.location.start.offset,
         issue.location.length,

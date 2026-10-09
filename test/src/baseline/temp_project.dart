@@ -36,6 +36,8 @@ class TempProject {
     BaselineCommand command,
     Map<String, Map<String, List<String>>> findings, {
     List<String> analyzedPaths = const ['lib'],
+    BaselineSensitivity sensitivity = BaselineSensitivity.exact,
+    int keyVersion = 1,
   }) {
     write(
       baselineFileName,
@@ -49,8 +51,8 @@ class TempProject {
               'dartSdk': '3.11.3',
             },
             if (command.isProjectWide) 'analyzedPaths': analyzedPaths,
-            'keyVersion': 1,
-            'sensitivity': 'exact',
+            'keyVersion': keyVersion,
+            'sensitivity': sensitivity.name,
             'findings': findings,
           },
         },
