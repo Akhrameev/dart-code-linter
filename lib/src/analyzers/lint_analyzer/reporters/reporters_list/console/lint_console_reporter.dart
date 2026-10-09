@@ -53,6 +53,8 @@ class LintConsoleReporter
         output.writeln('${okPen('✔')} no issues found!');
       }
     }
+
+    reportBaseline(additionalParams?.baseline);
   }
 
   Iterable<String> _reportIssues(Iterable<Issue> issues, String absolutePath) =>

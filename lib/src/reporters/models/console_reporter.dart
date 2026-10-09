@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:ansicolor/ansicolor.dart';
 import 'package:meta/meta.dart';
 
+import '../../baseline/baseline_report.dart';
 import 'file_report.dart';
 import 'reporter.dart';
 
@@ -19,4 +20,17 @@ abstract class ConsoleReporter<T extends FileReport, P> extends Reporter<T, P> {
   final IOSink output;
 
   ConsoleReporter(this.output);
+
+  /// Writes the console summary of the [baseline], after a blank line, when
+  /// it has something to say.
+  @protected
+  void reportBaseline(BaselineReport? baseline) {
+    final lines = baseline?.consoleLines ?? const [];
+    if (lines.isEmpty) {
+      return;
+    }
+
+    output.writeln('');
+    lines.forEach(output.writeln);
+  }
 }

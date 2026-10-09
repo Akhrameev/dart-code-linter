@@ -69,6 +69,7 @@ class AnalyzeCommand extends BaseCommand {
         additionalParams: LintReportParams(
           congratulate: true,
           summary: _analyzer.getSummary(lintAnalyzerResult),
+          baseline: baselineReport,
         ),
       );
     }
@@ -84,6 +85,7 @@ class AnalyzeCommand extends BaseCommand {
           additionalParams: LintReportParams(
             congratulate: !isNoCongratulate,
             summary: _analyzer.getSummary(lintAnalyzerResult),
+            baseline: baselineReport,
           ),
         );
 

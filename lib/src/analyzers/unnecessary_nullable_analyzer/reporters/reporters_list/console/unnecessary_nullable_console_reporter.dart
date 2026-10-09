@@ -20,6 +20,8 @@ class UnnecessaryNullableConsoleReporter extends ConsoleReporter<
             .writeln('${okPen('✔')} no unnecessary nullable parameters found!');
       }
 
+      reportBaseline(additionalParams?.baseline);
+
       return;
     }
 
@@ -55,5 +57,7 @@ class UnnecessaryNullableConsoleReporter extends ConsoleReporter<
     output.writeln(
       '${alarmPen('✖')} total declarations (functions, methods and constructors) with unnecessary nullable parameters - ${alarmPen(warnings)}',
     );
+
+    reportBaseline(additionalParams?.baseline);
   }
 }

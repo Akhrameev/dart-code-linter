@@ -17,7 +17,9 @@ class UnusedFilesJsonReporter
     Iterable<UnusedFilesFileReport> records, {
     UnusedFilesReportParams? additionalParams,
   }) async {
-    if (records.isEmpty) {
+    final baseline = additionalParams?.baseline;
+    // A run whose findings the baseline hides still reports what it hid.
+    if (records.isEmpty && baseline == null) {
       return;
     }
 
@@ -26,6 +28,7 @@ class UnusedFilesJsonReporter
       'timestamp': getTimestamp(),
       'unusedFiles': records.map(_analysisRecordToJson).toList(),
       'automaticallyDeleted': additionalParams?.deleteUnusedFiles ?? false,
+      if (baseline != null) 'baseline': baseline.toJson(),
     });
 
     output.write(encodedReport);

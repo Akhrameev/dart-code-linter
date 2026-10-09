@@ -34,7 +34,9 @@ class LintJsonReporter extends JsonReporter<LintFileReport, LintReportParams> {
     Iterable<LintFileReport> records, {
     LintReportParams? additionalParams,
   }) async {
-    if (records.isEmpty) {
+    final baseline = additionalParams?.baseline;
+    // A run whose findings the baseline hides still reports what it hid.
+    if (records.isEmpty && baseline == null) {
       return;
     }
 
@@ -46,6 +48,7 @@ class LintJsonReporter extends JsonReporter<LintFileReport, LintReportParams> {
       'records': records.map(_lintFileReportToJson).toList(),
       if (summary != null && summary.isNotEmpty)
         'summary': summary.map(_summaryLintReportRecordToJson).toList(),
+      if (baseline != null) 'baseline': baseline.toJson(),
     });
 
     output.write(encodedReport);

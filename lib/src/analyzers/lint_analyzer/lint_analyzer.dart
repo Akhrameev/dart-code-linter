@@ -7,6 +7,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/syntactic_entity.dart';
 import 'package:path/path.dart';
 
+import '../../baseline/baseline_location.dart';
 import '../../baseline/baseline_session.dart';
 import '../../baseline/lint_baseline.dart';
 import '../../config_builder/config_builder.dart';
@@ -138,6 +139,10 @@ class LintAnalyzer {
     return lintBaseline?.apply(analyzerResult, collection) ?? analyzerResult;
   }
 
+  /// Printed by [runCliFix] when a baseline is configured.
+  static const baselineFixNote = 'fix applies to all findings, including '
+      'those hidden by the baseline; run --update-baseline afterwards.';
+
   Future<void> runCliFix(
     Iterable<String> folders,
     String rootFolder,
@@ -146,6 +151,7 @@ class LintAnalyzer {
   }) async {
     final collection =
         createAnalysisContextCollection(folders, rootFolder, sdkPath);
+    var usesBaseline = false;
 
     for (final context in collection.contexts) {
       final (lintAnalysisConfig, analyzedFiles, _) = prepareLintAnalysis(
@@ -155,6 +161,14 @@ class LintAnalyzer {
         config,
         collection,
       );
+
+      // fix deliberately ignores the baseline: it applies every available
+      // fix. A fixed finding's entry turns stale, which --update-baseline
+      // removes.
+      final baseline = lintAnalysisConfig.baseline;
+      usesBaseline |= baseline != null &&
+          (baseline.source != BaselineSource.conventional ||
+              File(baseline.path).existsSync());
 
       for (final filePath in analyzedFiles) {
         _logger?.infoVerbose('Fixing $filePath\n');
@@ -181,7 +195,9 @@ class LintAnalyzer {
       }
     }
 
-    return;
+    if (usesBaseline) {
+      _logger?.info(baselineFixNote);
+    }
   }
 
   (

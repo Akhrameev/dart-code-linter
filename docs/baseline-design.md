@@ -1,6 +1,6 @@
 # Baseline: design and implementation plan
 
-Status: in progress on `feat/baseline` (steps 1 to 8 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
+Status: in progress on `feat/baseline` (steps 1 to 9 of the [Plan](#plan) done). Base: trunk `adab62a1`, 4.4.2 (analyzer `>=10.0.0 <15.0.0`).
 
 ## Goal
 
@@ -607,13 +607,17 @@ A run can use several baseline files: one per analysis context in a monorepo, or
   ```
 
   - `files` holds one object per baseline file the run touched, sorted by `path`. `path` is relative to `--root-folder`, POSIX style; the `path` inside `worsened` and `stale` is relative to that baseline file, as in the file itself, so an entry can be found there by copying it.
-  - `action` is `read`, `created`, `written` or `updated`, so CI can tell which files to commit after a write.
-  - `disabled`, `countMode` and `pathsMismatch` are omitted when empty (`pathsMismatch` only appears for the four project-wide commands); `reason` appears only on stale entries that are not plain fixed findings.
+  - `action` is `read`, `created`, `written` or `updated`, so CI can tell which files to commit after a write. Three more values say a write or update left the file alone: `unchanged` (it already held the new content), `skipped` (`--update-baseline` over other analyzed paths) and `failed` (the file could not be written).
+  - `recorded` appears after `--write-baseline`: the number of findings recorded from this run.
+  - `stale` lists the entries still in the file after the run: a write removes them all, an update all but those of groups in count mode.
+  - `countMode` holds `groups`, or `"all": true` when the whole section is matched by count.
+  - `versionsMismatch` holds the `recorded` and `current` versions when they differ (see [Recorded versions](#recorded-versions)); never after a write, which records the current ones.
+  - `disabled`, `countMode`, `pathsMismatch` and `versionsMismatch` are omitted when empty (`pathsMismatch` only appears for the four project-wide commands); `reason` appears only on stale entries that are not plain fixed findings.
   - `total` sums the files, so a consumer that only wants the numbers does not have to.
   - The shape is the same for all five commands. Each command's JSON report holds the entries of its own section only.
-  - Additive, so the JSON format versions of the existing reporters do not change.
+  - Additive, so the JSON format versions of the existing reporters do not change. A JSON reporter that used to write nothing for a run without findings now writes its report when the run used a baseline, so a run whose findings are all hidden still says what it hid.
 - Other lint reporters (checkstyle, code climate, GitLab, GitHub, HTML) only see the filtered findings and need no change.
-- These counts reach the reporters through a new optional field on each `*ReportParams`.
+- These counts reach the reporters through a new optional field on each `*ReportParams`, a `BaselineReport` (`lib/src/baseline/baseline_report.dart`) that renders both the JSON object and the console lines, so the five commands cannot drift apart.
 
 ## IDE limitations
 

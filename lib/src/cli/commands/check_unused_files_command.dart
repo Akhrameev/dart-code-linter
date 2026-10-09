@@ -78,6 +78,7 @@ class CheckUnusedFilesCommand extends BaseCommand {
           additionalParams: UnusedFilesReportParams(
             congratulate: !isNoCongratulate,
             deleteUnusedFiles: deleteFiles,
+            baseline: baselineReport,
           ),
         );
 

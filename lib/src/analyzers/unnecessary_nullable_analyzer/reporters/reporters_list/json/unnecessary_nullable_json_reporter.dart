@@ -18,7 +18,9 @@ class UnnecessaryNullableJsonReporter extends JsonReporter<
     Iterable<UnnecessaryNullableFileReport> records, {
     UnnecessaryNullableReportParams? additionalParams,
   }) async {
-    if (records.isEmpty) {
+    final baseline = additionalParams?.baseline;
+    // A run whose findings the baseline hides still reports what it hid.
+    if (records.isEmpty && baseline == null) {
       return;
     }
 
@@ -27,6 +29,7 @@ class UnnecessaryNullableJsonReporter extends JsonReporter<
       'timestamp': getTimestamp(),
       'unnecessaryNullable':
           records.map(_unnecessaryNullableFileReportToJson).toList(),
+      if (baseline != null) 'baseline': baseline.toJson(),
     });
 
     output.write(encodedReport);

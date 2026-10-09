@@ -23,7 +23,9 @@ class UnusedCodeJsonReporter
     Iterable<UnusedCodeFileReport> records, {
     UnusedCodeReportParams? additionalParams,
   }) async {
-    if (records.isEmpty) {
+    final baseline = additionalParams?.baseline;
+    // A run whose findings the baseline hides still reports what it hid.
+    if (records.isEmpty && baseline == null) {
       return;
     }
 
@@ -31,6 +33,7 @@ class UnusedCodeJsonReporter
       'formatVersion': formatVersion,
       'timestamp': getTimestamp(),
       'unusedCode': records.map(_unusedCodeFileReportToJson).toList(),
+      if (baseline != null) 'baseline': baseline.toJson(),
     });
 
     output.write(encodedReport);

@@ -98,8 +98,10 @@ class CheckUnusedCodeCommand extends BaseCommand {
         )
         ?.report(
           unusedCodeResult,
-          additionalParams:
-              UnusedCodeReportParams(congratulate: !isNoCongratulate),
+          additionalParams: UnusedCodeReportParams(
+            congratulate: !isNoCongratulate,
+            baseline: baselineReport,
+          ),
         );
 
     if (isFatalUnusedCodeResult(

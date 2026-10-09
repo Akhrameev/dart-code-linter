@@ -20,6 +20,8 @@ class UnusedCodeConsoleReporter
         output.writeln('${okPen('✔')} no unused code found!');
       }
 
+      reportBaseline(additionalParams?.baseline);
+
       return;
     }
 
@@ -72,5 +74,7 @@ class UnusedCodeConsoleReporter
         '${alarmPen('✖')} total declarations that could be private - ${alarmPen(suggestions)}',
       );
     }
+
+    reportBaseline(additionalParams?.baseline);
   }
 }

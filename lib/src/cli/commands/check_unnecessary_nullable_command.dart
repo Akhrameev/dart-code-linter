@@ -71,8 +71,10 @@ class CheckUnnecessaryNullableCommand extends BaseCommand {
         )
         ?.report(
           unusedCodeResult,
-          additionalParams:
-              UnnecessaryNullableReportParams(congratulate: !isNoCongratulate),
+          additionalParams: UnnecessaryNullableReportParams(
+            congratulate: !isNoCongratulate,
+            baseline: baselineReport,
+          ),
         );
 
     if (unusedCodeResult.isNotEmpty &&

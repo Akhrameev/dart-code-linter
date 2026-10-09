@@ -19,6 +19,8 @@ class UnusedFilesConsoleReporter
         output.writeln('${okPen('✔')} no unused files found!');
       }
 
+      reportBaseline(additionalParams?.baseline);
+
       return;
     }
 
@@ -40,5 +42,7 @@ class UnusedFilesConsoleReporter
     output
       ..writeln('')
       ..writeln(outputRecord);
+
+    reportBaseline(additionalParams?.baseline);
   }
 }

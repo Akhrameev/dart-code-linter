@@ -14,7 +14,7 @@ import '../baseline/temp_project.dart';
 /// process, since the commands end with `exit()`.
 void main() {
   group(
-    'Baseline exit codes',
+    'Baseline CLI',
     () {
       late Directory snapshotFolder;
       late String snapshot;
@@ -47,12 +47,13 @@ void main() {
       Future<ProcessResult> run(
         List<String> options, {
         List<String> paths = const ['lib'],
+        String command = 'check-unused-files',
       }) =>
           Process.run(
             Platform.resolvedExecutable,
             [
               snapshot,
-              'check-unused-files',
+              command,
               ...paths,
               '--root-folder',
               project.path,
@@ -122,6 +123,82 @@ void main() {
         expect(written.stdout, contains('fresh.dart'));
         expect(written.stdout, contains('1 new one reported below'));
         expectExit(await run([]), 0);
+      });
+
+      test('reports the baseline in the console and JSON output', () async {
+        writeSection(section(findings: {
+          'lib/unused.dart': {
+            'unused-file': [''],
+          },
+          'lib/deleted.dart': {
+            'unused-file': [''],
+          },
+        }));
+
+        final console = await run([]);
+        expectExit(console, 0);
+        expect(
+          console.stdout,
+          contains('1 finding hidden by baseline $baselineFileName. 1 '
+              'baseline entry no longer occurs; run with --update-baseline '
+              'to remove it.'),
+        );
+        expect(
+          console.stdout,
+          contains('Baseline for check-unused-files in $baselineFileName was '
+              'written with dart_code_linter 4.4.0 and analyzer 13.0.0 and '
+              'Dart SDK 3.10.0'),
+        );
+
+        final json = await run(['--reporter=json']);
+        expectExit(json, 0);
+        final stdout = json.stdout as String;
+        final report = jsonDecode(stdout.substring(stdout.indexOf('{')))
+            as Map<String, Object?>;
+        final baseline = report['baseline']! as Map<String, Object?>;
+        expect(baseline['total'], {'hidden': 1, 'worsened': 0, 'stale': 1});
+        expect(
+          ((baseline['files']! as List).single as Map)['action'],
+          'read',
+        );
+      });
+
+      test('--fatal-stale-baseline names other tool versions as the cause',
+          () async {
+        writeSection(section(findings: {
+          'lib/deleted.dart': {
+            'unused-file': [''],
+          },
+        }));
+
+        final stale =
+            await run(['--fatal-stale-baseline', '--no-fatal-unused']);
+
+        expectExit(stale, 1);
+        expect(stale.stderr, contains('other tool versions than this run'));
+      });
+
+      test('fix notes that it ignores a configured baseline', () async {
+        project
+          ..write(
+            'analysis_options.yaml',
+            'dart_code_linter:\n  rules:\n    - no-magic-number\n',
+          )
+          ..write('lib/main.dart', 'int main() => 42;\n');
+
+        final without = await run([], command: 'fix');
+        expect(without.stdout, isNot(contains('--update-baseline')));
+
+        baselineFile().writeAsStringSync(jsonEncode({
+          'formatVersion': 1,
+          'commands': <String, Object?>{},
+        }));
+        final fixed = await run([], command: 'fix');
+        expect(
+          fixed.stdout,
+          contains('fix applies to all findings, including those hidden by '
+              'the baseline; run --update-baseline afterwards.'),
+        );
       });
 
       test('--fatal-stale-baseline fails a normal run with stale entries',

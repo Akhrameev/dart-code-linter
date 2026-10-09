@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/analysis_context.dart';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:glob/glob.dart';
+import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
 import '../utils/analyzer_utils.dart';
@@ -73,6 +74,38 @@ class AnalyzedPathsMismatch {
   const AnalyzedPathsMismatch(this.recorded, this.current);
 }
 
+/// A baselined finding reported again because its measured value got worse.
+@immutable
+class WorsenedEntry {
+  /// The path, relative to the baseline file.
+  final String path;
+
+  /// The group id: a metric or anti-pattern id.
+  final String group;
+
+  /// The baseline key the finding consumed, with the recorded value.
+  final String key;
+
+  /// The current value.
+  final num current;
+
+  const WorsenedEntry(this.path, this.group, this.key, this.current);
+
+  @override
+  bool operator ==(Object other) =>
+      other is WorsenedEntry &&
+      other.path == path &&
+      other.group == group &&
+      other.key == key &&
+      other.current == current;
+
+  @override
+  int get hashCode => Object.hash(path, group, key, current);
+
+  @override
+  String toString() => 'WorsenedEntry($path, $group, $key, $current)';
+}
+
 /// What a run did with one baseline file.
 class BaselineFileResult {
   /// The absolute path of the file.
@@ -84,9 +117,22 @@ class BaselineFileResult {
   /// The number of findings the file hid.
   final int hidden;
 
-  /// The number of baselined findings reported again because their measured
-  /// value got worse.
-  final int worsened;
+  /// The baselined findings reported again because their measured value got
+  /// worse, in the order of the run's findings.
+  final List<WorsenedEntry> worsenedEntries;
+
+  /// The number of findings of the file's contexts not in the section.
+  final int unmatched;
+
+  /// The tool versions the section was written with.
+  final BaselineVersions generatedWith;
+
+  /// The key version of the section.
+  final int keyVersion;
+
+  /// The groups matched by count because their keys changed since the
+  /// section was written.
+  final CountMode countMode;
 
   /// Entries no finding consumed, with paths relative to the file. Empty when
   /// the analyzed paths differ from the recorded ones.
@@ -102,11 +148,19 @@ class BaselineFileResult {
     required this.path,
     required this.displayPath,
     required this.hidden,
-    this.worsened = 0,
     required this.stale,
     required this.disabled,
     required this.pathsMismatch,
+    required this.generatedWith,
+    required this.keyVersion,
+    this.worsenedEntries = const [],
+    this.unmatched = 0,
+    this.countMode = const CountMode.none(),
   });
+
+  /// The number of baselined findings reported again because their measured
+  /// value got worse.
+  int get worsened => worsenedEntries.length;
 }
 
 /// What a write or update did to one baseline file.
@@ -446,12 +500,25 @@ class BaselineSession {
         valueDirectionOf: valueDirectionOf,
       );
 
+      final worsened = <WorsenedEntry>[];
       for (final MapEntry(key: path, value: groups) in match.groups.entries) {
         for (final MapEntry(key: group, value: groupMatch) in groups.entries) {
           final groupIndices = indices[file]![path]![group]!;
           for (var i = 0; i < groupMatch.outcomes.length; i++) {
-            if (groupMatch.outcomes[i].status == FindingStatus.hidden) {
-              hidden[groupIndices[i]] = true;
+            final outcome = groupMatch.outcomes[i];
+            switch (outcome.status) {
+              case FindingStatus.hidden:
+                hidden[groupIndices[i]] = true;
+              case FindingStatus.worsened:
+                final key = current[path]![group]![i];
+                worsened.add(WorsenedEntry(
+                  path,
+                  group,
+                  outcome.entry!,
+                  num.parse(key.substring(key.lastIndexOf('@') + 1)),
+                ));
+              case FindingStatus.unmatched:
+                break;
             }
           }
         }
@@ -461,10 +528,14 @@ class BaselineSession {
         path: file.location.path,
         displayPath: file.displayPath,
         hidden: match.hidden,
-        worsened: match.worsened,
+        worsenedEntries: worsened,
+        unmatched: match.unmatched,
         stale: mismatch == null ? match.stale : const [],
         disabled: match.disabled,
         pathsMismatch: mismatch,
+        generatedWith: section.generatedWith,
+        keyVersion: section.keyVersion,
+        countMode: countMode,
       ));
     }
 

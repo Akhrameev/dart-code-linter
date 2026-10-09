@@ -18,7 +18,9 @@ class UnusedL10nJsonReporter
     Iterable<UnusedL10nFileReport> records, {
     UnusedL10NReportParams? additionalParams,
   }) async {
-    if (records.isEmpty) {
+    final baseline = additionalParams?.baseline;
+    // A run whose findings the baseline hides still reports what it hid.
+    if (records.isEmpty && baseline == null) {
       return;
     }
 
@@ -26,6 +28,7 @@ class UnusedL10nJsonReporter
       'formatVersion': formatVersion,
       'timestamp': getTimestamp(),
       'unusedLocalizations': records.map(_unusedL10nFileReportToJson).toList(),
+      if (baseline != null) 'baseline': baseline.toJson(),
     });
 
     output.write(encodedReport);

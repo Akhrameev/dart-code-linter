@@ -19,6 +19,8 @@ class UnusedL10nConsoleReporter
         output.writeln('${okPen('✔')} no unused localization found!');
       }
 
+      reportBaseline(additionalParams?.baseline);
+
       return;
     }
 
@@ -51,5 +53,7 @@ class UnusedL10nConsoleReporter
     output.writeln(
       '${alarmPen('✖')} total unused localization class fields, getters and methods - ${alarmPen(warnings)}',
     );
+
+    reportBaseline(additionalParams?.baseline);
   }
 }

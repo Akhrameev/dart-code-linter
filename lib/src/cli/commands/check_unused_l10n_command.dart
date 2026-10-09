@@ -71,8 +71,10 @@ class CheckUnusedL10nCommand extends BaseCommand {
         )
         ?.report(
           unusedL10nResult,
-          additionalParams:
-              UnusedL10NReportParams(congratulate: !isNoCongratulate),
+          additionalParams: UnusedL10NReportParams(
+            congratulate: !isNoCongratulate,
+            baseline: baselineReport,
+          ),
         );
 
     if (unusedL10nResult.isNotEmpty &&

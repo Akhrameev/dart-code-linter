@@ -9,6 +9,7 @@ import 'package:path/path.dart';
 
 import '../../baseline/baseline.dart';
 import '../../baseline/baseline_location.dart';
+import '../../baseline/baseline_report.dart';
 import '../../baseline/baseline_session.dart';
 import '../../baseline/tool_versions.dart';
 import '../../logger/logger.dart';
@@ -172,15 +173,15 @@ abstract class BaseCommand extends Command<void> {
       );
     }
 
+    final versions = await currentToolVersions(findSdkPath());
     final written = options.write
-        ? baseline.write(
-            versions: await currentToolVersions(findSdkPath()),
-            sensitivity: options.sensitivity,
-          )
+        ? baseline.write(versions: versions, sensitivity: options.sensitivity)
         : options.update
             ? baseline.update()
             : const <BaselineWriteResult>[];
     _baselineWrites = written;
+    _baselineReport =
+        BaselineReport.of(baseline, writes: written, versions: versions);
     for (final file in written) {
       file.messages.forEach(
         file.action == BaselineWriteAction.failed ||
@@ -194,6 +195,12 @@ abstract class BaseCommand extends Command<void> {
   }
 
   List<BaselineWriteResult> _baselineWrites = const [];
+  BaselineReport? _baselineReport;
+
+  /// What the baseline files did in this run, for the reporters; null when
+  /// the run used none. Set by [runWithBaseline].
+  @protected
+  BaselineReport? get baselineReport => _baselineReport;
 
   /// Exits with 1 when a baseline file could not be written, or, with
   /// `--fatal-stale-baseline` in a normal run, when baseline entries of the
@@ -220,7 +227,8 @@ abstract class BaseCommand extends Command<void> {
         '$stale baseline ${stale == 1 ? 'entry no longer occurs' : 'entries no longer occur'} '
         'and --fatal-stale-baseline is set. Run the command with '
         '--update-baseline to remove ${stale == 1 ? 'it' : 'them'}, and '
-        'commit the result.',
+        'commit the result.'
+        '${_baselineReport?.hasVersionsMismatch ?? false ? ' The baseline was written with other tool versions than this run (see above), the most likely cause.' : ''}',
       );
       exit(1);
     }
