@@ -52,7 +52,7 @@ class CheckUnnecessaryNullableCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final (unusedCodeResult, _) = await runWithBaseline(
+    final (unusedCodeResult, baselineSession) = await runWithBaseline(
       BaselineCommand.checkUnnecessaryNullable,
       _logger,
       (baseline) => _analyzer.runCliAnalysis(
@@ -79,6 +79,8 @@ class CheckUnnecessaryNullableCommand extends BaseCommand {
         (argResults[FlagNames.fatalOnFound] as bool)) {
       exit(1);
     }
+
+    checkBaselineExit(baselineSession, _logger);
   }
 
   void _addFlags() {

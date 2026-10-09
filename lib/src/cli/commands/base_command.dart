@@ -10,6 +10,7 @@ import 'package:path/path.dart';
 import '../../baseline/baseline.dart';
 import '../../baseline/baseline_location.dart';
 import '../../baseline/baseline_session.dart';
+import '../../baseline/tool_versions.dart';
 import '../../logger/logger.dart';
 import '../exceptions/invalid_argument_exception.dart';
 import '../models/baseline_options.dart';
@@ -117,25 +118,42 @@ abstract class BaseCommand extends Command<void> {
     }
   }
 
-  /// Runs [analysis] with a baseline session for [command] and completes the
-  /// [logger]'s progress.
+  /// Runs [analysis] with a baseline session for [command], completes the
+  /// [logger]'s progress, and writes or updates the baseline files when asked.
   ///
   /// A baseline file that cannot be read stops the run with exit 1, naming the
   /// file: silently dropping it would report every old finding, and CI would
-  /// read that as a regression. Warnings, such as a configured file that does
-  /// not exist, are printed once the analysis is complete.
+  /// read that as a regression. So does a file a write or update must not
+  /// touch, and nothing is written then. Warnings, such as a configured file
+  /// that does not exist, are printed once the analysis is complete.
+  ///
+  /// Files are written before the caller reports, so that fixed debt is
+  /// removed even from a run that fails for new findings. A file that cannot
+  /// be written fails the run with exit 1 once the others are written and
+  /// the findings reported, see [checkBaselineExit].
   @protected
   Future<(T, BaselineSession)> runWithBaseline<T>(
     BaselineCommand command,
     Logger logger,
     Future<T> Function(BaselineSession baseline) analysis,
   ) async {
-    final baseline = BaselineSession(command, creating: baselineOptions.write);
+    final options = baselineOptions;
+    final baseline = BaselineSession(
+      command,
+      mode: options.write
+          ? BaselineMode.write
+          : options.update
+              ? BaselineMode.update
+              : BaselineMode.read,
+    );
 
     final T result;
     try {
       result = await analysis(baseline);
-    } on BaselineFormatException catch (e) {
+    } on Exception catch (e) {
+      if (e is! BaselineFormatException && e is! BaselineRefusedException) {
+        rethrow;
+      }
       logger
         ..progress.fail('Analysis is aborted.')
         ..error(e.toString());
@@ -145,7 +163,67 @@ abstract class BaseCommand extends Command<void> {
     logger.progress.complete('Analysis is completed. Preparing the results:');
     baseline.warnings.forEach(logger.warn);
 
+    if (options.update && !baseline.hasConfiguredBaseline) {
+      usageException(
+        '--update-baseline found no baseline to update: no --baseline, no '
+        '"dart_code_linter: baseline:" key and no $baselineFileName next to '
+        'the analysis options of the analyzed paths. It only removes entries '
+        'from an existing baseline; use --write-baseline to create one.',
+      );
+    }
+
+    final written = options.write
+        ? baseline.write(
+            versions: await currentToolVersions(findSdkPath()),
+            sensitivity: options.sensitivity,
+          )
+        : options.update
+            ? baseline.update()
+            : const <BaselineWriteResult>[];
+    _baselineWrites = written;
+    for (final file in written) {
+      file.messages.forEach(
+        file.action == BaselineWriteAction.failed ||
+                file.action == BaselineWriteAction.skipped
+            ? logger.warn
+            : logger.info,
+      );
+    }
+
     return (result, baseline);
+  }
+
+  List<BaselineWriteResult> _baselineWrites = const [];
+
+  /// Exits with 1 when a baseline file could not be written, or, with
+  /// `--fatal-stale-baseline` in a normal run, when baseline entries of the
+  /// [baseline] no longer occur. Call once the findings are reported.
+  ///
+  /// Write and update runs remove the stale entries, so they never fail for
+  /// them.
+  @protected
+  void checkBaselineExit(BaselineSession baseline, Logger logger) {
+    if (_baselineWrites
+        .any((file) => file.action == BaselineWriteAction.failed)) {
+      exit(1);
+    }
+
+    if (baseline.mode != BaselineMode.read || !baselineOptions.fatalStale) {
+      return;
+    }
+    final stale = baseline.results.fold<int>(
+      0,
+      (count, file) => count + file.stale.length,
+    );
+    if (stale > 0) {
+      logger.error(
+        '$stale baseline ${stale == 1 ? 'entry no longer occurs' : 'entries no longer occur'} '
+        'and --fatal-stale-baseline is set. Run the command with '
+        '--update-baseline to remove ${stale == 1 ? 'it' : 'them'}, and '
+        'commit the result.',
+      );
+      exit(1);
+    }
   }
 
   void validateRootFolderExist() {

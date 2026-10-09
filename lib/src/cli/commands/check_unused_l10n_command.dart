@@ -52,7 +52,7 @@ class CheckUnusedL10nCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final (unusedL10nResult, _) = await runWithBaseline(
+    final (unusedL10nResult, baselineSession) = await runWithBaseline(
       BaselineCommand.checkUnusedL10n,
       _logger,
       (baseline) => _analyzer.runCliAnalysis(
@@ -79,6 +79,8 @@ class CheckUnusedL10nCommand extends BaseCommand {
         (argResults[FlagNames.fatalOnUnused] as bool)) {
       exit(1);
     }
+
+    checkBaselineExit(baselineSession, _logger);
   }
 
   void _addFlags() {

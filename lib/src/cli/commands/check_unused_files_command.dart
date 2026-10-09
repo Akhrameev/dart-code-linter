@@ -52,7 +52,7 @@ class CheckUnusedFilesCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final (unusedFilesResult, _) = await runWithBaseline(
+    final (unusedFilesResult, baselineSession) = await runWithBaseline(
       BaselineCommand.checkUnusedFiles,
       _logger,
       (baseline) => _analyzer.runCliAnalysis(
@@ -85,6 +85,8 @@ class CheckUnusedFilesCommand extends BaseCommand {
         (argResults[FlagNames.fatalOnUnused] as bool)) {
       exit(1);
     }
+
+    checkBaselineExit(baselineSession, _logger);
   }
 
   void _addFlags() {

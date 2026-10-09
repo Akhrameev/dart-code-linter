@@ -79,7 +79,7 @@ class CheckUnusedCodeCommand extends BaseCommand {
       baseline: cliBaseline,
     );
 
-    final (unusedCodeResult, _) = await runWithBaseline(
+    final (unusedCodeResult, baselineSession) = await runWithBaseline(
       BaselineCommand.checkUnusedCode,
       _logger,
       (baseline) => _analyzer.runCliAnalysis(
@@ -110,6 +110,8 @@ class CheckUnusedCodeCommand extends BaseCommand {
     )) {
       exit(1);
     }
+
+    checkBaselineExit(baselineSession, _logger);
   }
 
   /// `null` means not passed, distinct from an explicit `--no-...`.

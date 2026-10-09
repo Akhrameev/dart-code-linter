@@ -48,7 +48,7 @@ class AnalyzeCommand extends BaseCommand {
 
     final config = ConfigBuilder.getLintConfigFromArgs(parsedArgs);
 
-    final (lintAnalyzerResult, _) = await runWithBaseline(
+    final (lintAnalyzerResult, baselineSession) = await runWithBaseline(
       BaselineCommand.analyze,
       _logger,
       (baseline) => _analyzer.runCliAnalysis(
@@ -88,6 +88,7 @@ class AnalyzeCommand extends BaseCommand {
         );
 
     _checkSeverity(lintAnalyzerResult);
+    checkBaselineExit(baselineSession, _logger);
   }
 
   void _checkSeverity(Iterable<LintFileReport> lintAnalyzerResult) {
