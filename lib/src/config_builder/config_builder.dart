@@ -69,6 +69,7 @@ class ConfigBuilder {
       config.metrics,
       rootFolder,
       config.analysisOptionsPath,
+      baseline: config.baseline,
     );
   }
 

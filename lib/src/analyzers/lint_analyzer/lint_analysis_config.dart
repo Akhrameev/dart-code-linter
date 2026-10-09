@@ -1,5 +1,7 @@
 import 'package:glob/glob.dart';
 
+import '../../baseline/baseline_location.dart';
+import '../../utils/exclude_utils.dart';
 import 'anti_patterns/models/pattern.dart';
 import 'metrics/models/metric.dart';
 import 'rules/models/rule.dart';
@@ -19,6 +21,9 @@ class LintAnalysisConfig {
   final String rootFolder;
   final String? analysisOptionsPath;
 
+  /// The baseline file of the analysis context, null when there is none.
+  final BaselineLocation? baseline;
+
   const LintAnalysisConfig(
     this.globalExcludes,
     this.codeRules,
@@ -30,8 +35,25 @@ class LintAnalysisConfig {
     this.metricsExcludes,
     this.metricsConfig,
     this.rootFolder,
-    this.analysisOptionsPath,
-  );
+    this.analysisOptionsPath, {
+    this.baseline,
+  });
+
+  /// Whether [rule] runs on the file at the absolute [path]: rules are not
+  /// excluded for it, and the rule's own `include` and `exclude` select it.
+  bool runsRuleOn(Rule rule, String path) =>
+      !isExcluded(path, rulesExcludes) &&
+      isIncluded(path, createAbsolutePatterns(rule.includes, rootFolder)) &&
+      !isExcluded(path, createAbsolutePatterns(rule.excludes, rootFolder));
+
+  /// Whether metrics are computed for the file at the absolute [path].
+  bool measures(String path) => !isExcluded(path, metricsExcludes);
+
+  /// Whether [pattern] runs on the file at the absolute [path]: it is
+  /// measured, and the pattern's own `exclude` does not match it.
+  bool runsPatternOn(Pattern pattern, String path) =>
+      measures(path) &&
+      !isExcluded(path, createAbsolutePatterns(pattern.excludes, rootFolder));
 
   Map<String, Object?> toJson() => {
         'rules': codeRules.map((rule) => rule.toJson()).toList(),

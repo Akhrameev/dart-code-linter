@@ -239,7 +239,7 @@ class UnusedCodeAnalyzer {
             relativePath: report.relativePath,
             issues: issues,
           ),
-          groupState: (group, context) => _groupState(
+          groupState: (group, context, _) => _groupState(
             group,
             configsByRoot[context.contextRoot.root.path]!,
           ),

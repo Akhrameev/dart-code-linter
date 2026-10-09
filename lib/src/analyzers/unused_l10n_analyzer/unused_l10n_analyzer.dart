@@ -129,7 +129,7 @@ class UnusedL10nAnalyzer {
             className: report.className,
           ),
           // Every class matching the pattern is checked, so every group ran.
-          groupState: (_, __) => GroupState.ran,
+          groupState: (_, __, ___) => GroupState.ran,
         ) ??
         reports;
   }

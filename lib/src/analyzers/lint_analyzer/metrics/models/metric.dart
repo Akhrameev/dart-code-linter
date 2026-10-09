@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../../models/internal_resolved_unit_result.dart';
 import '../../models/scoped_class_declaration.dart';
 import '../../models/scoped_function_declaration.dart';
+import '../metric_utils.dart';
 import 'metric_computation_result.dart';
 import 'metric_documentation.dart';
 import 'metric_value.dart';
@@ -32,6 +33,10 @@ abstract class Metric<T extends num> {
     required this.threshold,
     required MetricValueLevel Function(T, T?) levelComputer,
   }) : _levelComputer = levelComputer;
+
+  /// Whether a lower value is worse, as for the metrics whose level is
+  /// computed by [invertValueLevel], like `maintainability-index`.
+  bool get isLowerWorse => _levelComputer == invertValueLevel;
 
   /// Returns true if the metric can be computed on this [node].
   bool supports(

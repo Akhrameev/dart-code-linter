@@ -10,6 +10,7 @@ import '../../analyzers/lint_analyzer/models/severity.dart';
 import '../../analyzers/lint_analyzer/reporters/lint_report_params.dart';
 import '../../analyzers/lint_analyzer/reporters/reporters_list/json/lint_json_reporter.dart';
 import '../../analyzers/lint_analyzer/utils/report_utils.dart';
+import '../../baseline/baseline.dart';
 import '../../config_builder/config_builder.dart';
 import '../../logger/logger.dart';
 import '../models/flag_names.dart';
@@ -47,14 +48,17 @@ class AnalyzeCommand extends BaseCommand {
 
     final config = ConfigBuilder.getLintConfigFromArgs(parsedArgs);
 
-    final lintAnalyzerResult = await _analyzer.runCliAnalysis(
-      argResults.rest,
-      parsedArgs.rootFolder,
-      config,
-      sdkPath: findSdkPath(),
+    final (lintAnalyzerResult, _) = await runWithBaseline(
+      BaselineCommand.analyze,
+      _logger,
+      (baseline) => _analyzer.runCliAnalysis(
+        argResults.rest,
+        parsedArgs.rootFolder,
+        config,
+        sdkPath: findSdkPath(),
+        baseline: baseline,
+      ),
     );
-
-    _logger.progress.complete('Analysis is completed. Preparing the results:');
 
     final jsonReportPath = parsedArgs.jsonReportPath;
     if (jsonReportPath != null) {

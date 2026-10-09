@@ -7,6 +7,8 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/syntactic_entity.dart';
 import 'package:path/path.dart';
 
+import '../../baseline/baseline_session.dart';
+import '../../baseline/lint_baseline.dart';
 import '../../config_builder/config_builder.dart';
 import '../../config_builder/models/analysis_options.dart';
 import '../../logger/logger.dart';
@@ -74,15 +76,21 @@ class LintAnalyzer {
 
   /// Returns a list of lint reports for analyzing all files in the given [folders].
   /// The analysis is configured with the [config].
+  ///
+  /// With a [baseline] session, findings recorded in the baseline of the
+  /// analysis context that owns their file are left out, and recorded metric
+  /// values are downgraded to level `none`, as an ignore comment does.
   Future<Iterable<LintFileReport>> runCliAnalysis(
     Iterable<String> folders,
     String rootFolder,
     LintConfig config, {
     String? sdkPath,
+    BaselineSession? baseline,
   }) async {
     final collection =
         createAnalysisContextCollection(folders, rootFolder, sdkPath);
     final analyzerResult = <LintFileReport>[];
+    final lintBaseline = baseline == null ? null : LintBaseline(baseline);
 
     for (final context in collection.contexts) {
       final (lintAnalysisConfig, analyzedFiles, report) = prepareLintAnalysis(
@@ -96,6 +104,13 @@ class LintAnalyzer {
       if (report != null) {
         analyzerResult.add(report);
       }
+
+      lintBaseline?.addContext(
+        context,
+        lintAnalysisConfig,
+        folders: folders,
+        rootFolder: rootFolder,
+      );
 
       for (final filePath in analyzedFiles) {
         _logger?.infoVerbose('Analyzing $filePath');
@@ -113,13 +128,14 @@ class LintAnalyzer {
             _logger?.infoVerbose(
               'Analysis result: found ${result.issues.length} issues',
             );
+            lintBaseline?.addFile(unit, result, lintAnalysisConfig);
             analyzerResult.add(result);
           }
         }
       }
     }
 
-    return analyzerResult;
+    return lintBaseline?.apply(analyzerResult, collection) ?? analyzerResult;
   }
 
   Future<void> runCliFix(
@@ -341,7 +357,7 @@ class LintAnalyzer {
       issues.addAll(_checkOnCodeIssues(ignores, internalResult, config));
     }
 
-    if (!isExcluded(filePath, config.metricsExcludes)) {
+    if (config.measures(filePath)) {
       final visitor = ScopeVisitor();
       internalResult.unit.visitChildren(visitor);
 
@@ -389,14 +405,7 @@ class LintAnalyzer {
       config.codeRules
           .where((rule) =>
               !ignores.isSuppressed(rule.id) &&
-              isIncluded(
-                source.path,
-                createAbsolutePatterns(rule.includes, config.rootFolder),
-              ) &&
-              !isExcluded(
-                source.path,
-                createAbsolutePatterns(rule.excludes, config.rootFolder),
-              ))
+              config.runsRuleOn(rule, source.path))
           .expand(
             (rule) =>
                 rule.check(source).where((issue) => !ignores.isSuppressedAt(
@@ -416,10 +425,7 @@ class LintAnalyzer {
       config.antiPatterns
           .where((pattern) =>
               !ignores.isSuppressed(pattern.id) &&
-              !isExcluded(
-                source.path,
-                createAbsolutePatterns(pattern.excludes, config.rootFolder),
-              ))
+              config.runsPatternOn(pattern, source.path))
           .expand((pattern) => pattern
               .check(source, classMetrics, functionMetrics)
               .where((issue) => !ignores.isSuppressedAt(

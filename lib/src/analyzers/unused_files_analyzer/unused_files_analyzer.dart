@@ -104,7 +104,7 @@ class UnusedFilesAnalyzer {
           unusedFiles,
           collection: collection,
           describe: (path) => BaselineFinding(path, baselineGroup, ''),
-          groupState: (group, _) =>
+          groupState: (group, _, __) =>
               group == baselineGroup ? GroupState.ran : GroupState.unknown,
         ) ??
         unusedFiles;

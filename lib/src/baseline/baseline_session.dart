@@ -9,10 +9,15 @@ import 'baseline_location.dart';
 import 'baseline_matcher.dart';
 import 'key_version.dart';
 
-/// Tells whether [group] ran for the files of [context] in this run.
+/// Tells whether [group] ran in this run for [path], an absolute path owned
+/// by [context].
+///
+/// Most commands decide per context, since contexts can configure checks
+/// differently; `analyze` also excludes rules and metrics per path.
 typedef BaselineGroupState = GroupState Function(
   String group,
   AnalysisContext context,
+  String path,
 );
 
 /// One finding as the baseline sees it.
@@ -52,6 +57,10 @@ class BaselineFileResult {
   /// The number of findings the file hid.
   final int hidden;
 
+  /// The number of baselined findings reported again because their measured
+  /// value got worse.
+  final int worsened;
+
   /// Entries no finding consumed, with paths relative to the file. Empty when
   /// the analyzed paths differ from the recorded ones.
   final List<StaleEntry> stale;
@@ -66,6 +75,7 @@ class BaselineFileResult {
     required this.path,
     required this.displayPath,
     required this.hidden,
+    this.worsened = 0,
     required this.stale,
     required this.disabled,
     required this.pathsMismatch,
@@ -144,12 +154,14 @@ class BaselineSession {
   /// [describe] gives each finding's path, group and key. [collection] tells
   /// which context owns a file, so that each finding meets the baseline of
   /// that context. [groupState] tells whether a group ran in this run for
-  /// the files of a context, since contexts can configure checks differently.
+  /// a file. [valueDirectionOf] returns the direction of a group whose keys
+  /// carry a measured value, null for the others.
   List<T> filter<T>(
     Iterable<T> findings, {
     required AnalysisContextCollection collection,
     required BaselineFinding Function(T finding) describe,
     required BaselineGroupState groupState,
+    ValueDirection? Function(String group)? valueDirectionOf,
   }) {
     final all = findings.toList();
     final hidden = List.filled(all.length, false);
@@ -186,7 +198,10 @@ class BaselineSession {
         continue;
       }
 
-      final mismatch = _pathsMismatch(file, section);
+      // Only the project-wide commands record their paths: what `analyze`
+      // finds in a file does not depend on the other analyzed paths.
+      final mismatch =
+          command.isProjectWide ? _pathsMismatch(file, section) : null;
       final match = matchSection(
         entries: section.findings,
         findings: keys[file] ?? const {},
@@ -196,6 +211,7 @@ class BaselineSession {
           sectionKeyVersion: section.keyVersion,
         ),
         coverage: _Coverage(this, file, collection, groupState),
+        valueDirectionOf: valueDirectionOf,
         keepUnknownGroups: section.keyVersion > currentKeyVersion,
       );
 
@@ -214,6 +230,7 @@ class BaselineSession {
         path: file.location.path,
         displayPath: file.displayPath,
         hidden: match.hidden,
+        worsened: match.worsened,
         stale: mismatch == null ? match.stale : const [],
         disabled: match.disabled,
         pathsMismatch: mismatch,
@@ -390,9 +407,12 @@ class _Coverage implements BaselineCoverage {
 
   @override
   GroupState groupState(String path, String group) {
-    final context = _contextOf(file.absolutePathOf(path));
+    final absolutePath = file.absolutePathOf(path);
+    final context = _contextOf(absolutePath);
 
-    return context == null ? GroupState.ran : state(group, context.context);
+    return context == null
+        ? GroupState.ran
+        : state(group, context.context, absolutePath);
   }
 
   /// The context that owns [absolutePath], when it uses this file.
