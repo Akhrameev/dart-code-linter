@@ -182,12 +182,20 @@ abstract class BaseCommand extends Command<void> {
     _baselineWrites = written;
     _baselineReport =
         BaselineReport.of(baseline, writes: written, versions: versions);
+    // A console report is read together with these lines. Any other report
+    // on stdout is read by a program, so they go to stderr, which CI logs
+    // still show; the report itself carries the same facts.
+    final reporter = argResults[FlagNames.reporter] as String;
+    final info = reporter == FlagNames.consoleReporter ||
+            reporter == FlagNames.consoleVerboseReporter
+        ? logger.info
+        : logger.infoToStderr;
     for (final file in written) {
       file.messages.forEach(
         file.action == BaselineWriteAction.failed ||
                 file.action == BaselineWriteAction.skipped
             ? logger.warn
-            : logger.info,
+            : info,
       );
     }
 

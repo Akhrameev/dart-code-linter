@@ -102,7 +102,6 @@ class UnusedFilesAnalyzer {
 
     final reported = baseline?.filter(
           unusedFiles,
-          collection: collection,
           describe: (path) => BaselineFinding(path, baselineGroup, ''),
           groupState: (group, _, __) =>
               group == baselineGroup ? GroupState.ran : GroupState.unknown,

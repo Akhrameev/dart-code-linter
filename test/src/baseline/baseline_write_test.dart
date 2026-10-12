@@ -146,6 +146,21 @@ void main() {
           expect(session.results.single.hidden, 2);
         });
 
+        test('uses the root folder when there is no options file', () async {
+          File(project.pathOf('analysis_options.yaml')).deleteSync();
+
+          final (reported, _, written) =
+              await unusedFiles(mode: BaselineMode.write);
+
+          expect(reported, isEmpty);
+          expect(written.single.displayPath, baselineFileName);
+          expect(sectionOf('check-unused-files')['findings'], _unused);
+
+          final (next, session, _) = await unusedFiles();
+          expect(next, isEmpty);
+          expect(session.results.single.hidden, 2);
+        });
+
         test('leaves an unchanged file untouched', () async {
           await unusedFiles(mode: BaselineMode.write);
           final modified = DateTime(2020);
@@ -455,6 +470,74 @@ void main() {
           });
         });
 
+        group('with a package nested in an analyzed folder', () {
+          /// A nested package, with a package config but no options file,
+          /// so that it is an analysis context of its own using the options,
+          /// and the baseline, of the folder around it.
+          void writeNestedPackage(String folder) => project
+            ..write('$folder/pubspec.yaml', 'name: nested\n')
+            ..write(
+              '$folder/.dart_tool/package_config.json',
+              '{"configVersion": 2, "packages": []}',
+            )
+            ..write('$folder/lib/helper.dart', 'void helper() {}\n');
+
+          setUp(() {
+            project.write('analysis_options.yaml', '');
+            writeNestedPackage('a/example');
+          });
+
+          test('records its findings once, however often it is written',
+              () async {
+            await unusedFiles(mode: BaselineMode.write, folders: ['a']);
+            final (_, _, written) =
+                await unusedFiles(mode: BaselineMode.write, folders: ['a']);
+
+            expect(written.single.action, BaselineWriteAction.unchanged);
+            expect(
+              (sectionOf('check-unused-files', 'a')['findings']!
+                  as Map)['example/lib/helper.dart'],
+              {
+                'unused-file': [''],
+              },
+            );
+          });
+
+          test('makes the entries of its deleted files stale', () async {
+            await unusedFiles(mode: BaselineMode.write, folders: ['a']);
+            File(project.pathOf('a/example/lib/helper.dart')).deleteSync();
+
+            final (_, session, written) =
+                await unusedFiles(mode: BaselineMode.update, folders: ['a']);
+
+            expect(session.results.single.stale, hasLength(1));
+            expect(written.single.removed, 1);
+          });
+
+          test('leaves the baseline of a context it did not analyze alone',
+              () async {
+            project
+              ..write('b/analysis_options.yaml', '')
+              ..write('b/lib/unused.dart', 'void unused() {}\n');
+            writeNestedPackage('b/nested');
+            project.write('b/nested/analysis_options.yaml', '');
+
+            final (_, _, written) =
+                await unusedFiles(mode: BaselineMode.write, folders: ['b']);
+
+            expect(
+              [for (final file in written) file.displayPath],
+              ['b/$baselineFileName'],
+            );
+            expect(baselineFile('b/nested').existsSync(), isFalse);
+            expect(
+              (sectionOf('check-unused-files', 'b')['findings']! as Map).keys,
+              contains('nested/lib/helper.dart'),
+              reason: 'the context of b lists the nested files',
+            );
+          });
+        });
+
         test('writes the other files when one cannot be written', () async {
           project
             ..write(
@@ -617,6 +700,24 @@ dart_code_linter:
             expect(groups, isNot(contains('gone-rule')), reason: '$mode');
             expect(groups['avoid-late-keyword'], ['a#late'], reason: '$mode');
           }
+        });
+
+        test('adds no new metric value on update', () async {
+          project.write(
+            'analysis_options.yaml',
+            '$options  metrics:\n    cyclomatic-complexity: 1\n',
+          );
+          await analyze(mode: BaselineMode.write);
+          final recorded = findings();
+          project.write(
+            'lib/c.dart',
+            'int c(int x) => x > 0 ? (x > 1 ? 1 : 2) : 3;\n',
+          );
+
+          final (_, written) = await analyze(mode: BaselineMode.update);
+
+          expect(written.single.action, BaselineWriteAction.unchanged);
+          expect(findings(), recorded);
         });
 
         test('replaces the entries of a renamed file on update', () async {

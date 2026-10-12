@@ -59,6 +59,24 @@ extension on void Function(int,) {
   void callTwice() {}
 }
 
+/// A doc comment comes before the extension's own tokens.
+extension on List<int> {
+  int get first2 => first;
+}
+
+@Deprecated('on: is an argument name, not the on clause')
+extension on Set<int> {
+  int get any2 => first;
+}
+
+extension on ({int a, String b}) {
+  int get sum => a;
+}
+
+extension on void Function({required int a}) {
+  void callNamed() {}
+}
+
 void topLevel() {}
 
 bool get isDebug => false;

@@ -1,5 +1,4 @@
 import 'package:analyzer/dart/analysis/analysis_context.dart';
-import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 
 import '../analyzers/lint_analyzer/anti_patterns/patterns_factory.dart';
@@ -101,13 +100,9 @@ class LintBaseline {
   /// as an ignore comment does, so that they no longer count for the exit
   /// code.
   ///
-  /// [collection] is the run's, to find the context that owns each file.
   /// Reports with no findings added through [addFile], such as the one about
   /// the analysis options, are returned as they are.
-  List<LintFileReport> apply(
-    Iterable<LintFileReport> reports,
-    AnalysisContextCollection collection,
-  ) {
+  List<LintFileReport> apply(Iterable<LintFileReport> reports) {
     final all = reports.toList();
     final findings = [
       for (final report in all) ...[
@@ -120,7 +115,6 @@ class LintBaseline {
     final kept = Set<Object>.identity()
       ..addAll(session.filter(
         findings,
-        collection: collection,
         describe: (finding) => _findings[finding]!,
         groupState: (group, context, path) =>
             _groupState(group, _configs[context.contextRoot.root.path]!, path),

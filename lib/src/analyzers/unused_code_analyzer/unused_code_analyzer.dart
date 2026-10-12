@@ -227,7 +227,6 @@ class UnusedCodeAnalyzer {
 
     return baseline?.filterReports<UnusedCodeFileReport, UnusedCodeIssue>(
           reports,
-          collection: collection,
           issuesOf: (report) => report.issues,
           describe: (report, issue) {
             final (group, key) = baselineFindings[issue]!;

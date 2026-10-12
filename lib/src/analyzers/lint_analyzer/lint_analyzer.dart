@@ -136,7 +136,7 @@ class LintAnalyzer {
       }
     }
 
-    return lintBaseline?.apply(analyzerResult, collection) ?? analyzerResult;
+    return lintBaseline?.apply(analyzerResult) ?? analyzerResult;
   }
 
   /// Printed by [runCliFix] when a baseline is configured.

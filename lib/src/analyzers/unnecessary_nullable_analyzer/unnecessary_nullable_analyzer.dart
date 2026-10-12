@@ -163,7 +163,6 @@ class UnnecessaryNullableAnalyzer {
     return baseline?.filterReports<UnnecessaryNullableFileReport,
             UnnecessaryNullableIssue>(
           reports,
-          collection: collection,
           issuesOf: (report) => report.issues,
           describe: (report, issue) => BaselineFinding(
             report.path,

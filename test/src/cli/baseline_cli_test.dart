@@ -150,17 +150,52 @@ void main() {
               'Dart SDK 3.10.0'),
         );
 
-        final json = await run(['--reporter=json']);
+        final json = await run(['--reporter=json', '--no-congratulate']);
         expectExit(json, 0);
-        final stdout = json.stdout as String;
-        final report = jsonDecode(stdout.substring(stdout.indexOf('{')))
-            as Map<String, Object?>;
+        final report =
+            jsonDecode(json.stdout as String) as Map<String, Object?>;
         final baseline = report['baseline']! as Map<String, Object?>;
         expect(baseline['total'], {'hidden': 1, 'worsened': 0, 'stale': 1});
         expect(
           ((baseline['files']! as List).single as Map)['action'],
           'read',
         );
+      });
+
+      test('refuses to delete the files a write records', () async {
+        expectExit(await run(['--write-baseline']), 0);
+        project.write('lib/fresh.dart', 'void fresh() {}\n');
+        final before = baselineFile().readAsStringSync();
+
+        final refused = await run(['--write-baseline', '--delete-files']);
+
+        expectExit(refused, 64);
+        expect(
+          refused.stdout,
+          contains('--delete-files cannot be used with --write-baseline'),
+        );
+        expect(File(project.pathOf('lib/fresh.dart')).existsSync(), isTrue);
+        expect(baselineFile().readAsStringSync(), before);
+      });
+
+      test('keeps a machine-readable report alone on stdout', () async {
+        const json = ['--reporter=json', '--no-congratulate'];
+
+        final written = await run(['--write-baseline', ...json]);
+        expectExit(written, 0);
+        expect(
+          (jsonDecode(written.stdout as String) as Map)['baseline'],
+          isNotNull,
+        );
+        expect(written.stderr, contains('Baseline created: 1 finding'));
+
+        final updated = await run(['--update-baseline', ...json]);
+        expectExit(updated, 0);
+        expect(
+          (jsonDecode(updated.stdout as String) as Map)['baseline'],
+          isNotNull,
+        );
+        expect(updated.stderr, contains('unchanged: no entry to remove'));
       });
 
       test('--fatal-stale-baseline names other tool versions as the cause',

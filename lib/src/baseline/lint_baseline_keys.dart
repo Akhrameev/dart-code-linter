@@ -27,6 +27,8 @@ class LintBaselineKeys {
 
   static const _closingBrackets = {')', ']', '}', '>'};
 
+  static final _lineBreak = RegExp('\r\n?');
+
   /// The unit the findings are in.
   final CompilationUnit unit;
 
@@ -242,6 +244,10 @@ class LintBaselineKeys {
   /// and line breaks never matter, and drops a comma directly followed by a
   /// closing bracket, so a trailing comma does not either.
   ///
+  /// The line breaks inside a lexeme, such as a multi-line string's, are
+  /// hashed as `\n`: Git on Windows checks files out with `\r\n` by default,
+  /// and a baseline written there must match one written on Linux CI.
+  ///
   /// A span without tokens lies inside a comment, as for `format-comment`.
   /// Its text is hashed instead, with whitespace runs collapsed, so findings
   /// in different comments of one scope keep different keys.
@@ -258,7 +264,7 @@ class LintBaselineKeys {
             .where((token) =>
                 token.type != TokenType.COMMA ||
                 !_closingBrackets.contains(token.next?.lexeme))
-            .map((token) => token.lexeme)
+            .map((token) => token.lexeme.replaceAll(_lineBreak, '\n'))
             .join(' ');
 
     return sha1.convert(utf8.encode(text)).toString().substring(0, 16);

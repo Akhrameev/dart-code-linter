@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/rules/rules_factory.dart';
 import 'package:dart_code_linter/src/baseline/lint_baseline_keys.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../helpers/file_resolver.dart';
@@ -64,6 +67,10 @@ void main() {
     test('names an unnamed extension by its extended type', () {
       expect(
         scopeOf('ExtensionHeaderMarker'),
+        '<extension on List<ExtensionHeaderMarker>>',
+      );
+      expect(
+        scopeOf('doc_extension_marker'),
         '<extension on List<ExtensionHeaderMarker>>',
       );
       expect(
@@ -137,6 +144,28 @@ void main() {
         reason: 'every rule reports in the fixture',
       );
       expect(tall, short);
+    });
+
+    test('ignores line endings inside a multi-line string', () async {
+      final folder = Directory.systemTemp.createTempSync('dcl_keys_');
+      addTearDown(() => folder.deleteSync(recursive: true));
+      const source =
+          "String banner() {\n  return '''\nfirst\nsecond\n''';\n}\n";
+
+      Future<String> keyOf(String name, String content) async {
+        final path = p.join(folder.path, name);
+        File(path).writeAsStringSync(content);
+        final unit = await FileResolver.resolve(path);
+        final keys = LintBaselineKeys(unit.unit, unit.content);
+        final start = unit.content.indexOf('return');
+
+        return keys.spanKey(start, unit.content.indexOf(';', start) + 1);
+      }
+
+      expect(
+        await keyOf('crlf.dart', source.replaceAll('\n', '\r\n')),
+        await keyOf('lf.dart', source),
+      );
     });
 
     test('ignores where a span starts in leading whitespace or a comment',

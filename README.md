@@ -503,7 +503,8 @@ it uses, in this order:
    To share a single file, write a path that leads there, such as
    `../../dcl_baseline.json`.
 3. Otherwise `dcl_baseline.json` next to that options file, when it exists. No
-   configuration is needed.
+   configuration is needed. A project without any `analysis_options.yaml` uses
+   `dcl_baseline.json` in `--root-folder`.
 
 In a monorepo, `--write-baseline` creates one `dcl_baseline.json` next to each
 `analysis_options.yaml` the run covers, and lists every file it created or
@@ -522,7 +523,7 @@ These options exist on the five commands above, not on `fix`.
 | Option | What it does |
 |---|---|
 | `--baseline=<path>` | Use this file instead of the configured one. A missing file is a usage error, unless `--write-baseline` creates it. |
-| `--write-baseline` | Record this command's current findings as the accepted baseline. |
+| `--write-baseline` | Record this command's current findings as the accepted baseline. Cannot be combined with `check-unused-files --delete-files`, which would delete the files it records. |
 | `--update-baseline` | Remove entries that no longer occur and tighten metric values that improved. Never adds an entry. |
 | `--baseline-sensitivity=<exact\|scope\|count>` | How strictly findings match entries. Only with `--write-baseline`. |
 | `--[no-]fatal-stale-baseline` | Exit 1 when baseline entries of this command no longer occur. Off by default. |
@@ -621,7 +622,9 @@ unchanged.
 
 The JSON reporter adds a `baseline` object with the counts per baseline file
 (hidden, worsened and stale entries, and what a write or update did to each
-file), so CI can read them without parsing the console.
+file), so CI can read them without parsing the console. With any reporter other
+than `console` and `console-verbose`, the summaries of `--write-baseline` and
+`--update-baseline` go to stderr, so stdout holds only the report.
 
 ### Merge conflicts
 

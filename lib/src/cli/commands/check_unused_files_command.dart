@@ -7,6 +7,7 @@ import '../../analyzers/unused_files_analyzer/unused_files_analyzer.dart';
 import '../../baseline/baseline.dart';
 import '../../config_builder/config_builder.dart';
 import '../../logger/logger.dart';
+import '../exceptions/invalid_argument_exception.dart';
 import '../models/flag_names.dart';
 import 'base_command.dart';
 
@@ -28,6 +29,23 @@ class CheckUnusedFilesCommand extends BaseCommand {
   CheckUnusedFilesCommand(this._logger)
       : _analyzer = UnusedFilesAnalyzer(_logger) {
     _addFlags();
+  }
+
+  @override
+  void validateCommand() {
+    super.validateCommand();
+
+    // A write records every unused file it reports, so deleting them would
+    // leave entries for files that no longer exist.
+    if (baselineOptions.write && argResults[FlagNames.deleteFiles] as bool) {
+      throw const InvalidArgumentException(
+        '--delete-files cannot be used with --write-baseline: the write '
+        'records the unused files as accepted, and deleting them would leave '
+        'baseline entries for files that no longer exist. Run '
+        '--write-baseline to accept them, or --delete-files without it to '
+        'delete them.',
+      );
+    }
   }
 
   @override

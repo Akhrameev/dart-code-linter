@@ -78,6 +78,7 @@ extension Formatting on Money {
   String format() => 'named_extension_marker';
 }
 
+/// doc_extension_marker
 extension on List<ExtensionHeaderMarker> {
   int get firstOrZero => 'unnamed_extension_marker'.length;
 }

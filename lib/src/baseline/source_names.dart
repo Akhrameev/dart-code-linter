@@ -162,21 +162,22 @@ class SourceNames {
   /// Returns the extended type of [node] as its tokens, with a space only
   /// between two adjacent words and no trailing comma, so that formatting
   /// never changes it: `List<int>`, `Map<String,int>`, `void Function(int)`.
+  ///
+  /// The tokens are those of the type itself, so a doc comment or annotation
+  /// before the extension, or braces inside the type (`({int a})`), never
+  /// change where it starts or ends.
   static String extendedTypeText(ExtensionDeclaration node) {
+    final type = node.onClause?.extendedType;
+    if (type == null) {
+      return '';
+    }
+
     final buffer = StringBuffer();
     Token? previous;
-    var inType = false;
-
-    for (Token? token = node.beginToken;
-        token != null && token != node.endToken;
+    final end = type.endToken.next;
+    for (Token? token = type.beginToken;
+        token != null && token != end;
         token = token.next) {
-      if (!inType) {
-        inType = token.lexeme == 'on';
-        continue;
-      }
-      if (token.lexeme == '{') {
-        break;
-      }
       if (token.lexeme == ',' &&
           const {')', ']', '}', '>'}.contains(token.next?.lexeme)) {
         continue;

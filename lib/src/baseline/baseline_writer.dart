@@ -159,11 +159,15 @@ UpdatedSection updateSection({
   var tightened = 0;
   for (final MapEntry(key: path, value: groups) in match.groups.entries) {
     for (final MapEntry(key: group, value: groupMatch) in groups.entries) {
-      if (countMode.appliesTo(group) || valueDirectionOf?.call(group) == null) {
+      // A group with findings but no entries has nothing to tighten: its
+      // findings are new, and an update never adds them.
+      final entries = result[path]?[group];
+      if (entries == null ||
+          countMode.appliesTo(group) ||
+          valueDirectionOf?.call(group) == null) {
         continue;
       }
       final keys = findings[path]![group]!;
-      final entries = result[path]![group]!;
       for (var i = 0; i < groupMatch.outcomes.length; i++) {
         final outcome = groupMatch.outcomes[i];
         final entry = outcome.entry;

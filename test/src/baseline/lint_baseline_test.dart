@@ -378,7 +378,7 @@ int checkout(int a, int b, int c) {
               .runPluginAnalysis(unit, config, project.path)!;
           baseline.addFile(unit, report, config);
 
-          return (baseline.apply([report], collection).single, session);
+          return (baseline.apply([report]).single, session);
         }
 
         List<String> patterns(LintFileReport report) =>

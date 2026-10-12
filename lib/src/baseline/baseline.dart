@@ -36,6 +36,11 @@ enum BaselineCommand {
   /// so its section records `analyzedPaths`.
   bool get isProjectWide => this != analyze;
 
+  /// Whether the command reports only on files its analysis context analyzes.
+  /// `check-unused-files` reports every Dart file in the analyzed paths, also
+  /// the files of a package nested in them, which another context analyzes.
+  bool get reportsAnalyzedFilesOnly => this != checkUnusedFiles;
+
   /// Returns the command with the given [id], or null for a command this
   /// version does not have.
   static BaselineCommand? fromId(String id) {

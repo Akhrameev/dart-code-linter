@@ -40,6 +40,12 @@ class Logger {
     _output.writeln(message);
   }
 
+  /// Writes [message] to stderr, for information that must stay out of a
+  /// machine-readable report on stdout.
+  void infoToStderr(String message) {
+    stderr.writeln(message);
+  }
+
   void infoVerbose(String message) {
     if (_isVerbose) {
       info(message);

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/analysis_context.dart';
-import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:glob/glob.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
@@ -377,7 +376,12 @@ class BaselineSession {
   ///
   /// [folders] and [rootFolder] are the run's path arguments, and [excludes]
   /// the context's global excludes, as the analyzer passes them to
-  /// `getFilePaths`. They decide which baseline entries the run covers.
+  /// `getFilePaths`. They decide which files the context reports on, and so
+  /// which baseline entries the run covers.
+  ///
+  /// A null [location] means no analysis options file exists for the context:
+  /// it then uses the conventional file in [rootFolder], where DCL also looks
+  /// for the options it falls back to.
   ///
   /// Throws a [BaselineFormatException] when the file cannot be read, and a
   /// [BaselineRefusedException] when a write or update mode must not touch it.
@@ -388,17 +392,18 @@ class BaselineSession {
     required String rootFolder,
     required Iterable<Glob> excludes,
   }) {
-    if (location == null) {
-      return;
-    }
-    if (location.source != BaselineSource.conventional) {
+    final used = location ??
+        BaselineLocation(
+          p.normalize(p.absolute(rootFolder, baselineFileName)),
+          BaselineSource.conventional,
+        );
+    if (used.source != BaselineSource.conventional) {
       _configured = true;
     }
-
-    final file = _files[location.path] ?? _read(location, rootFolder);
-    if (file == null) {
-      return;
-    }
+    // A context is registered even when its file does not exist, since a
+    // file belongs to the innermost context that reports on it, whether or
+    // not that context has a baseline.
+    final file = _files[used.path] ?? _read(used, rootFolder);
 
     final root = context.contextRoot.root.path;
     _contexts[root] = _Context(
@@ -408,19 +413,22 @@ class BaselineSession {
       rootFolder,
       excludes,
     );
-    file.contexts.add(root);
+    file?.contexts.add(root);
   }
 
   /// Returns the [findings] that no baseline hides, in their original order.
   ///
-  /// [describe] gives each finding's path, group and key. [collection] tells
-  /// which context owns a file, so that each finding meets the baseline of
-  /// that context. [groupState] tells whether a group ran in this run for
-  /// a file. [valueDirectionOf] returns the direction of a group whose keys
-  /// carry a measured value, null for the others.
+  /// [describe] gives each finding's path, group and key. Each finding meets
+  /// the baseline of the context that reports on its file. [groupState]
+  /// tells whether a group ran in this run for a file. [valueDirectionOf]
+  /// returns the direction of a group whose keys carry a measured value,
+  /// null for the others.
+  ///
+  /// A baseline file none of whose contexts was given a path in this run is
+  /// left out: the run covers none of its entries, so it neither reads nor
+  /// writes it.
   List<T> filter<T>(
     Iterable<T> findings, {
-    required AnalysisContextCollection collection,
     required BaselineFinding Function(T finding) describe,
     required BaselineGroupState groupState,
     ValueDirection? Function(String group)? valueDirectionOf,
@@ -435,7 +443,7 @@ class BaselineSession {
     for (var i = 0; i < all.length; i++) {
       final finding = describe(all[i]);
       _findings.add(finding);
-      final file = _contexts[_ownerOf(collection, finding.path)]?.file;
+      final file = _ownerOf(finding.path)?.file;
       if (file == null) {
         continue;
       }
@@ -452,10 +460,11 @@ class BaselineSession {
           .add(i);
     }
 
-    final files = _files.values.whereType<_File>().toList()
-      ..sort((a, b) => a.location.path.compareTo(b.location.path));
-    for (final file in files) {
-      final coverage = _Coverage(this, file, collection, groupState);
+    for (final file in _sortedFiles()) {
+      if (file.contexts.every((root) => _contexts[root]!.folders.isEmpty)) {
+        continue;
+      }
+      final coverage = _Coverage(this, file, groupState);
       final current = keys[file] ?? const {};
       final section = file.baseline.sections[command];
       if (section == null) {
@@ -554,7 +563,6 @@ class BaselineSession {
   /// a new one.
   List<R> filterReports<R extends Object, I extends Object>(
     Iterable<R> reports, {
-    required AnalysisContextCollection collection,
     required Iterable<I> Function(R report) issuesOf,
     required BaselineFinding Function(R report, I issue) describe,
     required R Function(R report, List<I> issues) rebuild,
@@ -566,7 +574,6 @@ class BaselineSession {
     ];
     final kept = filter(
       pairs,
-      collection: collection,
       describe: (pair) => describe(pair.$1, pair.$2),
       groupState: groupState,
     );
@@ -817,19 +824,22 @@ class BaselineSession {
       }.toList()
         ..sort();
 
-  /// Returns the root of the context that analyzes [path], as the analyzer
-  /// decides, or the innermost context root that contains it for a file the
-  /// analyzer excludes.
-  String? _ownerOf(AnalysisContextCollection collection, String path) {
-    String? owner;
-    for (final context in collection.contexts) {
-      final root = context.contextRoot;
-      if (root.isAnalyzed(path)) {
-        return root.root.path;
-      }
-      if (p.isWithin(root.root.path, path) &&
-          (owner == null || root.root.path.length > owner.length)) {
-        owner = root.root.path;
+  /// Returns the context whose baseline holds a finding or an entry at
+  /// [path]: the innermost context that reports on that path in this run,
+  /// decided from the path alone, whether or not the file exists. Null when
+  /// no context reports on it.
+  ///
+  /// Ownership and coverage come from this one decision. The analyzer's own
+  /// owner of a file can differ: `check-unused-files .` reports the files of
+  /// a package nested in `.` through the outer context, while the analyzer
+  /// assigns them to the nested one, which was given no path.
+  _Context? _ownerOf(String path) {
+    _Context? owner;
+    for (final context in _contexts.values) {
+      if (context.reportsOn(path,
+              analyzedOnly: command.reportsAnalyzedFilesOnly) &&
+          (owner == null || context.root.length > owner.root.length)) {
+        owner = context;
       }
     }
 
@@ -839,13 +849,26 @@ class BaselineSession {
 
 class _Context {
   final AnalysisContext context;
-  final _File file;
+
+  /// The baseline file of the context; null when it has none.
+  final _File? file;
+
+  /// The run's path arguments inside the context's root.
   final List<String> folders;
   final String rootFolder;
   final Iterable<Glob> excludes;
 
   const _Context(
       this.context, this.file, this.folders, this.rootFolder, this.excludes);
+
+  String get root => context.contextRoot.root.path;
+
+  /// Whether the command reports on the file at [path] through this context:
+  /// it lies in one of the context's [folders], is not excluded, and, when
+  /// [analyzedOnly], is analyzed by this context.
+  bool reportsOn(String path, {required bool analyzedOnly}) =>
+      isSelectedFilePath(path, folders, rootFolder, excludes) &&
+      (!analyzedOnly || context.contextRoot.isAnalyzed(path));
 }
 
 /// What matching found for one baseline file, kept for a write or update.
@@ -898,24 +921,12 @@ class _File {
 class _Coverage implements BaselineCoverage {
   final BaselineSession session;
   final _File file;
-  final AnalysisContextCollection collection;
   final BaselineGroupState state;
 
-  const _Coverage(this.session, this.file, this.collection, this.state);
+  const _Coverage(this.session, this.file, this.state);
 
   @override
-  bool coversPath(String path) {
-    final absolutePath = file.absolutePathOf(path);
-    final context = _contextOf(absolutePath);
-
-    return context != null &&
-        isSelectedFilePath(
-          absolutePath,
-          context.folders,
-          context.rootFolder,
-          context.excludes,
-        );
-  }
+  bool coversPath(String path) => _contextOf(file.absolutePathOf(path)) != null;
 
   @override
   GroupState groupState(String path, String group) {
@@ -927,10 +938,9 @@ class _Coverage implements BaselineCoverage {
         : state(group, context.context, absolutePath);
   }
 
-  /// The context that owns [absolutePath], when it uses this file.
+  /// The context that reports on [absolutePath], when it uses this file.
   _Context? _contextOf(String absolutePath) {
-    final context =
-        session._contexts[session._ownerOf(collection, absolutePath)];
+    final context = session._ownerOf(absolutePath);
 
     return context?.file == file ? context : null;
   }

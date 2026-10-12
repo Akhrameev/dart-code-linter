@@ -366,6 +366,32 @@ void main() {
       expect(updated.removed, 0);
     });
 
+    test('adds no value of a path or group that has no entries', () {
+      final updated = update(
+        _section({
+          'lib/a.dart': {
+            'no-magic-number': ['A.f#kept'],
+          },
+        }),
+        {
+          'lib/a.dart': {
+            'no-magic-number': ['A.f#kept'],
+            'cyclomatic-complexity': ['A.f@12'],
+          },
+          'lib/b.dart': {
+            'maintainability-index': ['B.g@30'],
+          },
+        },
+      );
+
+      expect(updated.changed, isFalse);
+      expect(updated.section.findings, {
+        'lib/a.dart': {
+          'no-magic-number': ['A.f#kept'],
+        },
+      });
+    });
+
     test('removes nothing from groups matched by count', () {
       final updated = update(
         _section({

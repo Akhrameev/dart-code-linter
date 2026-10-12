@@ -115,7 +115,6 @@ class UnusedL10nAnalyzer {
 
     return baseline?.filterReports<UnusedL10nFileReport, UnusedL10nIssue>(
           reports,
-          collection: collection,
           issuesOf: (report) => report.issues,
           describe: (report, issue) => BaselineFinding(
             report.path,

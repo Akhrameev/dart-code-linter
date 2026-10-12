@@ -170,6 +170,7 @@ For a lint issue, take every token of the compilation unit that overlaps `issue.
 - Whitespace and line breaks never appear, since only lexemes are joined.
 - Comments never appear: the scanner keeps them on `precedingComments`, outside the `Token.next` chain.
 - A comma directly followed by `)`, `]`, `}` or `>` is dropped, so adding or removing a trailing comma does not change the key.
+- Line breaks inside a lexeme, as in a multi-line string, are hashed as `\n`. Git on Windows checks files out with `\r\n` by default, and a baseline written there must match one written on Linux CI.
 - Spans that start inside leading whitespace or a comment (`newline-before-return`, `member-ordering` with comments, `avoid-duplicate-exports`) are handled by selecting tokens by offset, not by trimming text. The scope is taken at the first selected token, so such a span belongs to the declaration it covers.
 - A span with no token in it lies inside a comment (`format-comment`). Its text is hashed instead, trimmed and with whitespace runs collapsed to one space, so findings in different comments of one scope keep different keys.
 
@@ -180,7 +181,7 @@ The qualified name of the enclosing top-level declaration and, inside a type, of
 | Finding inside | Scope | Example |
 |---|---|---|
 | Class, mixin, mixin class, enum, extension type, named extension, typedef (outside any member) | The type name | `Cart` |
-| Unnamed extension | `<extension on T>`, where `T` is the extended type's tokens with a space only between two adjacent words and no trailing comma, so formatting never changes it | `<extension on List<int>>`, `<extension on Map<String,int>>`, `<extension on void Function(int)>` |
+| Unnamed extension | `<extension on T>`, where `T` is the extended type's own tokens (those of its `on` clause, so a doc comment, an annotation or braces inside the type such as `({int a})` never change it) with a space only between two adjacent words and no trailing comma, so formatting never changes it | `<extension on List<int>>`, `<extension on Map<String,int>>`, `<extension on void Function(int)>` |
 | Method | `Type.method` | `Cart.total` |
 | Getter / setter | `Type.name` / `Type.name=` | `Cart.count`, `Cart.count=` |
 | Operator | `Type.` plus the operator; unary minus is `unary-`, as in the language specification | `Money.==`, `Grid.[]=`, `Money.unary-` |
@@ -402,7 +403,7 @@ Each analysis context looks for its baseline next to the `analysis_options.yaml`
      baseline: config/dcl_baseline.json
    ```
 
-3. Otherwise, `dcl_baseline.json` next to that options file, when it exists. No key is needed.
+3. Otherwise, `dcl_baseline.json` next to that options file, when it exists. No key is needed. A context with no options file at all, in a project without any, uses `dcl_baseline.json` in `--root-folder`, where DCL also looks for the options it falls back to.
 
 The conventional name follows detekt, whose Gradle plugin defaults to `detekt-baseline.xml` in each module (`DetektBasePlugin.kt`), and DCM, which generates one baseline per `analysis_options.yaml` and has its IDE integration pick it up. It means adopting a baseline needs no edit to any options file: `--write-baseline` creates the files, and the CLI and the IDE use them from then on. The key is only for a different name or location, or for one file shared by several packages.
 
@@ -505,7 +506,7 @@ Rules around it:
 - In a monorepo every context's baseline is updated, each within its own coverage, or the single `--baseline` file when one is given.
 - A section the update leaves unchanged is not rewritten at all, so its unknown fields survive an update that had nothing to remove.
 - Whether any baseline is configured is only known once every analysis context is found, so the exit 64 for "no baseline at all" comes after the analysis, before anything is reported or written.
-- With `check-unused-files --delete-files`, the update happens first; a baselined file is still never deleted.
+- With `check-unused-files --delete-files`, the update happens first; a baselined file is still never deleted. `--write-baseline` with `--delete-files` is a usage error (exit 64): the write records every unused file it reports, so deleting them would leave entries for files that no longer exist.
 
 Under `scope` or `count` sensitivity a finding can match an entry whose token hash is no longer the current one. `--update-baseline` keeps that entry as it is, since it is still in use: apart from tightening a recorded value, an update never changes what an entry says, it only deletes entries. `--write-baseline` records the current key instead.
 
@@ -544,8 +545,9 @@ The exit code for a broken file is 1, not 64: the command line is fine, the file
 
 A baseline belongs to an `analysis_options.yaml`, so a run over several analysis contexts can involve several baseline files.
 
-- **Lookup.** Each finding is looked up in the baseline of the analysis context that analyzed its file. For nested packages that is the innermost one, as the analyzer decides, not the longest matching path prefix.
-- **Packages without their own options file** use the options file DCL already falls back to (the one at the root folder), and with it that file's baseline. The baseline always lives with the options file the context actually uses.
+- **Lookup.** Each finding is looked up in the baseline of the innermost analysis context that reports on its file in this run: the file lies in one of the path arguments inside that context's root, is not excluded, and, for every command but `check-unused-files`, is analyzed by that context. This is decided from the path alone, and coverage is decided the same way, so a file is never owned by one context and covered by another. The analyzer's own owner of a file can differ: `check-unused-files .` lists the files of a package nested in `.` through the outer context, while the analyzer assigns them to the nested package, which was given no path of its own.
+- **Contexts given no path.** A context the run only found inside a path argument, such as a nested package under `.`, has no path of its own. A baseline file used only by such contexts is neither reported nor written: the run covers none of its entries.
+- **Packages without their own options file** use the options file DCL already falls back to (the one at the root folder), and with it that file's baseline. The baseline always lives with the options file the context actually uses; with no options file at all, it is `dcl_baseline.json` in the root folder.
 - **Writing.** `--write-baseline` writes, for each context the run covered, the file found by the lookup above: the key's file when the key is set, otherwise `dcl_baseline.json` next to the context's options file, created when missing. Contexts outside the run's coverage are not touched. With `--baseline=<path>`, all contexts go into that one file, with paths relative to it.
 - **Output.** The run lists every baseline file it created or changed, so a monorepo's first `--write-baseline` shows exactly which files to commit.
 - **Failures.** Each file is written atomically on its own. When one cannot be written, the others keep their new content, the output names the failed file, and the run exits 1.
@@ -582,6 +584,7 @@ A run can use several baseline files: one per analysis context in a monorepo, or
 - Console, one file: one extra line when anything was hidden, got worse or is stale, for example "12 findings hidden by baseline dcl_baseline.json, 2 baselined findings got worse. 3 baseline entries no longer occur; run with --update-baseline to remove them."
 - Console, several files: one such line per file that has something to say, each naming the file by its path relative to `--root-folder`, then one total line ("Baselines: 3 files, 140 findings hidden, 5 stale entries"). Files with nothing hidden, worse or stale are not listed.
 - Console, further lines only when they apply, under the file they belong to: entries of disabled rules per group, and the key version warning per section.
+- The summaries of `--write-baseline` and `--update-baseline` ("Baseline created: ...", "Baseline updated: ...") go to stdout with the `console` and `console-verbose` reporters. With any other reporter they go to stderr, so that stdout holds only the report, which a program reads; the report itself carries the same facts in its `baseline` object.
 - JSON: an optional top-level `baseline` object, present when the run used, wrote or updated at least one baseline:
 
   ```json
