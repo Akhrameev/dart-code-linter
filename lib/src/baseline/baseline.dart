@@ -39,7 +39,15 @@ enum BaselineCommand {
   /// Whether the command reports only on files its analysis context analyzes.
   /// `check-unused-files` reports every Dart file in the analyzed paths, also
   /// the files of a package nested in them, which another context analyzes.
-  bool get reportsAnalyzedFilesOnly => this != checkUnusedFiles;
+  /// `check-unused-l10n` reports on the file declaring a localization class
+  /// that analyzed code uses, wherever it lies.
+  bool get reportsAnalyzedFilesOnly =>
+      this != checkUnusedFiles && this != checkUnusedL10n;
+
+  /// Whether the command reports on files outside the analyzed paths:
+  /// `check-unused-l10n` does for a localization class declared there, such
+  /// as the one Flutter generates into `.dart_tool/flutter_gen`.
+  bool get reportsOutsideAnalyzedPaths => this == checkUnusedL10n;
 
   /// Returns the command with the given [id], or null for a command this
   /// version does not have.

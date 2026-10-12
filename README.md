@@ -661,6 +661,7 @@ the baseline.
 | `fix` also fixes baselined findings | `fix` does not read the baseline | Run `--update-baseline` afterwards to drop the entries of fixed findings; `fix` prints a reminder |
 | Two branches changing the same list conflict on merge | Concurrent changes touch neighbouring lines | Keep both sides, then run `--update-baseline` |
 | The IDE does not refresh when the baseline changes | The analysis server watches only `*.dart` files | Edit the file, or restart the analysis server |
+| `check-unused-l10n` cannot record a finding in a localization class declared outside the folder of every baseline it uses, such as a sibling package outside `--root-folder` | Entries are stored relative to their baseline file | Add the class's folder to the analyzed paths, or share one baseline above both through `--baseline` or the `baseline:` key. `--write-baseline` warns about such findings |
 
 
 

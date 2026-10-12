@@ -536,6 +536,41 @@ void main() {
               reason: 'the context of b lists the nested files',
             );
           });
+
+          test('neither reads nor counts the baseline of such a context',
+              () async {
+            project
+              ..write('b/analysis_options.yaml', '')
+              ..write('b/lib/unused.dart', 'void unused() {}\n');
+            writeNestedPackage('b/nested');
+            project
+              ..write('b/nested/analysis_options.yaml', '')
+              ..write('b/nested/$baselineFileName', '<<<<<<< HEAD\n');
+
+            final (_, read, _) = await unusedFiles(folders: ['b']);
+            expect(read.results, isEmpty);
+
+            project.write(
+              'b/nested/$baselineFileName',
+              _file({'check-unused-files': _section({})}),
+            );
+            final (_, updated, _) =
+                await unusedFiles(mode: BaselineMode.update, folders: ['b']);
+            expect(updated.hasConfiguredBaseline, isFalse);
+          });
+        });
+
+        test('warns once about a configured file that is missing', () async {
+          for (final package in ['a', 'b']) {
+            project.write(
+              '$package/analysis_options.yaml',
+              'dart_code_linter:\n  baseline: ../shared.json\n',
+            );
+          }
+
+          final (_, session, _) = await unusedFiles(folders: ['a', 'b']);
+
+          expect(session.warnings, hasLength(1));
         });
 
         test('writes the other files when one cannot be written', () async {

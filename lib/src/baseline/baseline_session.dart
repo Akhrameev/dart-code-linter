@@ -347,6 +347,9 @@ class BaselineSession {
 
   final _contexts = <String, _Context>{};
   final _files = <String, _File>{};
+
+  /// Paths of baseline files already looked up, found or not.
+  final _lookedUp = <String>{};
   final _warnings = <String>[];
   final _results = <BaselineFileResult>[];
   final _findings = <BaselineFinding>[];
@@ -383,6 +386,10 @@ class BaselineSession {
   /// it then uses the conventional file in [rootFolder], where DCL also looks
   /// for the options it falls back to.
   ///
+  /// A context given none of the path arguments, such as a package nested in
+  /// an analyzed folder, reports on nothing, so its baseline is neither read
+  /// nor written, and does not count as configured.
+  ///
   /// Throws a [BaselineFormatException] when the file cannot be read, and a
   /// [BaselineRefusedException] when a write or update mode must not touch it.
   void addContext(
@@ -392,27 +399,28 @@ class BaselineSession {
     required String rootFolder,
     required Iterable<Glob> excludes,
   }) {
-    final used = location ??
-        BaselineLocation(
-          p.normalize(p.absolute(rootFolder, baselineFileName)),
-          BaselineSource.conventional,
-        );
-    if (used.source != BaselineSource.conventional) {
-      _configured = true;
+    final contextFolders = getContextFolders(folders, context, rootFolder);
+    _File? file;
+    if (contextFolders.isNotEmpty) {
+      final used = location ??
+          BaselineLocation(
+            p.normalize(p.absolute(rootFolder, baselineFileName)),
+            BaselineSource.conventional,
+          );
+      if (used.source != BaselineSource.conventional) {
+        _configured = true;
+      }
+      // A missing file is looked up once, so its warning is printed once.
+      file = _files[used.path] ??
+          (_lookedUp.add(used.path) ? _read(used, rootFolder) : null);
     }
-    // A context is registered even when its file does not exist, since a
-    // file belongs to the innermost context that reports on it, whether or
-    // not that context has a baseline.
-    final file = _files[used.path] ?? _read(used, rootFolder);
 
+    // A context is registered even without a file, since a file belongs to
+    // the innermost context that reports on it, whether or not that context
+    // has a baseline.
     final root = context.contextRoot.root.path;
-    _contexts[root] = _Context(
-      context,
-      file,
-      getContextFolders(folders, context, rootFolder),
-      rootFolder,
-      excludes,
-    );
+    _contexts[root] =
+        _Context(context, file, contextFolders, rootFolder, excludes);
     file?.contexts.add(root);
   }
 
@@ -423,10 +431,6 @@ class BaselineSession {
   /// tells whether a group ran in this run for a file. [valueDirectionOf]
   /// returns the direction of a group whose keys carry a measured value,
   /// null for the others.
-  ///
-  /// A baseline file none of whose contexts was given a path in this run is
-  /// left out: the run covers none of its entries, so it neither reads nor
-  /// writes it.
   List<T> filter<T>(
     Iterable<T> findings, {
     required BaselineFinding Function(T finding) describe,
@@ -440,11 +444,17 @@ class BaselineSession {
     // group, so that outcomes can be mapped back to findings.
     final keys = <_File, Map<String, Map<String, List<String>>>>{};
     final indices = <_File, Map<String, Map<String, List<int>>>>{};
+    // In a write every context given a path has a file, so a finding without
+    // one has no owner: see [_ownerOf].
+    final unrecorded = <String>[];
     for (var i = 0; i < all.length; i++) {
       final finding = describe(all[i]);
       _findings.add(finding);
       final file = _ownerOf(finding.path)?.file;
       if (file == null) {
+        if (mode == BaselineMode.write) {
+          unrecorded.add(finding.path);
+        }
         continue;
       }
       final path = file.relativePathOf(finding.path);
@@ -460,10 +470,11 @@ class BaselineSession {
           .add(i);
     }
 
+    if (unrecorded.isNotEmpty) {
+      _warnings.add(_unrecordedWarning(unrecorded));
+    }
+
     for (final file in _sortedFiles()) {
-      if (file.contexts.every((root) => _contexts[root]!.folders.isEmpty)) {
-        continue;
-      }
       final coverage = _Coverage(this, file, groupState);
       final current = keys[file] ?? const {};
       final section = file.baseline.sections[command];
@@ -824,6 +835,27 @@ class BaselineSession {
       }.toList()
         ..sort();
 
+  /// Says that a write cannot record the findings in the files at [paths],
+  /// one entry per finding, instead of leaving a "Baseline created" summary
+  /// next to findings that fail the run.
+  String _unrecordedWarning(List<String> paths) {
+    final rootFolder = _contexts.values.first.rootFolder;
+    final shown = {
+      for (final path in paths)
+        p.posix
+            .joinAll(p.split(p.relative(path, from: p.absolute(rootFolder)))),
+    }.toList()
+      ..sort();
+    final count = paths.length;
+    final (its, it) = count == 1 ? ('its', 'it') : ('their', 'them');
+
+    return '${count == 1 ? '1 finding cannot be recorded: its file lies' : '$count findings cannot be recorded: their files lie'} '
+        'outside the folder of every baseline this run uses '
+        '(${shown.take(3).join(', ')}${shown.length > 3 ? ', ...' : ''}). '
+        'Add $its folder to the analyzed paths, or use one baseline above '
+        '$it with --baseline or the "dart_code_linter: baseline:" key.';
+  }
+
   /// Returns the context whose baseline holds a finding or an entry at
   /// [path]: the innermost context that reports on that path in this run,
   /// decided from the path alone, whether or not the file exists. Null when
@@ -833,12 +865,33 @@ class BaselineSession {
   /// owner of a file can differ: `check-unused-files .` reports the files of
   /// a package nested in `.` through the outer context, while the analyzer
   /// assigns them to the nested one, which was given no path.
+  ///
+  /// A command that reports outside the analyzed paths, as
+  /// `check-unused-l10n lib` does for Flutter's generated localizations in
+  /// `.dart_tool`, has such a path owned by the context given a path whose
+  /// baseline file lies closest above it: the context root of `lib` is `lib`
+  /// itself, while its baseline sits next to the options file above it. A
+  /// path outside the folders of those baselines has no owner, and its
+  /// findings cannot be baselined.
   _Context? _ownerOf(String path) {
     _Context? owner;
     for (final context in _contexts.values) {
       if (context.reportsOn(path,
               analyzedOnly: command.reportsAnalyzedFilesOnly) &&
           (owner == null || context.root.length > owner.root.length)) {
+        owner = context;
+      }
+    }
+    if (owner != null || !command.reportsOutsideAnalyzedPaths) {
+      return owner;
+    }
+
+    for (final context in _contexts.values) {
+      final folder = context.file?.folder;
+      if (folder != null &&
+          context.folders.isNotEmpty &&
+          p.isWithin(folder, path) &&
+          (owner == null || folder.length > owner.file!.folder.length)) {
         owner = context;
       }
     }
