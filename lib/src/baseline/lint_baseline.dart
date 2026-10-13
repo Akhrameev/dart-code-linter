@@ -62,12 +62,12 @@ class LintBaseline {
   /// measured. The [report] keys them by name and keeps one per name, so
   /// that which of a getter and its setter, or of two enums' same-named
   /// methods, it keeps depends on their order; the baseline records them
-  /// all. Without it, the report's own are used.
+  /// all, and judges only the values the report shows.
   void addFile(
     ResolvedUnitResult unit,
     LintFileReport report,
     LintAnalysisConfig config, {
-    Iterable<Report>? measured,
+    required Iterable<Report> measured,
   }) {
     if (!session.hasBaselineFor(report.path)) {
       return;
@@ -76,8 +76,14 @@ class LintBaseline {
     final path = report.path;
     final scopes = _measured[report] = [
       if (report.file case final file?) file,
-      ...measured ?? [...report.classes.values, ...report.functions.values],
+      ...measured,
     ];
+    final shown = Set<Report>.identity()
+      ..addAll([
+        if (report.file case final file?) file,
+        ...report.classes.values,
+        ...report.functions.values,
+      ]);
 
     for (final issue in report.issues) {
       _findings[issue] =
@@ -107,6 +113,7 @@ class LintBaseline {
             path,
             value.metricsId,
             keys.metricKey(measured, value),
+            shown: shown.contains(measured),
           );
         }
       }
@@ -126,7 +133,7 @@ class LintBaseline {
       for (final report in all) ...[
         ...report.issues,
         ...report.antiPatternCases,
-        for (final measured in _measured[report] ?? _measuredReportsOf(report))
+        for (final measured in _measured[report] ?? const <Report>[])
           ...measured.metrics,
       ],
     ].where(_findings.containsKey).toList();
@@ -178,13 +185,6 @@ class LintBaseline {
         ),
     ];
   }
-
-  /// The reports of the file, its classes and its functions.
-  static Iterable<Report> _measuredReportsOf(LintFileReport report) => [
-        if (report.file case final file?) file,
-        ...report.classes.values,
-        ...report.functions.values,
-      ];
 
   /// Whether the rule, anti-pattern or metric [group] ran for the file at the
   /// absolute [path] in a context analyzed with [config].

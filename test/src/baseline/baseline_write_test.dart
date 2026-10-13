@@ -609,6 +609,28 @@ void main() {
           );
         });
 
+        test('keeps --monorepo through an update', () async {
+          await unusedFiles(
+            mode: BaselineMode.write,
+            folders: ['a', 'b'],
+            monorepo: true,
+          );
+          File(project.pathOf('a/lib/unused.dart')).deleteSync();
+
+          final (_, _, updated) = await unusedFiles(
+            mode: BaselineMode.update,
+            folders: ['a', 'b'],
+            monorepo: true,
+          );
+
+          expect(
+            [for (final file in updated) file.action],
+            contains(BaselineWriteAction.updated),
+          );
+          expect(sectionOf('check-unused-files', 'a')['findings'], isEmpty);
+          expect(sectionOf('check-unused-files', 'a')['monorepo'], isTrue);
+        });
+
         test('accepts a new section while another reports its additions',
             () async {
           project.write(

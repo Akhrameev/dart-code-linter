@@ -246,15 +246,28 @@ bool writeBaselineFile(String path, String content) {
 
 /// Returns the file a symbolic link at [path] points to, following a chain
 /// of links, whether or not that file exists; null when [path] is no link.
+///
+/// Throws a [FileSystemException] when the links form a cycle.
 String? _linkTarget(String path) {
   if (!FileSystemEntity.isLinkSync(path)) {
     return null;
   }
+  final file = File(path);
+  if (file.existsSync()) {
+    return file.resolveSymbolicLinksSync();
+  }
 
+  // A dangling link, which the system cannot resolve: follow the chain by
+  // hand. A relative target is relative to the folder the link really lies
+  // in, so a `..` in it climbs out of that folder, not out of a linked
+  // folder on the way to it.
   var target = path;
-  // Bounded, as the system bounds a chain, in case links form a cycle.
-  for (var i = 0; i < 40 && FileSystemEntity.isLinkSync(target); i++) {
-    target = p.normalize(p.join(p.dirname(target), Link(target).targetSync()));
+  for (var hops = 0; FileSystemEntity.isLinkSync(target); hops++) {
+    if (hops == 40) {
+      throw FileSystemException('Too many levels of symbolic links', path);
+    }
+    final folder = Directory(p.dirname(target)).resolveSymbolicLinksSync();
+    target = p.normalize(p.join(folder, Link(target).targetSync()));
   }
 
   return target;

@@ -535,6 +535,67 @@ void main() {
         expect(File(shared).readAsStringSync(), 'new\n');
       });
 
+      group('through a linked folder, a link climbing out of it', () {
+        late String path;
+        late File shared;
+
+        setUp(() {
+          // project/config is a link to elsewhere/config, and the baseline
+          // in there links to ../shared/real.json: elsewhere/shared, as the
+          // system resolves it, not project/shared.
+          final elsewhere = p.join(folder.path, 'elsewhere');
+          Directory(p.join(elsewhere, 'config')).createSync(recursive: true);
+          Link(p.join(elsewhere, 'config', baselineFileName))
+              .createSync(p.join('..', 'shared', 'real.json'));
+          Directory(p.join(folder.path, 'project')).createSync();
+          Link(p.join(folder.path, 'project', 'config'))
+              .createSync(p.join(elsewhere, 'config'));
+          path = p.join(folder.path, 'project', 'config', baselineFileName);
+          shared = File(p.join(elsewhere, 'shared', 'real.json'));
+        });
+
+        test('writes the file the link points to', () {
+          shared
+            ..createSync(recursive: true)
+            ..writeAsStringSync('old\n');
+
+          expect(writeBaselineFile(path, 'new\n'), isTrue);
+          expect(shared.readAsStringSync(), 'new\n');
+          expect(File(path).readAsStringSync(), 'new\n');
+          expect(
+            Directory(p.join(folder.path, 'project', 'shared')).existsSync(),
+            isFalse,
+          );
+        });
+
+        test('creates the file the dangling link points to', () {
+          expect(writeBaselineFile(path, 'new\n'), isTrue);
+          expect(shared.readAsStringSync(), 'new\n');
+          expect(File(path).readAsStringSync(), 'new\n');
+          expect(
+            Directory(p.join(folder.path, 'project', 'shared')).existsSync(),
+            isFalse,
+          );
+        });
+      });
+
+      test('fails on links that form a cycle, leaving them as they were', () {
+        final path = p.join(folder.path, baselineFileName);
+        final second = p.join(folder.path, 'second.json');
+        final third = p.join(folder.path, 'third.json');
+        Link(path).createSync('second.json');
+        Link(second).createSync('third.json');
+        Link(third).createSync(baselineFileName);
+
+        expect(
+          () => writeBaselineFile(path, 'new\n'),
+          throwsA(isA<FileSystemException>()),
+        );
+        for (final link in [path, second, third]) {
+          expect(FileSystemEntity.isLinkSync(link), isTrue, reason: link);
+        }
+      });
+
       test('leaves the file as it was when the write fails', () {
         final path = p.join(folder.path, baselineFileName);
         File(path).writeAsStringSync('old\n');

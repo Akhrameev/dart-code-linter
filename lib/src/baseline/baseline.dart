@@ -188,6 +188,20 @@ class BaselineSection {
     };
   }
 
+  /// Returns this section with [keyVersion] instead of its own, or this
+  /// section when [keyVersion] is null.
+  BaselineSection _withKeyVersion(int? keyVersion) =>
+      keyVersion == null || keyVersion == this.keyVersion
+          ? this
+          : BaselineSection(
+              generatedWith: generatedWith,
+              keyVersion: keyVersion,
+              sensitivity: sensitivity,
+              findings: findings,
+              analyzedPaths: analyzedPaths,
+              monorepo: monorepo,
+            );
+
   /// Returns the section a merge of [ours] and [theirs] holds: every key as
   /// often as the side that has it most, never the sum, since an entry both
   /// branches inherited appears on both sides; the lower key version, so
@@ -258,6 +272,28 @@ enum BaselineFormatError {
 
   /// The file cannot be read at all: no permission, or not UTF-8 text.
   unreadable,
+}
+
+/// What Git knows about a baseline file it left with merge conflict
+/// markers, read by the caller of [Baseline.parse], which reads no files.
+class BaselineGitConflict {
+  /// The command that restores the file's conflict markers, runnable from
+  /// the current folder.
+  final String restoreCommand;
+
+  /// The file as the side being merged into has it, stage 2 of Git's index;
+  /// null when the index holds no such stage, as after `git add`.
+  final String? ours;
+
+  /// The file as the side being merged has it, stage 3 of Git's index; null
+  /// when the index holds no such stage.
+  final String? theirs;
+
+  const BaselineGitConflict({
+    required this.restoreCommand,
+    this.ours,
+    this.theirs,
+  });
 }
 
 /// Thrown when a baseline file cannot be read.
@@ -335,11 +371,19 @@ class Baseline {
   /// Git trims the shared lines and leaves two last elements without a
   /// comma between them. See [BaselineSection.merge] for how sections merge.
   ///
+  /// The markers do not show which side changed a line that Git merged
+  /// without a conflict: when one branch was rewritten by a newer
+  /// dart_code_linter, both rebuilt sides show its key version. The key
+  /// version of each side is therefore taken from the files [git] read from
+  /// Git's index, where it has them; [git] also names the command that
+  /// restores incomplete markers.
+  ///
   /// Throws a [BaselineFormatException] when the content cannot be read.
   factory Baseline.parse(
     String content, {
     String source = baselineFileName,
     bool resolveConflicts = false,
+    BaselineGitConflict? git,
   }) {
     final sides = resolveConflicts ? _ConflictSides.of(content) : null;
     if (sides != null) {
@@ -361,6 +405,8 @@ class Baseline {
         source: source,
         oursLabel: sides.oursLabel,
         theirsLabel: sides.theirsLabel,
+        oursKeyVersions: _keyVersionsIn(git?.ours),
+        theirsKeyVersions: _keyVersionsIn(git?.theirs),
       );
     }
 
@@ -368,7 +414,14 @@ class Baseline {
     try {
       json = jsonDecode(content);
     } on FormatException catch (e) {
-      throw _invalidJson(content, source, e, resolving: resolveConflicts);
+      throw _invalidJson(
+        content,
+        source,
+        e,
+        resolving: resolveConflicts,
+        restoreCommand:
+            git?.restoreCommand ?? 'git checkout --conflict=merge $source',
+      );
     }
 
     final repeated = _repeatedKeyPath(content, source);
@@ -401,6 +454,9 @@ class Baseline {
   /// sections on one side only are taken as they are, and so are sections of
   /// commands this version does not know when both sides hold the same.
   ///
+  /// A section's key version on each side is taken from [oursKeyVersions]
+  /// and [theirsKeyVersions], by command id, where they have it.
+  ///
   /// Throws a [BaselineFormatException] when only a newer version can merge
   /// the sides: they hold different sections of a command this version does
   /// not know, or sections whose key versions differ, one of them newer than
@@ -410,6 +466,8 @@ class Baseline {
     required String source,
     required String oursLabel,
     required String theirsLabel,
+    required Map<String, int> oursKeyVersions,
+    required Map<String, int> theirsKeyVersions,
   }) {
     BaselineFormatException newer(String what) => BaselineFormatException._(
           BaselineFormatError.newerFormat,
@@ -431,9 +489,12 @@ class Baseline {
 
     final sections = {...theirs.sections, ...this.sections};
     final commands = {...theirs._commands, ..._commands};
-    for (final MapEntry(key: command, value: ours) in this.sections.entries) {
-      final other = theirs.sections[command];
-      if (other != null) {
+    for (final MapEntry(key: command, value: marked) in this.sections.entries) {
+      final markedOther = theirs.sections[command];
+      if (markedOther != null) {
+        final ours = marked._withKeyVersion(oursKeyVersions[command.id]);
+        final other =
+            markedOther._withKeyVersion(theirsKeyVersions[command.id]);
         if (ours.keyVersion != other.keyVersion) {
           final (label, newest) = ours.keyVersion > other.keyVersion
               ? (oursLabel, ours.keyVersion)
@@ -479,23 +540,32 @@ class Baseline {
   }
 }
 
+/// The line that opens a Git merge conflict block, its marker seven `<` long
+/// by default; a `conflict-marker-size` attribute can make it any length.
+/// No line of a baseline starts with `<`: valid JSON cannot.
+final _openingMarker = RegExp(r'^(<+)(?: |\r?$)', multiLine: true);
+
+/// Whether [content] has a line that opens a Git merge conflict block.
+bool hasConflictMarkers(String content) => _openingMarker.hasMatch(content);
+
 BaselineFormatException _invalidJson(
   String content,
   String source,
   FormatException exception, {
   required bool resolving,
+  required String restoreCommand,
 }) {
-  if (content.contains('<<<<<<<') && resolving) {
+  final hasMarkers = hasConflictMarkers(content);
+  if (hasMarkers && resolving) {
     return BaselineFormatException._(
       BaselineFormatError.invalidJson,
       '$source cannot be read: its merge conflict markers are incomplete, as '
       'if the conflict was partly resolved by hand. Restore them with '
-      '`git checkout --conflict=merge $source` and run the command with '
-      '--update-baseline again.',
+      '`$restoreCommand` and run the command with --update-baseline again.',
       mergeConflict: true,
     );
   }
-  if (content.contains('<<<<<<<')) {
+  if (hasMarkers) {
     return BaselineFormatException._(
       BaselineFormatError.invalidJson,
       '$source cannot be read: it contains merge conflict markers. Run the '
@@ -520,6 +590,27 @@ BaselineFormatException _invalidJson(
   );
 }
 
+/// Returns the key version of each command section in [content], a side of
+/// a merge conflict as Git's index holds it, by command id; empty when
+/// [content] is null or no baseline.
+Map<String, int> _keyVersionsIn(String? content) {
+  if (content == null) {
+    return const {};
+  }
+  try {
+    if (jsonDecode(content) case {'commands': final Map<String, Object?> all}) {
+      return {
+        for (final MapEntry(:key, :value) in all.entries)
+          if (value case {'keyVersion': final int version}) key: version,
+      };
+    }
+  } on FormatException {
+    // Not a baseline: the markers decide.
+  }
+
+  return const {};
+}
+
 /// The two sides of content with Git merge conflict markers.
 class _ConflictSides {
   final String ours;
@@ -537,8 +628,9 @@ class _ConflictSides {
   /// content has no complete conflict block.
   ///
   /// A block's markers all have the length of its opening one, seven by
-  /// default: the base of a recursive merge can hold a conflict of its own,
-  /// whose markers Git makes longer so that they are not taken for these.
+  /// default or as a `conflict-marker-size` attribute sets it: the base of a
+  /// recursive merge can hold a conflict of its own, whose markers Git makes
+  /// longer so that they are not taken for these.
   static _ConflictSides? of(String content) {
     final ours = StringBuffer();
     final theirs = StringBuffer();
@@ -555,9 +647,8 @@ class _ConflictSides {
             line.substring(size).trim().isEmpty);
 
     for (final line in const LineSplitter().convert(content)) {
-      final opening = state == _Side.both
-          ? RegExp(r'^(<{7,})(?: |$)').firstMatch(line)
-          : null;
+      final opening =
+          state == _Side.both ? _openingMarker.firstMatch(line) : null;
       if (opening != null) {
         size = opening.group(1)!.length;
         oursLabel ??= line.substring(size).trim();

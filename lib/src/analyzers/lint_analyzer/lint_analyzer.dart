@@ -123,13 +123,13 @@ class LintAnalyzer {
 
         final unit = await context.currentSession.getResolvedUnit(filePath);
         if (unit is ResolvedUnitResult) {
-          final measured = lintBaseline == null ? null : <Report>[];
+          final measured = <Report>[];
           final result = _analyzeFile(
             unit,
             lintAnalysisConfig,
             rootFolder,
             filePath: filePath,
-            measured: measured,
+            measured: lintBaseline == null ? null : measured,
           );
 
           if (result != null) {

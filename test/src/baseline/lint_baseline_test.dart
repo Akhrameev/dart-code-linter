@@ -7,6 +7,7 @@ import 'package:dart_code_linter/src/analyzers/lint_analyzer/metrics/models/metr
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/metrics/models/metric_value_level.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/entity_type.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/lint_file_report.dart';
+import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/report.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/utils/report_utils.dart';
 import 'package:dart_code_linter/src/baseline/baseline.dart';
 import 'package:dart_code_linter/src/baseline/baseline_location.dart';
@@ -341,6 +342,58 @@ class Cart {
         );
       });
 
+      test('never counts a value no report shows as new or worse', () async {
+        // The report keys functions by name and keeps the getter, declared
+        // last, so the setter's value is in no report.
+        String cart(String setter) => 'class Cart {\n  int _c = 0;\n'
+            '$setter  int get count => _c;\n}\n';
+        project
+          ..write(
+            'analysis_options.yaml',
+            'dart_code_linter:\n  metrics:\n    cyclomatic-complexity: 2\n',
+          )
+          ..write(
+            _cartPath,
+            cart('  set count(int v) => _c = v > 0 ? (v > 5 ? 5 : v) : 0;\n'),
+          );
+        final recorded = (await currentKeys())[_cartPath]!;
+        expect(recorded['cyclomatic-complexity'], ['Cart.count=@3']);
+
+        project.writeBaseline(BaselineCommand.analyze, {});
+        final (_, unrecorded) = await run();
+        expect(unrecorded.results.single.unmatched, 0);
+
+        final write = BaselineSession(
+          BaselineCommand.analyze,
+          mode: BaselineMode.write,
+        );
+        await const LintAnalyzer().runCliAnalysis(
+          ['lib'],
+          project.path,
+          _noConfig,
+          baseline: write,
+        );
+        final written = write.write(
+          versions: const BaselineVersions(
+            dartCodeLinter: '4.5.0',
+            analyzer: '13.3.0',
+            dartSdk: '3.11.3',
+          ),
+        );
+        expect(written.single.recorded, 1, reason: 'it is still recorded');
+        expect(written.single.added, 0);
+
+        project.write(
+          _cartPath,
+          cart('  set count(int v) =>\n'
+              '      _c = v > 0 ? (v > 5 ? (v > 9 ? 9 : 5) : v) : 0;\n'),
+        );
+        final (_, worse) = await run();
+        expect(worse.results.single.worsenedEntries, isEmpty);
+        expect(worse.results.single.hidden, 0);
+        expect(worse.results.single.stale, isEmpty);
+      });
+
       test('reports a fixed finding as stale', () async {
         final keys = await currentKeys();
         project.writeBaseline(BaselineCommand.analyze, {
@@ -472,9 +525,14 @@ int checkout(int a, int b, int c) {
             );
           final unit = await context.currentSession
               .getResolvedUnit(project.pathOf(_cartPath)) as ResolvedUnitResult;
-          final report = const LintAnalyzer()
-              .runPluginAnalysis(unit, config, project.path)!;
-          baseline.addFile(unit, report, config);
+          final measured = <Report>[];
+          final report = const LintAnalyzer().runPluginAnalysis(
+            unit,
+            config,
+            project.path,
+            measured: measured,
+          )!;
+          baseline.addFile(unit, report, config, measured: measured);
 
           return (baseline.apply([report]).single, session);
         }

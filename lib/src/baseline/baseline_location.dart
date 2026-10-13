@@ -168,12 +168,65 @@ BaselineRead readBaselineAt(
     );
   }
 
+  // A byte order mark, as some Windows editors write, is already dropped:
+  // the UTF-8 decoder discards a leading one.
   return BaselineRead._(
     Baseline.parse(
-      // A byte order mark, as some Windows editors write.
-      content.startsWith('\uFEFF') ? content.substring(1) : content,
+      content,
       source: shownPath,
       resolveConflicts: resolveConflicts,
+      git: resolveConflicts && hasConflictMarkers(content)
+          ? _gitConflictOf(location.path)
+          : null,
     ),
+  );
+}
+
+/// Reads what Git knows about the baseline file at [path], which has merge
+/// conflict markers: both sides from the stages of its index, and the
+/// command that restores the markers, with the file's folder relative to the
+/// current one.
+///
+/// Without Git, or outside a repository, both sides are null.
+BaselineGitConflict _gitConflictOf(String path) {
+  final file = p.normalize(
+    FileSystemEntity.isLinkSync(path)
+        ? File(path).resolveSymbolicLinksSync()
+        : p.absolute(path),
+  );
+  final folder = p.dirname(file);
+  final name = p.basename(file);
+
+  String? stage(int number) {
+    try {
+      final result = Process.runSync(
+        'git',
+        ['show', ':$number:./$name'],
+        workingDirectory: folder,
+        stdoutEncoding: utf8,
+      );
+
+      return result.exitCode == 0 ? result.stdout as String : null;
+    } on ProcessException {
+      return null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  String quoted(String text) =>
+      RegExp(r'^[\w./\\:-]+$').hasMatch(text) ? text : '"$text"';
+  final shownFolder = p.relative(folder);
+
+  return BaselineGitConflict(
+    restoreCommand: [
+      'git',
+      if (shownFolder != '.') ...['-C', quoted(shownFolder)],
+      'checkout',
+      '--conflict=merge',
+      quoted(name),
+    ].join(' '),
+    ours: stage(2),
+    theirs: stage(3),
   );
 }

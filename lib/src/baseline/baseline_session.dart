@@ -58,7 +58,13 @@ class BaselineFinding {
   /// The key of the finding inside its group.
   final String key;
 
-  const BaselineFinding(this.path, this.group, this.key);
+  /// Whether a report shows the finding. One that none shows, such as the
+  /// value of a declaration a report drops for a same-named one, is matched
+  /// and recorded, so that which of them a report keeps never changes what
+  /// the baseline hides, but it never counts as hidden, new or worse.
+  final bool shown;
+
+  const BaselineFinding(this.path, this.group, this.key, {this.shown = true});
 }
 
 /// What the run that wrote a section analyzed, and what the current run
@@ -520,18 +526,24 @@ class BaselineSession {
     // group, so that outcomes can be mapped back to findings.
     final keys = <_File, Map<String, Map<String, List<String>>>>{};
     final indices = <_File, Map<String, Map<String, List<int>>>>{};
+    final shown = List.filled(all.length, true);
+    final shownCounts = <_File, int>{};
     // In a write every context given a path has a file, so a finding without
     // one has no owner: see [_ownerOf].
     final unrecorded = <String>[];
     for (var i = 0; i < all.length; i++) {
       final finding = describe(all[i]);
       _findings.add(finding);
+      shown[i] = finding.shown;
       final file = _ownerOf(finding.path)?.file;
       if (file == null) {
         if (mode == BaselineMode.write) {
           unrecorded.add(finding.path);
         }
         continue;
+      }
+      if (finding.shown) {
+        shownCounts.update(file, (count) => count + 1, ifAbsent: () => 1);
       }
       final path = file.relativePathOf(finding.path);
       keys
@@ -555,7 +567,13 @@ class BaselineSession {
       final current = keys[file] ?? const {};
       final section = file.baseline.sections[command];
       if (section == null) {
-        file.state = _FileState(coverage, current, null, null);
+        file.state = _FileState(
+          coverage,
+          current,
+          null,
+          null,
+          newFindings: shownCounts[file] ?? 0,
+        );
         // A first write accepts what it records: there is no earlier
         // baseline to judge these findings against.
         if (mode == BaselineMode.write) {
@@ -587,25 +605,22 @@ class BaselineSession {
         valueDirectionOf: valueDirectionOf,
         keepUnknownGroups: section.keyVersion > currentKeyVersion,
       );
-      file.state = _FileState(
-        coverage,
-        current,
-        match,
-        mismatch,
-        countMode: countMode,
-        valueDirectionOf: valueDirectionOf,
-      );
-
       final worsened = <WorsenedEntry>[];
+      var hiddenCount = 0;
+      var unmatchedCount = 0;
       for (final MapEntry(key: path, value: groups) in match.groups.entries) {
         for (final MapEntry(key: group, value: groupMatch) in groups.entries) {
           final groupIndices = indices[file]![path]![group]!;
           for (var i = 0; i < groupMatch.outcomes.length; i++) {
             final outcome = groupMatch.outcomes[i];
+            final index = groupIndices[i];
             switch (outcome.status) {
               case FindingStatus.hidden:
-                hidden[groupIndices[i]] = true;
-              case FindingStatus.worsened:
+                hidden[index] = true;
+                if (shown[index]) {
+                  hiddenCount++;
+                }
+              case FindingStatus.worsened when shown[index]:
                 final key = current[path]![group]![i];
                 worsened.add(WorsenedEntry(
                   path,
@@ -613,19 +628,31 @@ class BaselineSession {
                   outcome.entry!,
                   num.parse(key.substring(key.lastIndexOf('@') + 1)),
                 ));
-              case FindingStatus.unmatched:
+              case FindingStatus.unmatched when shown[index]:
+                unmatchedCount++;
+              case FindingStatus.worsened || FindingStatus.unmatched:
                 break;
             }
           }
         }
       }
+      file.state = _FileState(
+        coverage,
+        current,
+        match,
+        mismatch,
+        countMode: countMode,
+        valueDirectionOf: valueDirectionOf,
+        newFindings: unmatchedCount,
+        worsened: worsened.length,
+      );
 
       _results.add(BaselineFileResult(
         path: file.location.path,
         displayPath: file.displayPath,
-        hidden: match.hidden,
+        hidden: hiddenCount,
         worsenedEntries: worsened,
-        unmatched: match.unmatched,
+        unmatched: unmatchedCount,
         stale: mismatch == null ? match.stale : const [],
         disabled: match.disabled,
         pathsMismatch: mismatch,
@@ -757,10 +784,8 @@ class BaselineSession {
                 ? BaselineWriteAction.written
                 : BaselineWriteAction.unchanged,
         recorded: _count(state.findings),
-        added: old == null
-            ? _count(state.findings)
-            : state.match?.unmatched ?? _count(state.findings),
-        worsened: old == null ? 0 : state.match?.worsened ?? 0,
+        added: state.newFindings,
+        worsened: state.worsened,
         sensitivity: chosen,
         sensitivitySource: sensitivity != null
             ? BaselineSensitivitySource.option
@@ -1032,6 +1057,13 @@ class _FileState {
   final CountMode countMode;
   final ValueDirection? Function(String group)? valueDirectionOf;
 
+  /// The number of shown findings not in the section, all of them when the
+  /// file has no section.
+  final int newFindings;
+
+  /// The number of shown findings whose measured value got worse.
+  final int worsened;
+
   const _FileState(
     this.coverage,
     this.findings,
@@ -1039,6 +1071,8 @@ class _FileState {
     this.mismatch, {
     this.countMode = const CountMode.none(),
     this.valueDirectionOf,
+    this.newFindings = 0,
+    this.worsened = 0,
   });
 }
 

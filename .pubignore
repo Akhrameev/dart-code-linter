@@ -2,6 +2,7 @@
 
 /coverage/*
 /doc/*
+/docs/baseline-design.md
 /metrics/*
 /tool/*
 /website/*

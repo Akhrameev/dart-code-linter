@@ -723,6 +723,80 @@ void main() {
       );
     });
 
+    test("takes the key versions of the sides from Git's index", () {
+      // Only the feature branch was rewritten by a newer dart_code_linter, so
+      // Git merged its keyVersion line outside the conflict block.
+      final content = _conflicted(
+        findings: _appendedByBoth,
+        keyVersion: '      "keyVersion": 2,',
+      );
+      String side(int keyVersion) => _conflicted(
+            findings: '',
+            keyVersion: '      "keyVersion": $keyVersion,',
+          );
+
+      expect(
+        analyzeOf(Baseline.parse(content, resolveConflicts: true)).keyVersion,
+        2,
+        reason: 'the markers alone show the same version on both sides',
+      );
+      expect(
+        () => Baseline.parse(
+          content,
+          resolveConflicts: true,
+          git: BaselineGitConflict(
+            restoreCommand: 'git checkout --conflict=merge dcl_baseline.json',
+            ours: side(1),
+            theirs: side(2),
+          ),
+        ),
+        throwsA(
+          isA<BaselineFormatException>()
+              .having((e) => e.error, 'error', BaselineFormatError.newerFormat)
+              .having(
+                (e) => e.toString(),
+                'message',
+                contains('its feature side holds keys for analyze from key '
+                    'version 2'),
+              ),
+        ),
+      );
+      expect(
+        analyzeOf(Baseline.parse(
+          content,
+          resolveConflicts: true,
+          git: BaselineGitConflict(
+            restoreCommand: 'git checkout --conflict=merge dcl_baseline.json',
+            ours: '{ not a baseline',
+            theirs: side(2),
+          ),
+        )).keyVersion,
+        2,
+        reason: 'a side the index holds no readable file for keeps the '
+            'version its markers show',
+      );
+    });
+
+    test('takes the analyzed paths and --monorepo of HEAD', () {
+      BaselineSection section(List<String> paths, {required bool monorepo}) =>
+          BaselineSection(
+            generatedWith: _versions,
+            analyzedPaths: paths,
+            monorepo: monorepo,
+            keyVersion: 1,
+            sensitivity: BaselineSensitivity.exact,
+            findings: const {},
+          );
+
+      final merged = BaselineSection.merge(
+        section(['.', '../b'], monorepo: true),
+        section(['.'], monorepo: false),
+      );
+
+      expect(merged.analyzedPaths, ['.', '../b']);
+      expect(merged.monorepo, isTrue);
+    });
+
     test('refuses to merge keys of a newer dart_code_linter into older ones',
         () {
       final newerHead = _conflicted(
@@ -819,6 +893,37 @@ void main() {
       expect(
         analyzeOf(baseline).findings['lib/a.dart']!['no-magic-number'],
         unorderedEquals(['A.alpha#2', 'A.beta#3']),
+      );
+    });
+
+    test('reads the shorter markers a conflict-marker-size attribute sets', () {
+      const shortMarkers = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '            "A.base#1",\n'
+          '<<<<< HEAD\n'
+          '            "A.alpha#2"\n'
+          '=====\n'
+          '            "A.beta#3"\n'
+          '>>>>> feature\n'
+          '          ]\n'
+          '        }';
+
+      expect(
+        analyzeOf(Baseline.parse(
+          _conflicted(findings: shortMarkers),
+          resolveConflicts: true,
+        )).findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.base#1', 'A.alpha#2', 'A.beta#3']),
+      );
+      expect(
+        () => Baseline.parse(_conflicted(findings: shortMarkers)),
+        throwsA(
+          isA<BaselineFormatException>().having(
+            (e) => e.toString(),
+            'message',
+            contains('merge conflict markers'),
+          ),
+        ),
       );
     });
 

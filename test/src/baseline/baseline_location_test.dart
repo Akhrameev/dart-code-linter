@@ -210,6 +210,157 @@ void main() {
       );
     });
 
+    test('skips a byte order mark, as some Windows editors write', () {
+      File(pathOf(baselineFileName)).writeAsBytesSync([
+        0xef,
+        0xbb,
+        0xbf,
+        ...const Baseline.empty().toJsonString().codeUnits,
+      ]);
+
+      final read = readBaselineAt(
+        BaselineLocation(pathOf(baselineFileName), BaselineSource.conventional),
+      );
+
+      expect(read.baseline, isNotNull);
+    });
+
+    group('with merge conflict markers Git left', () {
+      final hasGit = () {
+        try {
+          return Process.runSync('git', ['--version']).exitCode == 0;
+        } on ProcessException {
+          return false;
+        }
+      }();
+
+      void git(List<String> arguments) {
+        final result = Process.runSync(
+          'git',
+          [
+            '-c',
+            'user.name=dcl',
+            '-c',
+            'user.email=dcl@example.com',
+            '-c',
+            'commit.gpgsign=false',
+            '-c',
+            'core.hooksPath=${p.join(directory.path, 'no-hooks')}',
+            ...arguments,
+          ],
+          workingDirectory: directory.path,
+        );
+        if (arguments.first != 'merge' && result.exitCode != 0) {
+          fail('git ${arguments.join(' ')}: ${result.stderr}');
+        }
+      }
+
+      String file({required int keyVersion, required List<String> keys}) =>
+          '{\n'
+          '  "formatVersion": 1,\n'
+          '  "commands": {\n'
+          '    "analyze": {\n'
+          '      "generatedWith": {\n'
+          '        "dartCodeLinter": "4.5.0",\n'
+          '        "analyzer": "13.3.0",\n'
+          '        "dartSdk": "3.11.3"\n'
+          '      },\n'
+          '      "keyVersion": $keyVersion,\n'
+          '      "sensitivity": "exact",\n'
+          '      "findings": {\n'
+          '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '${keys.map((key) => '            "$key"').join(',\n')}\n'
+          '          ]\n'
+          '        }\n'
+          '      }\n'
+          '    }\n'
+          '  }\n'
+          '}\n';
+
+      late BaselineLocation location;
+
+      setUp(() {
+        if (!hasGit) {
+          return;
+        }
+        location = BaselineLocation(
+            pathOf(baselineFileName), BaselineSource.optionsKey);
+        final baseline = File(location.path);
+        void commit(String content) {
+          baseline.writeAsStringSync(content);
+          git(['add', baselineFileName]);
+          git(['commit', '-q', '-m', 'baseline']);
+        }
+
+        git(['init', '-q', '-b', 'main']);
+        commit(file(keyVersion: 1, keys: ['A.base#1']));
+        git(['checkout', '-q', '-b', 'upgrade']);
+        // A newer dart_code_linter rewrote the keys of this branch.
+        commit(file(keyVersion: 2, keys: ['A.base#1-v2']));
+        git(['checkout', '-q', 'main']);
+        commit(file(keyVersion: 1, keys: ['A.base#1', 'A.added#2']));
+        git(['merge', '-q', 'upgrade']);
+      });
+
+      test(
+        'takes the key version of each side from the index, where Git '
+        'merged the line of the side that changed it',
+        () {
+          final content = File(location.path).readAsStringSync();
+          expect(content, contains('<<<<<<<'));
+          expect(
+            content.substring(0, content.indexOf('<<<<<<<')),
+            contains('"keyVersion": 2'),
+            reason: 'both sides rebuilt from the markers say 2',
+          );
+
+          expect(
+            () => readBaselineAt(location, resolveConflicts: true),
+            throwsA(
+              isA<BaselineFormatException>()
+                  .having(
+                      (e) => e.error, 'error', BaselineFormatError.newerFormat)
+                  .having(
+                    (e) => e.toString(),
+                    'message',
+                    contains('key version 2'),
+                  ),
+            ),
+          );
+        },
+        skip: hasGit ? false : 'needs git',
+      );
+
+      test(
+        'names a restore command that works from the current folder',
+        () {
+          final content = File(location.path).readAsStringSync();
+          // Resolved by hand, all but the opening marker.
+          File(location.path).writeAsStringSync(content
+              .split('\n')
+              .where((line) =>
+                  !line.startsWith('=======') && !line.startsWith('>>>>>>>'))
+              .join('\n'));
+
+          expect(
+            () => readBaselineAt(location, resolveConflicts: true),
+            throwsA(
+              isA<BaselineFormatException>().having(
+                (e) => e.toString(),
+                'message',
+                contains(
+                  '`git -C ${p.relative(directory.path)} checkout '
+                  '--conflict=merge $baselineFileName`',
+                ),
+              ),
+            ),
+          );
+        },
+        skip: hasGit ? false : 'needs git',
+      );
+    });
+
     test('names the file as given in a parse error', () {
       File(pathOf(baselineFileName)).writeAsStringSync('{');
 
