@@ -168,7 +168,9 @@ void main() {
           if (golden != null && _equalKeys(golden.keys, keys)) {
             return;
           }
-          if (_update) {
+          final released =
+              golden != null && currentKeyVersion <= releasedKeyVersion;
+          if (_update && !released) {
             _Golden(currentKeyVersion, keys).write(id);
 
             return;
@@ -177,9 +179,10 @@ void main() {
           fail(golden == null
               ? 'No golden for $id. Create it with DCL_UPDATE_GOLDEN_KEYS=1.'
               : 'Baseline keys of $id changed. If that was not intended, '
-                  'keep the old keys. Otherwise bump currentKeyVersion, list '
-                  'the group in keyVersionChanges and regenerate the goldens '
-                  'with DCL_UPDATE_GOLDEN_KEYS=1.\n'
+                  'keep the old keys. Otherwise bump currentKeyVersion'
+                  '${released ? ' (key version $currentKeyVersion is released)' : ''}, '
+                  'list the group in keyVersionChanges and regenerate the '
+                  'goldens with DCL_UPDATE_GOLDEN_KEYS=1.\n'
                   'Expected: ${jsonEncode(golden.keys)}\n'
                   '  Actual: ${jsonEncode(keys)}');
         });
@@ -195,6 +198,10 @@ void main() {
             .toList();
 
         expect(orphans, isEmpty, reason: 'Delete goldens of removed groups.');
+      });
+
+      test('never reuses a released key version', () {
+        expect(currentKeyVersion, greaterThanOrEqualTo(releasedKeyVersion));
       });
 
       test('stamps every changed golden with a version listing it', () {

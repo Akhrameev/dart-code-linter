@@ -4,15 +4,15 @@
     "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_dynamic/examples/example.dart": {
       "avoid-dynamic": [
         "Generic#a39eadfa3d02ee0c",
-        "SomeClass.calculate#bf56ddd88a0486b9",
-        "SomeClass.state#7c333fb4d59a0aac",
+        "SomeClass.calculate#a92214e4bedd217d",
+        "SomeClass.state#1d9106b056b6bf86",
         "SomeClass.value#792631b074d98270",
         "main#d6e88a3db6b127b6",
         "main#fdf00bb6c0d22553",
+        "someFunction#0dff4b57e2004949",
         "someFunction#12eb88e3fe8653b5",
         "someFunction#526da58b1d3579f3",
-        "someFunction#ca3bf37fd721877f",
-        "someFunction#fb23c70f1fa2805c"
+        "someFunction#ca3bf37fd721877f"
       ]
     }
   }

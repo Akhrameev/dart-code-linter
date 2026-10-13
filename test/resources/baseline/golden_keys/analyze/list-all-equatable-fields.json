@@ -3,11 +3,11 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/list_all_equatable_fields/examples/example.dart": {
       "list-all-equatable-fields": [
-        "AndAnotherPerson.props#af373d954fd03f81",
-        "AnotherPerson.props#1c412647385edc5b",
-        "EquatableDateTime.props#4b888ec578a7ed94",
-        "EquatableDateTimeSubclass.props#6faa0925e18fd042",
-        "SubPerson.props#e422c42bee11cea6"
+        "AndAnotherPerson.props#5960e4371f8771d5",
+        "AnotherPerson.props#5960e4371f8771d5",
+        "EquatableDateTime.props#5960e4371f8771d5",
+        "EquatableDateTimeSubclass.props#5960e4371f8771d5",
+        "SubPerson.props#5960e4371f8771d5"
       ]
     }
   }

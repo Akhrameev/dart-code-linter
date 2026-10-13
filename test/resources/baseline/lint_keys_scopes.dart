@@ -25,6 +25,11 @@ class Cart extends Base<HeaderMarker> {
   int total() {
     int localHelper() => 'local_function_marker'.length;
     final closure = () => 'closure_marker';
+    int outerHelper() {
+      int innerHelper() => 'nested_local_function_marker'.length;
+
+      return innerHelper();
+    }
 
     return localHelper();
   }

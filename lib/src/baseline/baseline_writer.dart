@@ -45,8 +45,10 @@ class UpdatedSection {
 /// this version does not know are dropped.
 ///
 /// When [pathsChanged], the section switches to the run's [analyzedPaths]:
-/// old entries were computed under other paths, so none is kept, and those
-/// outside the new coverage are counted in [WrittenSection.droppedForPaths].
+/// old entries were computed under other paths, so the run's findings
+/// replace them, and those outside the new coverage are dropped and counted
+/// in [WrittenSection.droppedForPaths]. Entries of disabled groups inside it
+/// are still kept: the run did not compute anything to replace them with.
 ///
 /// The key version becomes [current] unless a kept entry belongs to a group
 /// still in count mode: that key was computed by older code, so the section
@@ -82,15 +84,14 @@ WrittenSection writeSection({
     for (final MapEntry(key: path, value: groups) in old.findings.entries) {
       final covered = coverage.coversPath(path);
       for (final MapEntry(key: group, value: keys) in groups.entries) {
-        if (pathsChanged) {
-          if (!covered) {
-            droppedForPaths += keys.length;
-          }
+        if (pathsChanged && !covered) {
+          droppedForPaths += keys.length;
           continue;
         }
 
-        final kept =
-            !covered || coverage.groupState(path, group) == GroupState.disabled;
+        final disabled =
+            covered && coverage.groupState(path, group) == GroupState.disabled;
+        final kept = disabled || (!covered && !pathsChanged);
         if (kept && keys.isNotEmpty) {
           add(path, group, keys);
           if (countMode.appliesTo(group)) {
@@ -128,9 +129,10 @@ WrittenSection writeSection({
 /// its outcomes are in the order of [findings]. Nothing is added, no value is
 /// loosened, and no other entry changes, not even one matched by scope or
 /// count with a different key, since it is still in use. Groups in
-/// [countMode] lose nothing: without comparable keys, the stale entry cannot
-/// be told from the others. [valueDirectionOf] tells which groups carry a
-/// measured value.
+/// [countMode] lose their surplus entries like any other group: matched by
+/// count, any entry is as good as another, so the ones left unmatched can
+/// go. Their values are not tightened, since old keys are not comparable.
+/// [valueDirectionOf] tells which groups carry a measured value.
 UpdatedSection updateSection({
   required BaselineSection old,
   required SectionMatch match,
@@ -148,9 +150,6 @@ UpdatedSection updateSection({
 
   var removed = 0;
   for (final entry in match.stale) {
-    if (countMode.appliesTo(entry.group)) {
-      continue;
-    }
     if (result[entry.path]?[entry.group]?.remove(entry.key) ?? false) {
       removed++;
     }
@@ -203,6 +202,10 @@ UpdatedSection updateSection({
 /// renamed over the baseline: a rename within one folder is atomic, so other
 /// runs and the IDE read either the old or the new file, never half of one.
 ///
+/// A baseline reached through a symbolic link is written where the link
+/// points, so that the link, often one file shared by several packages,
+/// survives the rename.
+///
 /// Throws a [FileSystemException] when the file cannot be written; the
 /// baseline is then left as it was.
 bool writeBaselineFile(String path, String content) {
@@ -211,12 +214,15 @@ bool writeBaselineFile(String path, String content) {
     return false;
   }
 
-  final temporary = File('$path.tmp');
+  final target = FileSystemEntity.isLinkSync(path)
+      ? file.resolveSymbolicLinksSync()
+      : path;
+  final temporary = File('$target.tmp');
   try {
-    file.parent.createSync(recursive: true);
+    File(target).parent.createSync(recursive: true);
     temporary
       ..writeAsStringSync(content, flush: true)
-      ..renameSync(path);
+      ..renameSync(target);
   } on FileSystemException {
     if (temporary.existsSync()) {
       temporary.deleteSync();

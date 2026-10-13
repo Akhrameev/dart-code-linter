@@ -112,12 +112,15 @@ class BaselineRead {
 /// [creating] says that `--write-baseline` is about to create it.
 ///
 /// [displayPath] names the file in messages, the full path by default.
+/// [resolveConflicts] resolves merge conflict markers, as
+/// `--update-baseline` does; see [Baseline.parse].
 ///
 /// Throws a [BaselineFormatException] when the file cannot be read.
 BaselineRead readBaselineAt(
   BaselineLocation location, {
   bool creating = false,
   String? displayPath,
+  bool resolveConflicts = false,
 }) {
   final file = File(location.path);
   final shownPath = displayPath ?? location.path;
@@ -140,6 +143,10 @@ BaselineRead readBaselineAt(
   }
 
   return BaselineRead._(
-    Baseline.parse(file.readAsStringSync(), source: shownPath),
+    Baseline.parse(
+      file.readAsStringSync(),
+      source: shownPath,
+      resolveConflicts: resolveConflicts,
+    ),
   );
 }

@@ -5,11 +5,11 @@
       "prefer-static-class": [
         "_privateGlobalConstant#605578de0971ef7d",
         "_privateGlobalFinalVariable#12c3f37f15b39fd3",
-        "_privateGlobalFunction#72c303e98a9fc552",
+        "_privateGlobalFunction#c4b7cd0be58bc0e8",
         "_privateGlobalVariable#e4f9d22fc92ab8be",
         "globalConstant#a7c27abd09b93a98",
         "globalFinalVariable#a0f0562fcd4d930d",
-        "globalFunction#d442747a73d954d5",
+        "globalFunction#e32fc8137ce3d0be",
         "globalVariable#6ee326f98bf37768"
       ]
     },
@@ -23,7 +23,7 @@
       "prefer-static-class": [
         "_privateGlobalConstant#605578de0971ef7d",
         "_privateGlobalFinalVariable#12c3f37f15b39fd3",
-        "_privateGlobalFunction#72c303e98a9fc552",
+        "_privateGlobalFunction#c4b7cd0be58bc0e8",
         "_privateGlobalVariable#e4f9d22fc92ab8be"
       ]
     },
@@ -31,11 +31,11 @@
       "prefer-static-class": [
         "_privateGlobalConstant#605578de0971ef7d",
         "_privateGlobalFinalVariable#12c3f37f15b39fd3",
-        "_privateGlobalFunction#72c303e98a9fc552",
+        "_privateGlobalFunction#c4b7cd0be58bc0e8",
         "_privateGlobalVariable#e4f9d22fc92ab8be",
         "globalConstant#a7c27abd09b93a98",
         "globalFinalVariable#a0f0562fcd4d930d",
-        "globalFunction#d442747a73d954d5",
+        "globalFunction#e32fc8137ce3d0be",
         "globalVariable#6ee326f98bf37768"
       ]
     }

@@ -168,7 +168,7 @@ int tax() => 8;
     expect(
       remaining(baseline(), content),
       ['7'],
-      reason: 'the server drops the ignored one after it is reported',
+      reason: 'the ignored one is returned as it is, for the server',
     );
   });
 

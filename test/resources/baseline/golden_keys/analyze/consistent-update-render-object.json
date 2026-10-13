@@ -3,9 +3,9 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/consistent_update_render_object/examples/incorrect_example.dart": {
       "consistent-update-render-object": [
-        "ColorFiltered#01640d9fd05b2997",
-        "_Decorator.updateRenderObject#8b005eaeaca50f94",
-        "_MenuItem.updateRenderObject#60218e259a8697a2"
+        "ColorFiltered#a3bc700317f7259a",
+        "_Decorator.updateRenderObject#738fba48941e88a3",
+        "_MenuItem.updateRenderObject#b15c77b6c5a18ab9"
       ]
     }
   }

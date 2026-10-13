@@ -13,13 +13,13 @@
         "Test.nullableField#ae235009af8a75ea",
         "Test.staticConstField#542ad50e15988900",
         "Test.staticLateFinalField#3185e30e415fce4d",
-        "Test.value#b2077c90620c0a15"
+        "Test.value#cf9883cf86111b3b"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/member_ordering/examples/flutter_widget_example.dart": {
       "member-ordering": [
-        "StatelessWidget.initState#6d8ff3f64b2b53b9",
-        "_MyStatelessWidget.initState#077cbaa352ea2087"
+        "StatelessWidget.initState#ef97228b518b517e",
+        "_MyStatelessWidget.initState#63168e123e37c96a"
       ]
     }
   }

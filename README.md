@@ -571,9 +571,10 @@ same file can lose one command's section.
 
 Keys are built from the code's tokens and the enclosing declaration, not from
 line numbers, so reformatting with `dart format`, moving code, adding comments
-and editing other lines never resurface a baselined finding. The sensitivity,
-recorded in the file per command, decides what happens when the flagged code
-itself changes:
+and editing other lines never resurface a baselined rule finding. Metric values
+that count lines are the exception: reformatting can make them worse (see
+[Known limitations](#known-limitations)). The sensitivity, recorded in the file
+per command, decides what happens when the flagged code itself changes:
 
 | Sensitivity | A baselined finding stays hidden while |
 |---|---|
@@ -629,16 +630,27 @@ than `console` and `console-verbose`, the summaries of `--write-baseline` and
 ### Merge conflicts
 
 The file is sorted and deterministic, so two branches that change the same list
-can conflict. Keep both sides, then run the command with `--update-baseline`,
-which drops whatever the merged code no longer produces. Never resolve a
-conflict by regenerating the file with `--write-baseline`: that would accept the
-merged code's new findings without anyone reviewing them. The `about` field at
-the top of the file says the same, for whoever meets the conflict first.
+can conflict. Do not edit the conflict by hand; keeping both sides usually
+leaves invalid JSON, since Git drops the comma between the two last entries.
+Run the command with `--update-baseline` on the conflicted file instead: it
+keeps the entries of both sides, drops whatever the merged code no longer
+produces, and writes clean JSON. Then add the file to finish the merge:
 
-A file that cannot be read (left over conflict markers, invalid JSON, or a
-format written by a newer DCL) stops the CLI with exit 1 and a message naming
-the file, and neither write mode replaces it. The IDE shows every finding
-instead and reports the problem once per file.
+```sh
+dart run dart_code_linter:metrics analyze lib --update-baseline
+git add dcl_baseline.json
+```
+
+Never resolve a conflict by regenerating the file with `--write-baseline`: that
+would accept the merged code's new findings without anyone reviewing them. The
+`about` field at the top of the file says the same, for whoever meets the
+conflict first.
+
+A file that cannot be read (conflict markers outside `--update-baseline`,
+invalid JSON, a key that occurs twice in one object, or a format written by a
+newer DCL) stops the CLI with exit 1 and a message naming the file, and
+`--write-baseline` never replaces it. The IDE shows every finding instead and
+reports the problem once per file.
 
 ### In the IDE
 
@@ -659,8 +671,9 @@ the baseline.
 | A project-wide command run over other paths reports no stale entries and updates nothing | Its findings depend on the analyzed paths | Use the same paths in CI and locally, or switch with `--write-baseline` |
 | Entries of a disabled rule stay in the file | The rule may be turned on again, and its debt is still real | Keep them, or remove them with `--write-baseline` once the rule is back on |
 | `fix` also fixes baselined findings | `fix` does not read the baseline | Run `--update-baseline` afterwards to drop the entries of fixed findings; `fix` prints a reminder |
-| Two branches changing the same list conflict on merge | Concurrent changes touch neighbouring lines | Keep both sides, then run `--update-baseline` |
+| Two branches changing the same list conflict on merge | Concurrent changes touch neighbouring lines | Run `--update-baseline` on the conflicted file, then add it |
 | The IDE does not refresh when the baseline changes | The analysis server watches only `*.dart` files | Edit the file, or restart the analysis server |
+| Reformatting can resurface metric values that count lines | `lines-of-code`, `source-lines-of-code`, `maintainability-index` and `long-method` depend on how code is laid out, and `lines-of-code` also counts comment lines | After a format migration, such as the switch to the tall style, run `--write-baseline` once to accept the new values |
 | `check-unused-l10n` cannot record a finding in a localization class declared outside the folder of every baseline it uses, such as a sibling package outside `--root-folder` | Entries are stored relative to their baseline file | Add the class's folder to the analyzed paths, or share one baseline above both through `--baseline` or the `baseline:` key. `--write-baseline` warns about such findings |
 
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:crypto/crypto.dart';
 
 import '../analyzers/lint_analyzer/metrics/models/metric_value.dart';
@@ -29,6 +30,9 @@ class LintBaselineKeys {
 
   static final _lineBreak = RegExp('\r\n?');
 
+  /// What a declaration body or type member list inside a span is hashed as.
+  static const _bodyPlaceholder = '{…}';
+
   /// The unit the findings are in.
   final CompilationUnit unit;
 
@@ -41,6 +45,11 @@ class LintBaselineKeys {
         token = token.next)
       if (token.length > 0) token,
   ];
+
+  /// The end offsets of the unit's function, method and constructor bodies
+  /// and type member lists, by start offset, read once for all findings; see
+  /// [_hash].
+  late final Map<int, int> _bodies = (_Bodies()..collect(unit)).ends;
 
   LintBaselineKeys(this.unit, String content) : _names = SourceNames(content);
 
@@ -111,11 +120,35 @@ class LintBaselineKeys {
 
   /// Returns the scope of a metric's [declaration]: a class, a function or
   /// the [fileScope] for the unit itself.
-  String scopeOf(AstNode declaration) => declaration is CompilationUnit
-      ? fileScope
-      : scopeAt(declaration is AnnotatedNode
-          ? declaration.firstTokenAfterCommentAndMetadata.offset
-          : declaration.offset);
+  ///
+  /// DCL measures a local function on its own, so it is a scope here, unlike
+  /// for rule findings: its name follows the scope around it after a `/`, as
+  /// in `Cart.total/helper`. Under the enclosing member's scope, the values
+  /// of different functions would be paired with each other, and a worse
+  /// value of one could be hidden by another's entry.
+  String scopeOf(AstNode declaration) {
+    if (declaration is CompilationUnit) {
+      return fileScope;
+    }
+    if (declaration is FunctionDeclaration &&
+        declaration.parent is FunctionDeclarationStatement) {
+      final fragment = declaration.declaredFragment;
+      final name = fragment == null ? null : _names.nameOf(fragment);
+      final outer = declaration.parent?.parent?.thisOrAncestorMatching(
+        (node) =>
+            node is FunctionDeclaration &&
+            node.parent is FunctionDeclarationStatement,
+      );
+      final enclosing =
+          outer != null ? scopeOf(outer) : scopeAt(declaration.offset);
+
+      return name == null ? enclosing : '$enclosing/$name';
+    }
+
+    return scopeAt(declaration is AnnotatedNode
+        ? declaration.firstTokenAfterCommentAndMetadata.offset
+        : declaration.offset);
+  }
 
   /// Returns the scope of the code at [offset]: the qualified name of the
   /// enclosing top-level declaration and, inside a type, of the enclosing
@@ -248,6 +281,15 @@ class LintBaselineKeys {
   /// hashed as `\n`: Git on Windows checks files out with `\r\n` by default,
   /// and a baseline written there must match one written on Linux CI.
   ///
+  /// A function, method or constructor body, or a type's member list, that
+  /// lies wholly inside the span, and is not the span itself, is hashed as
+  /// one placeholder. A finding on a whole declaration, such as
+  /// `member-ordering` on a method, is so keyed on the declaration's header:
+  /// editing the body never resurfaces it, while a new name or signature
+  /// does. Statement blocks and closures are hashed in full: blanking them
+  /// merged the keys of distinct findings, such as `test('...', () {...})`
+  /// calls of `missing-test-assertion`.
+  ///
   /// A span without tokens lies inside a comment, as for `format-comment`.
   /// Its text is hashed instead, with whitespace runs collapsed, so findings
   /// in different comments of one scope keep different keys.
@@ -260,14 +302,32 @@ class LintBaselineKeys {
             )
             .trim()
             .replaceAll(RegExp(r'\s+'), ' ')
-        : tokens
-            .where((token) =>
-                token.type != TokenType.COMMA ||
-                !_closingBrackets.contains(token.next?.lexeme))
-            .map((token) => token.lexeme.replaceAll(_lineBreak, '\n'))
-            .join(' ');
+        : _lexemesOf(tokens, start, end).join(' ');
 
     return sha1.convert(utf8.encode(text)).toString().substring(0, 16);
+  }
+
+  Iterable<String> _lexemesOf(List<Token> tokens, int start, int end) sync* {
+    var skipUntil = -1;
+    for (final token in tokens) {
+      if (token.offset < skipUntil) {
+        continue;
+      }
+      final bodyEnd = _bodies[token.offset];
+      if (bodyEnd != null &&
+          token.offset >= start &&
+          bodyEnd <= end &&
+          (token.offset != start || bodyEnd != end)) {
+        yield _bodyPlaceholder;
+        skipUntil = bodyEnd;
+        continue;
+      }
+      if (token.type == TokenType.COMMA &&
+          _closingBrackets.contains(token.next?.lexeme)) {
+        continue;
+      }
+      yield token.lexeme.replaceAll(_lineBreak, '\n');
+    }
   }
 
   static bool _isTypeDeclaration(AstNode node) =>
@@ -276,4 +336,52 @@ class LintBaselineKeys {
       node is EnumDeclaration ||
       node is ExtensionDeclaration ||
       node is ExtensionTypeDeclaration;
+}
+
+/// Collects the end offsets of the bodies of functions, methods and
+/// constructors, and of the member lists of types, by start offset.
+class _Bodies extends GeneralizingAstVisitor<void> {
+  final ends = <int, int>{};
+
+  void collect(CompilationUnit unit) => unit.accept(this);
+
+  @override
+  void visitNode(AstNode node) {
+    switch (node) {
+      case MethodDeclaration(:final body) ||
+            ConstructorDeclaration(:final body):
+        _add(body.offset, body.end);
+      case FunctionDeclaration(:final functionExpression):
+        _add(functionExpression.body.offset, functionExpression.body.end);
+      case AnnotatedNode() when LintBaselineKeys._isTypeDeclaration(node):
+        _addMembersOf(node);
+    }
+
+    super.visitNode(node);
+  }
+
+  /// The member list runs from the `{` that the declaration's last token
+  /// closes. Read from the tokens, since the AST accessors for it moved
+  /// between analyzer versions.
+  void _addMembersOf(AnnotatedNode node) {
+    final close = node.endToken;
+    if (close.lexeme != '}') {
+      return;
+    }
+    for (Token? token = node.firstTokenAfterCommentAndMetadata;
+        token != null && token != close;
+        token = token.next) {
+      if (token.endGroup == close) {
+        _add(token.offset, close.end);
+
+        return;
+      }
+    }
+  }
+
+  void _add(int offset, int end) {
+    if (end > offset) {
+      ends[offset] = end;
+    }
+  }
 }

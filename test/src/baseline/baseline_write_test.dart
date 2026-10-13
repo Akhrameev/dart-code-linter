@@ -390,6 +390,121 @@ void main() {
 
           expect(session.hasConfiguredBaseline, isFalse);
         });
+
+        group('with a merge conflict', () {
+          /// The baseline as Git leaves it when each branch added a path
+          /// before `lib/unused.dart`; an empty path adds nothing.
+          String conflicted(
+            String ours,
+            String theirs, {
+            List<String> analyzedPaths = const ['lib'],
+            String command = 'check-unused-files',
+          }) {
+            String entry(String path) =>
+                path.isEmpty ? '' : '"$path": {"unused-file": [""]},\n';
+
+            return _file({
+              command: _section(
+                {
+                  'lib/unused.dart': {
+                    'unused-file': [''],
+                  },
+                },
+                analyzedPaths: analyzedPaths,
+              ),
+            }).replaceFirstMapped(
+              RegExp('^ *"lib/unused.dart"', multiLine: true),
+              (match) => '<<<<<<< HEAD\n${entry(ours)}'
+                  '=======\n${entry(theirs)}'
+                  '>>>>>>> feature\n${match[0]}',
+            );
+          }
+
+          test('keeps both sides and removes entries that no longer occur',
+              () async {
+            baselineFile()
+                .writeAsStringSync(conflicted('lib/old.dart', 'lib/gone.dart'));
+
+            final (reported, _, written) =
+                await unusedFiles(mode: BaselineMode.update);
+
+            expect(reported, isEmpty);
+            expect(written.single.action, BaselineWriteAction.updated);
+            expect(written.single.messages, [
+              'Merge conflict in $baselineFileName resolved: entries of both '
+                  'sides kept, 1 that no longer occurs removed. Add the file '
+                  'to finish the merge.',
+            ]);
+            expect(baselineFile().readAsStringSync(), isNot(contains('<<<')));
+            expect(sectionOf('check-unused-files')['findings'], _unused);
+          });
+
+          test('writes the resolved file when nothing is stale', () async {
+            baselineFile().writeAsStringSync(conflicted('lib/old.dart', ''));
+
+            final (_, _, written) =
+                await unusedFiles(mode: BaselineMode.update);
+
+            expect(written.single.action, BaselineWriteAction.updated);
+            expect(baselineFile().readAsStringSync(), isNot(contains('<<<')));
+            expect(sectionOf('check-unused-files')['findings'], _unused);
+          });
+
+          test('writes the resolved file over other paths, removing nothing',
+              () async {
+            baselineFile().writeAsStringSync(conflicted(
+              'lib/old.dart',
+              'lib/gone.dart',
+              analyzedPaths: ['lib', 'test'],
+            ));
+
+            final (_, _, written) =
+                await unusedFiles(mode: BaselineMode.update);
+
+            expect(written.single.action, BaselineWriteAction.updated);
+            expect(written.single.messages, hasLength(2));
+            expect(written.single.messages.last, contains('not updated'));
+            expect(
+              (sectionOf('check-unused-files')['findings']! as Map).keys,
+              ['lib/gone.dart', 'lib/old.dart', 'lib/unused.dart'],
+            );
+          });
+
+          test("resolves a conflict in another command's section", () async {
+            baselineFile().writeAsStringSync(conflicted(
+              'lib/old.dart',
+              'lib/gone.dart',
+              command: 'check-unused-code',
+            ));
+
+            final (_, _, written) =
+                await unusedFiles(mode: BaselineMode.update);
+
+            expect(written.single.action, BaselineWriteAction.updated);
+            expect(
+              (sectionOf('check-unused-code')['findings']! as Map).keys,
+              ['lib/gone.dart', 'lib/old.dart', 'lib/unused.dart'],
+              reason: "another command's entries are only merged",
+            );
+          });
+
+          test('stops a normal run and a write', () async {
+            for (final mode in [BaselineMode.read, BaselineMode.write]) {
+              baselineFile().writeAsStringSync(
+                conflicted('lib/old.dart', 'lib/gone.dart'),
+              );
+
+              await expectLater(
+                unusedFiles(mode: mode),
+                throwsA(
+                  isA<BaselineFormatException>()
+                      .having((e) => e.mergeConflict, 'mergeConflict', isTrue),
+                ),
+                reason: '$mode',
+              );
+            }
+          });
+        });
       });
 
       group('in a monorepo', () {
@@ -735,6 +850,28 @@ dart_code_linter:
             expect(groups, isNot(contains('gone-rule')), reason: '$mode');
             expect(groups['avoid-late-keyword'], ['a#late'], reason: '$mode');
           }
+        });
+
+        test('counts worse values among the findings a write reports',
+            () async {
+          project
+            ..write(
+              'analysis_options.yaml',
+              '$options  metrics:\n    cyclomatic-complexity: 1\n',
+            )
+            ..write('lib/a.dart', 'int a(int x) => x > 0 ? 42 : 0;\n');
+          await analyze(mode: BaselineMode.write);
+          project.write(
+            'lib/a.dart',
+            'int a(int x) => x > 0 ? (x > 1 ? 42 : 43) : 0;\n',
+          );
+
+          final (_, written) = await analyze(mode: BaselineMode.write);
+
+          expect(
+            written.single.messages.first,
+            contains('1 new one and 1 worse one reported below'),
+          );
         });
 
         test('adds no new metric value on update', () async {

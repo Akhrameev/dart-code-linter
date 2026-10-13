@@ -172,6 +172,15 @@ abstract class BaseCommand extends Command<void> {
         'from an existing baseline; use --write-baseline to create one.',
       );
     }
+    final withoutSection = baseline.filesWithoutSection;
+    if (options.update && withoutSection.isNotEmpty) {
+      usageException(
+        '--update-baseline found nothing to update: '
+        '${withoutSection.join(', ')} ${withoutSection.length == 1 ? 'has' : 'have'} '
+        'no ${command.id} section. It only removes entries from an existing '
+        'section; use --write-baseline to create one.',
+      );
+    }
 
     final versions = await currentToolVersions(findSdkPath());
     final written = options.write
@@ -324,14 +333,15 @@ abstract class BaseCommand extends Command<void> {
       ..addOption(
         FlagNames.baselineSensitivity,
         help: 'How strictly findings match baseline entries, with '
-            '--write-baseline. Defaults to exact.',
+            '--write-baseline. Without it, a write keeps the sensitivity '
+            'recorded in the file, and a new section gets exact.',
         valueHelp: 'exact',
         allowed: BaselineSensitivity.values.map((s) => s.name),
         allowedHelp: {
           BaselineSensitivity.exact.name: 'Only the same code in the same '
               'declaration.',
-          BaselineSensitivity.scope.name: 'Any finding of the rule in the '
-              'same declaration.',
+          BaselineSensitivity.scope.name: 'Up to the recorded number of '
+              'findings of the rule in the same declaration.',
           BaselineSensitivity.count.name: 'Up to the recorded number of '
               'findings of the rule in the file.',
         },

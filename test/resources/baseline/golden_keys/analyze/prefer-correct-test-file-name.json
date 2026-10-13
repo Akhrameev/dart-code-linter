@@ -3,12 +3,12 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_test_file_name/examples/correct_example.dart": {
       "prefer-correct-test-file-name": [
-        "main#d4a505201dbd683e"
+        "main#6d37be96278bbeb3"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_correct_test_file_name/examples/example.dart": {
       "prefer-correct-test-file-name": [
-        "main#1785670f24a10b4d"
+        "main#6d37be96278bbeb3"
       ]
     }
   }

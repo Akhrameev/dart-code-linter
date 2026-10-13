@@ -3,12 +3,12 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/ban_name/examples/dialogs.dart": {
       "ban-name": [
-        "showDialog#be6964b96a1e525f"
+        "showDialog#93577f8523d35f63"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/ban_name/examples/example.dart": {
       "ban-name": [
-        "AnotherStrangeName#3463a208075ff275",
+        "AnotherStrangeName#810555850564d129",
         "AnotherStrangeName.strangeName#2e61dd34aea48a4f",
         "DateTimeTest.currentTimestamp#0c8ebcbf89d7b83e",
         "func#dd46af103ba734f1",
@@ -18,7 +18,7 @@
         "main#0c8ebcbf89d7b83e",
         "main#0c8ebcbf89d7b83e",
         "main#e33658e16d36b198",
-        "strangeName#d364c274dba23511"
+        "strangeName#bbc633db9960b2ea"
       ]
     }
   }

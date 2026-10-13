@@ -15,9 +15,10 @@ const baselineFormatVersion = 1;
 /// conflict inside the file is sure to read. Readers ignore it.
 const baselineAbout =
     'Findings recorded by dart_code_linter and hidden from its reports. '
-    'Do not edit by hand. On a merge conflict keep both sides, then run the '
-    'command with --update-baseline; never regenerate it with '
-    '--write-baseline. See https://pub.dev/packages/dart_code_linter#baseline';
+    'Do not edit by hand. On a merge conflict, run the command with '
+    '--update-baseline, which keeps the entries of both sides; never '
+    'regenerate it with --write-baseline. '
+    'See https://pub.dev/packages/dart_code_linter#baseline';
 
 /// A command that records findings in a baseline section.
 enum BaselineCommand {
@@ -156,8 +157,8 @@ class BaselineSection {
   ///
   /// Sorted, deterministic output keeps a regenerated baseline of an unchanged
   /// project free of diffs, and makes concurrent changes to one list touch
-  /// neighbouring lines, which is why a merge conflict is resolved by keeping
-  /// both sides and running `--update-baseline`.
+  /// neighbouring lines, which is why `--update-baseline` resolves merge
+  /// conflicts in the file (see [Baseline.parse]).
   Map<String, Object?> toJson() {
     final paths = analyzedPaths;
 
@@ -173,6 +174,52 @@ class BaselineSection {
             path: groups,
       },
     };
+  }
+
+  /// Returns the section a merge of [ours] and [theirs] holds: every key as
+  /// often as the side that has it most, never the sum, since an entry both
+  /// branches inherited appears on both sides; the lower key version, so
+  /// that keys of either version are matched by count where they differ;
+  /// and the other fields of [ours].
+  factory BaselineSection.merge(BaselineSection ours, BaselineSection theirs) {
+    final findings = <String, Map<String, List<String>>>{};
+    for (final path in {...ours.findings.keys, ...theirs.findings.keys}) {
+      final ourGroups = ours.findings[path] ?? const {};
+      final theirGroups = theirs.findings[path] ?? const {};
+      findings[path] = {
+        for (final group in {...ourGroups.keys, ...theirGroups.keys})
+          group: _union(
+              ourGroups[group] ?? const [], theirGroups[group] ?? const []),
+      };
+    }
+
+    return BaselineSection(
+      generatedWith: ours.generatedWith,
+      analyzedPaths: ours.analyzedPaths,
+      keyVersion: ours.keyVersion < theirs.keyVersion
+          ? ours.keyVersion
+          : theirs.keyVersion,
+      sensitivity: ours.sensitivity,
+      findings: findings,
+    );
+  }
+
+  static List<String> _union(List<String> ours, List<String> theirs) {
+    final counts = <String, int>{};
+    for (final key in theirs) {
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    final result = ours.toList();
+    for (final key in ours) {
+      if (counts[key] case final count? when count > 0) {
+        counts[key] = count - 1;
+      }
+    }
+    for (final MapEntry(:key, value: extra) in counts.entries) {
+      result.addAll(List.filled(extra, key));
+    }
+
+    return result;
   }
 
   static Map<String, Object?> _sortedGroups(Map<String, List<String>> groups) =>
@@ -233,25 +280,76 @@ class Baseline {
   /// Top-level fields this version does not know, kept as they were read.
   final Map<String, Object?> _extras;
 
+  /// Whether the file had merge conflict markers that [Baseline.parse]
+  /// resolved, so that it must be written even when nothing else changes.
+  final bool resolvedConflict;
+
   /// A baseline without any section.
   const Baseline.empty()
       : sections = const {},
         _commands = const {},
-        _extras = const {};
+        _extras = const {},
+        resolvedConflict = false;
 
-  const Baseline._(this.sections, this._commands, this._extras);
+  const Baseline._(
+    this.sections,
+    this._commands,
+    this._extras, {
+    this.resolvedConflict = false,
+  });
 
   /// Reads a baseline from the [content] of a file.
   ///
   /// [source] names the file in error messages.
   ///
+  /// Content with merge conflict markers cannot be read, unless
+  /// [resolveConflicts] is set, as `--update-baseline` does. Both sides are
+  /// then rebuilt from the markers and merged: keeping both sides by hand
+  /// does not give valid JSON when both branches appended to a list, since
+  /// Git trims the shared lines and leaves two last elements without a
+  /// comma between them. See [BaselineSection.merge] for how sections merge.
+  ///
   /// Throws a [BaselineFormatException] when the content cannot be read.
-  factory Baseline.parse(String content, {String source = baselineFileName}) {
+  factory Baseline.parse(
+    String content, {
+    String source = baselineFileName,
+    bool resolveConflicts = false,
+  }) {
+    final sides = resolveConflicts ? _ConflictSides.of(content) : null;
+    if (sides != null) {
+      Baseline side(String text, String label) {
+        try {
+          return Baseline.parse(text, source: source);
+        } on BaselineFormatException catch (e) {
+          throw BaselineFormatException._(
+            e.error,
+            '$source cannot be read: the $label side of its merge conflict is '
+            'not a valid baseline. $e',
+            jsonPath: e.jsonPath,
+          );
+        }
+      }
+
+      return side(sides.ours, sides.oursLabel)
+          ._merge(side(sides.theirs, sides.theirsLabel));
+    }
+
     Object? json;
     try {
       json = jsonDecode(content);
     } on FormatException catch (e) {
       throw _invalidJson(content, source, e);
+    }
+
+    final repeated = _repeatedKeyPath(content);
+    if (repeated != null) {
+      throw BaselineFormatException._(
+        BaselineFormatError.wrongShape,
+        '$source cannot be read: $repeated occurs more than once in its '
+        'object. A parser keeps only one of them, which would drop the '
+        'entries of the other.',
+        jsonPath: repeated,
+      );
     }
 
     return _BaselineReader(source).read(json);
@@ -266,7 +364,34 @@ class Baseline {
         {...sections, command: section},
         {..._commands, command.id: section.toJson()},
         _extras,
+        resolvedConflict: resolvedConflict,
       );
+
+  /// Merges this baseline, the side being merged into, with [theirs]:
+  /// sections on one side only are taken as they are, and so are sections of
+  /// commands this version does not know, from this side when both have one.
+  Baseline _merge(Baseline theirs) {
+    final sections = {...theirs.sections, ...this.sections};
+    final commands = {...theirs._commands, ..._commands};
+    for (final MapEntry(key: command, value: ours) in this.sections.entries) {
+      final other = theirs.sections[command];
+      if (other != null) {
+        final merged = BaselineSection.merge(ours, other);
+        sections[command] = merged;
+        commands[command.id] = {
+          ...?_commands[command.id] as Map<String, Object?>?,
+          ...merged.toJson(),
+        };
+      }
+    }
+
+    return Baseline._(
+      sections,
+      commands,
+      {...theirs._extras, ..._extras},
+      resolvedConflict: true,
+    );
+  }
 
   /// Returns the file content: deterministic, two-space indent, trailing
   /// newline.
@@ -292,9 +417,9 @@ BaselineFormatException _invalidJson(
   if (content.contains('<<<<<<<')) {
     return BaselineFormatException._(
       BaselineFormatError.invalidJson,
-      '$source cannot be read: it contains merge conflict markers. Resolve '
-      'the conflict by keeping both sides, then run the command with '
-      '--update-baseline; never regenerate it with --write-baseline.',
+      '$source cannot be read: it contains merge conflict markers. Run the '
+      'command with --update-baseline to resolve them, keeping the entries '
+      'of both sides; never regenerate it with --write-baseline.',
       mergeConflict: true,
     );
   }
@@ -312,6 +437,157 @@ BaselineFormatException _invalidJson(
     BaselineFormatError.invalidJson,
     '$source cannot be read: invalid JSON$position (${exception.message}).',
   );
+}
+
+/// The two sides of content with Git merge conflict markers.
+class _ConflictSides {
+  final String ours;
+  final String oursLabel;
+  final String theirs;
+  final String theirsLabel;
+
+  const _ConflictSides(
+      this.ours, this.oursLabel, this.theirs, this.theirsLabel);
+
+  /// Splits [content] into the side being merged into (between `<<<<<<<` and
+  /// `=======`) and the other one (between `=======` and `>>>>>>>`). Lines
+  /// outside the blocks belong to both, and the base section of the `diff3`
+  /// and `zdiff3` styles (from `|||||||`) to neither. Returns null when the
+  /// content has no complete conflict block.
+  static _ConflictSides? of(String content) {
+    final ours = StringBuffer();
+    final theirs = StringBuffer();
+    String? oursLabel;
+    String? theirsLabel;
+    var state = _Side.both;
+    var blocks = 0;
+
+    for (final line in const LineSplitter().convert(content)) {
+      if (state == _Side.both && line.startsWith('<<<<<<<')) {
+        oursLabel ??= line.substring(7).trim();
+        state = _Side.ours;
+      } else if (state == _Side.ours && line.startsWith('|||||||')) {
+        state = _Side.base;
+      } else if ((state == _Side.ours || state == _Side.base) &&
+          line.startsWith('=======')) {
+        state = _Side.theirs;
+      } else if (state == _Side.theirs && line.startsWith('>>>>>>>')) {
+        theirsLabel ??= line.substring(7).trim();
+        state = _Side.both;
+        blocks++;
+      } else {
+        if (state == _Side.both || state == _Side.ours) {
+          ours.writeln(line);
+        }
+        if (state == _Side.both || state == _Side.theirs) {
+          theirs.writeln(line);
+        }
+      }
+    }
+
+    if (blocks == 0 || state != _Side.both) {
+      return null;
+    }
+
+    String label(String? text, String fallback) =>
+        text == null || text.isEmpty ? fallback : text;
+
+    return _ConflictSides(
+      ours.toString(),
+      label(oursLabel, 'HEAD'),
+      theirs.toString(),
+      label(theirsLabel, 'incoming'),
+    );
+  }
+}
+
+enum _Side { both, ours, base, theirs }
+
+/// Returns the JSON path of the first object key that occurs twice in its
+/// object in [content], which must be valid JSON, or null when none does.
+///
+/// `jsonDecode` keeps the last value of a repeated key without a word, so
+/// the text is scanned for it.
+String? _repeatedKeyPath(String content) {
+  var index = 0;
+
+  void skipSpace() {
+    while (index < content.length && ' \n\r\t'.contains(content[index])) {
+      index++;
+    }
+  }
+
+  String readString() {
+    final start = index++;
+    while (content[index] != '"') {
+      index += content[index] == r'\' ? 2 : 1;
+    }
+    index++;
+
+    return jsonDecode(content.substring(start, index)) as String;
+  }
+
+  String? valueAt(String path) {
+    skipSpace();
+    switch (content[index]) {
+      case '{':
+        index++;
+        skipSpace();
+        if (content[index] == '}') {
+          index++;
+
+          return null;
+        }
+        final seen = <String>{};
+        while (true) {
+          skipSpace();
+          final key = readString();
+          final keyPath = _BaselineReader._child(path, key);
+          if (!seen.add(key)) {
+            return keyPath;
+          }
+          skipSpace();
+          index++; // The colon.
+          if (valueAt(keyPath) case final repeated?) {
+            return repeated;
+          }
+          skipSpace();
+          if (content[index++] == '}') {
+            return null;
+          }
+        }
+      case '[':
+        index++;
+        skipSpace();
+        if (content[index] == ']') {
+          index++;
+
+          return null;
+        }
+        for (var i = 0;; i++) {
+          if (valueAt('$path[$i]') case final repeated?) {
+            return repeated;
+          }
+          skipSpace();
+          if (content[index++] == ']') {
+            return null;
+          }
+        }
+      case '"':
+        readString();
+
+        return null;
+      default:
+        while (
+            index < content.length && !',}] \n\r\t'.contains(content[index])) {
+          index++;
+        }
+
+        return null;
+    }
+  }
+
+  return valueAt(r'$');
 }
 
 class _BaselineReader {

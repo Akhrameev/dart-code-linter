@@ -168,9 +168,9 @@ class _UnitEntries {
     }
 
     // The command line drops ignored findings before matching, so they never
-    // take an entry another finding needs. The server drops them only after
-    // they are reported, so they are left out of matching here and returned
-    // as they are.
+    // take an entry another finding needs. They are left out of matching here
+    // too, and returned as they are: whether the editor then hides them is up
+    // to the analysis server's own handling of ignore comments.
     final ignored = _ignores.isSuppressed(ruleId);
     final matched = [
       for (final issue in issues)

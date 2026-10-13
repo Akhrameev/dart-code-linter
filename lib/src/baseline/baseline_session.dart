@@ -218,15 +218,15 @@ class BaselineWriteResult {
   /// write into an existing section reports them, so they can fail the run.
   final int added;
 
+  /// The number of recorded values that were worse than their entries. A
+  /// write into an existing section reports them too.
+  final int worsened;
+
   /// The number of stale entries an update removed.
   final int removed;
 
   /// The number of recorded values an update tightened.
   final int tightened;
-
-  /// The number of stale entries an update kept because their group is
-  /// matched by count after a key change.
-  final int keptInCountMode;
 
   /// The sensitivity of a written section and where it came from.
   final BaselineSensitivity? sensitivity;
@@ -247,6 +247,9 @@ class BaselineWriteResult {
   /// Why the file could not be written, for [BaselineWriteAction.failed].
   final String? error;
 
+  /// Whether an update resolved merge conflict markers in the file.
+  final bool resolvedConflict;
+
   const BaselineWriteResult({
     required this.path,
     required this.displayPath,
@@ -254,9 +257,9 @@ class BaselineWriteResult {
     required this.action,
     this.recorded = 0,
     this.added = 0,
+    this.worsened = 0,
     this.removed = 0,
     this.tightened = 0,
-    this.keptInCountMode = 0,
     this.sensitivity,
     this.sensitivitySource,
     this.keyVersion,
@@ -264,6 +267,7 @@ class BaselineWriteResult {
     this.pathsMismatch,
     this.droppedForPaths = 0,
     this.error,
+    this.resolvedConflict = false,
   });
 
   /// The summary lines to print for this file.
@@ -282,6 +286,18 @@ class BaselineWriteResult {
               '${mismatch.current.join(', ')}. Rerun with the recorded paths, '
               'or use --write-baseline to switch to these paths.',
         ],
+      BaselineWriteAction.updated when resolvedConflict => [
+          'Merge conflict in $file resolved: entries of both sides kept'
+              '${removed > 0 ? ', $removed that no longer ${removed == 1 ? 'occurs' : 'occur'} removed' : ''}'
+              '${tightened > 0 ? ', ${_plural(tightened, 'value', 'values')} tightened' : ''}'
+              '. Add the file to finish the merge.',
+          if (mismatch != null)
+            'Baseline for ${command.id} in $file not updated beyond the '
+                'merge: it was written for ${mismatch.recorded.join(', ')} '
+                'and this run analyzes ${mismatch.current.join(', ')}. Rerun '
+                'with the recorded paths, or use --write-baseline to switch '
+                'to these paths.',
+        ],
       BaselineWriteAction.updated ||
       BaselineWriteAction.unchanged when sensitivity == null =>
         [
@@ -291,10 +307,6 @@ class BaselineWriteResult {
                 'in $file.'
           else
             'Baseline $file unchanged: no entry to remove.',
-          if (keptInCountMode > 0)
-            '${_plural(keptInCountMode, 'entry', 'entries')} of groups '
-                'matched by count after a key change were kept in $file; '
-                'run --write-baseline to rewrite them.',
         ],
       _ => [
           if (action == BaselineWriteAction.created)
@@ -303,8 +315,9 @@ class BaselineWriteResult {
           else
             'Baseline ${action == BaselineWriteAction.unchanged ? 'unchanged' : 'written'}: '
                 '${_plural(recorded, 'finding', 'findings')} recorded in '
-                '$file, ${_plural(added, 'new one', 'new ones')} reported '
-                'below ($_sensitivityText).',
+                '$file, ${_plural(added, 'new one', 'new ones')}'
+                '${worsened > 0 ? ' and ${_plural(worsened, 'worse one', 'worse ones')}' : ''} '
+                'reported below ($_sensitivityText).',
           if (mismatch != null)
             'Baseline for ${command.id} in $file switched from '
                 '${mismatch.recorded.join(', ')} to '
@@ -363,6 +376,16 @@ class BaselineSession {
   /// Whether some analysis context of the run names a baseline file: an
   /// existing one, or one set by `--baseline` or the options key.
   bool get hasConfiguredBaseline => _configured;
+
+  /// The baseline files the run read that have no section for the command,
+  /// by display path, when no file it read has one: what an update reports
+  /// as having nothing to update. Empty when some file has a section, or a
+  /// merge conflict to resolve, or when no file was read at all.
+  List<String> get filesWithoutSection => _files.values.any((file) =>
+          file.baseline.sections.containsKey(command) ||
+          file.baseline.resolvedConflict)
+      ? const []
+      : [for (final file in _sortedFiles()) file.displayPath];
 
   /// Warnings to print once the analysis is done.
   List<String> get warnings => List.unmodifiable(_warnings);
@@ -623,11 +646,26 @@ class BaselineSession {
   /// Removes the stale entries of the run from every existing baseline file
   /// and tightens the recorded values that improved, and returns what
   /// happened to each file, sorted by path. Call after [filter].
+  ///
+  /// A file whose merge conflict was resolved when it was read is written in
+  /// any case, since its markers must go.
   List<BaselineWriteResult> update() => [
         for (final file in _sortedFiles())
-          if ((file.state, file.baseline.sections[command])
-              case (final state?, final section?))
-            _updateFile(file, state, section),
+          if (file.state case final state?)
+            if (file.baseline.sections[command] case final section?)
+              _updateFile(file, state, section)
+            else if (file.baseline.resolvedConflict)
+              _save(
+                file,
+                file.baseline,
+                ({required changed}) => BaselineWriteResult(
+                  path: file.location.path,
+                  displayPath: file.displayPath,
+                  command: command,
+                  action: BaselineWriteAction.updated,
+                  resolvedConflict: true,
+                ),
+              ),
       ];
 
   List<_File> _sortedFiles() => _files.values.toList()
@@ -654,7 +692,7 @@ class BaselineSession {
 
     return _save(
       file,
-      written.section,
+      file.baseline.withSection(command, written.section),
       ({required changed}) => BaselineWriteResult(
         path: file.location.path,
         displayPath: file.displayPath,
@@ -668,6 +706,7 @@ class BaselineSession {
         added: old == null
             ? _count(state.findings)
             : state.match?.unmatched ?? _count(state.findings),
+        worsened: old == null ? 0 : state.match?.worsened ?? 0,
         sensitivity: chosen,
         sensitivitySource: sensitivity != null
             ? BaselineSensitivitySource.option
@@ -689,10 +728,6 @@ class BaselineSession {
   ) {
     final match = state.match!;
     final mismatch = state.mismatch;
-    final countModeStale = [
-      for (final entry in match.stale)
-        if (state.countMode.appliesTo(entry.group)) entry,
-    ].length;
     BaselineWriteResult result(BaselineWriteAction action,
             {int removed = 0, int tightened = 0}) =>
         BaselineWriteResult(
@@ -702,15 +737,22 @@ class BaselineSession {
           action: action,
           removed: removed,
           tightened: tightened,
-          keptInCountMode: countModeStale,
           keyVersion: section.keyVersion,
           pathsMismatch: mismatch,
+          resolvedConflict: file.baseline.resolvedConflict,
         );
 
     // Under other analyzed paths, a fixed finding cannot be told from one
-    // that only disappeared with the narrower paths.
+    // that only disappeared with the narrower paths. A resolved merge
+    // conflict is still written, without removing anything.
     if (mismatch != null) {
-      return result(BaselineWriteAction.skipped);
+      return file.baseline.resolvedConflict
+          ? _save(
+              file,
+              file.baseline,
+              ({required changed}) => result(BaselineWriteAction.updated),
+            )
+          : result(BaselineWriteAction.skipped);
     }
 
     final updated = updateSection(
@@ -721,13 +763,13 @@ class BaselineSession {
       valueDirectionOf: state.valueDirectionOf,
     );
     // Rewriting an unchanged section would only drop its unknown fields.
-    if (!updated.changed) {
+    if (!updated.changed && !file.baseline.resolvedConflict) {
       return result(BaselineWriteAction.unchanged);
     }
 
     return _save(
       file,
-      updated.section,
+      file.baseline.withSection(command, updated.section),
       ({required changed}) => result(
         changed ? BaselineWriteAction.updated : BaselineWriteAction.unchanged,
         removed: updated.removed,
@@ -736,20 +778,16 @@ class BaselineSession {
     );
   }
 
-  /// Writes [section] into [file], keeping every other section as it was
-  /// read, and builds the result from whether the content changed. A failed
-  /// write leaves the file as it was.
+  /// Writes [baseline] into [file], and builds the result from whether the
+  /// content changed. A failed write leaves the file as it was.
   BaselineWriteResult _save(
     _File file,
-    BaselineSection section,
+    Baseline baseline,
     BaselineWriteResult Function({required bool changed}) result,
   ) {
     try {
       return result(
-        changed: writeBaselineFile(
-          file.location.path,
-          file.baseline.withSection(command, section).toJsonString(),
-        ),
+        changed: writeBaselineFile(file.location.path, baseline.toJsonString()),
       );
     } on FileSystemException catch (e) {
       return BaselineWriteResult(
@@ -775,6 +813,7 @@ class BaselineSession {
       location,
       creating: mode == BaselineMode.write,
       displayPath: displayPath,
+      resolveConflicts: mode == BaselineMode.update,
     );
 
     final warning = read.warning;

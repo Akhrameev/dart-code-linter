@@ -3,9 +3,9 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/check_for_equals_in_render_object_setters/examples/example.dart": {
       "check-for-equals-in-render-object-setters": [
-        "SomeRenderBox.dividerHeight=#2f605669c59f90f0",
-        "SomeRenderBox.dividerWidth=#ff6c615bbd9610da",
-        "SomeRenderBox.spacing=#403ae77ec1ecdbf2"
+        "SomeRenderBox.dividerHeight=#606339db3985c871",
+        "SomeRenderBox.dividerWidth=#5b284307b2ed66df",
+        "SomeRenderBox.spacing=#52161b88d24677c7"
       ]
     }
   }

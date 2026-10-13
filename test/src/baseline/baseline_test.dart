@@ -42,6 +42,45 @@ TypeMatcher<BaselineFormatException> _formatError(
         .having((e) => e.error, 'error', error)
         .having((e) => e.jsonPath, 'jsonPath', jsonPath);
 
+/// A file with one `analyze` section whose lines can hold conflict markers.
+String _conflicted({
+  required String findings,
+  String keyVersion = '      "keyVersion": 1,',
+  String sensitivity = '      "sensitivity": "exact",',
+  String otherSections = '',
+}) =>
+    '{\n'
+    '  "formatVersion": 1,\n'
+    '  "commands": {\n'
+    '$otherSections'
+    '    "analyze": {\n'
+    '      "generatedWith": {\n'
+    '        "dartCodeLinter": "4.5.0",\n'
+    '        "analyzer": "13.3.0",\n'
+    '        "dartSdk": "3.11.3"\n'
+    '      },\n'
+    '$keyVersion\n'
+    '$sensitivity\n'
+    '      "findings": {\n'
+    '$findings\n'
+    '      }\n'
+    '    }\n'
+    '  }\n'
+    '}\n';
+
+/// Both branches appended to the same list, as Git shows it: the shared
+/// lines are trimmed and neither last element is followed by a comma.
+const _appendedByBoth = '        "lib/a.dart": {\n'
+    '          "no-magic-number": [\n'
+    '            "A.base#1",\n'
+    '<<<<<<< HEAD\n'
+    '            "A.alpha#2"\n'
+    '=======\n'
+    '            "A.beta#3"\n'
+    '>>>>>>> feature\n'
+    '          ]\n'
+    '        }';
+
 void main() {
   group('Baseline', () {
     test('round trips every field of a section', () {
@@ -342,16 +381,11 @@ void main() {
     });
 
     test('merge conflict markers with a hint to resolve them', () {
-      const conflicted = '{\n'
-          '<<<<<<< HEAD\n'
-          '  "formatVersion": 1,\n'
-          '=======\n'
-          '  "formatVersion": 1,\n'
-          '>>>>>>> feature\n'
-          '}\n';
-
       expect(
-        () => Baseline.parse(conflicted, source: 'pkg/dcl_baseline.json'),
+        () => Baseline.parse(
+          _conflicted(findings: _appendedByBoth),
+          source: 'pkg/dcl_baseline.json',
+        ),
         throwsA(
           _formatError(BaselineFormatError.invalidJson)
               .having((e) => e.mergeConflict, 'mergeConflict', isTrue)
@@ -361,9 +395,32 @@ void main() {
                 allOf(
                   contains('pkg/dcl_baseline.json'),
                   contains('merge conflict'),
-                  contains('--update-baseline'),
+                  contains('Run the command with --update-baseline'),
+                  isNot(contains('keeping both sides')),
                 ),
               ),
+        ),
+      );
+    });
+
+    test('a repeated object key as wrong shape, naming it', () {
+      const repeated = '{"formatVersion": 1, "commands": {"analyze": { '
+          '"generatedWith": {"dartCodeLinter": "4.5.0", "analyzer": "13.3.0",'
+          ' "dartSdk": "3.11.3"}, "keyVersion": 1, "sensitivity": "exact",'
+          ' "findings": {"lib/a.dart": {"no-magic-number": ["A.a#1"]},'
+          ' "lib/a.dart": {"no-magic-number": ["A.b#2"]}}}}}';
+
+      expect(
+        () => Baseline.parse(repeated),
+        throwsA(
+          _formatError(
+            BaselineFormatError.wrongShape,
+            jsonPath: 'commands.analyze.findings["lib/a.dart"]',
+          ).having(
+            (e) => e.toString(),
+            'message',
+            contains('more than once'),
+          ),
         ),
       );
     });
@@ -496,6 +553,157 @@ void main() {
         );
       });
     }
+  });
+
+  group('Baseline.parse resolving a merge conflict', () {
+    BaselineSection analyzeOf(Baseline baseline) =>
+        baseline.sections[BaselineCommand.analyze]!;
+
+    test('keeps the entries both branches appended to one list', () {
+      final baseline = Baseline.parse(
+        _conflicted(findings: _appendedByBoth),
+        resolveConflicts: true,
+      );
+
+      expect(baseline.resolvedConflict, isTrue);
+      expect(
+        analyzeOf(baseline).findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.base#1', 'A.alpha#2', 'A.beta#3']),
+      );
+    });
+
+    test('ignores the base section of the diff3 and zdiff3 styles', () {
+      const diff3 = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.alpha#2"\n'
+          '||||||| base\n'
+          '            "A.gone#9"\n'
+          '=======\n'
+          '            "A.beta#3"\n'
+          '>>>>>>> feature\n'
+          '          ]\n'
+          '        }';
+
+      final baseline =
+          Baseline.parse(_conflicted(findings: diff3), resolveConflicts: true);
+
+      expect(
+        analyzeOf(baseline).findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.alpha#2', 'A.beta#3']),
+      );
+    });
+
+    test('keeps a key as often as the side that has it most, not the sum', () {
+      const repeated = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.x#1",\n'
+          '            "A.x#1"\n'
+          '=======\n'
+          '            "A.x#1",\n'
+          '            "A.y#2"\n'
+          '>>>>>>> feature\n'
+          '          ]\n'
+          '        }';
+
+      final baseline = Baseline.parse(
+        _conflicted(findings: repeated),
+        resolveConflicts: true,
+      );
+
+      expect(
+        analyzeOf(baseline).findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.x#1', 'A.x#1', 'A.y#2']),
+      );
+    });
+
+    test('takes the lower key version and the other fields of HEAD', () {
+      final baseline = Baseline.parse(
+        _conflicted(
+          findings: '',
+          keyVersion: '<<<<<<< HEAD\n'
+              '      "keyVersion": 2,\n'
+              '      "sensitivity": "scope",\n'
+              '=======\n'
+              '      "keyVersion": 1,\n'
+              '      "sensitivity": "exact",\n'
+              '>>>>>>> feature',
+          sensitivity: '',
+        ).replaceFirst('\n\n', '\n'),
+        resolveConflicts: true,
+      );
+
+      expect(analyzeOf(baseline).keyVersion, 1);
+      expect(analyzeOf(baseline).sensitivity, BaselineSensitivity.scope);
+    });
+
+    test('keeps sections that only one side has', () {
+      const unusedFiles = '    "check-unused-files": {\n'
+          '      "generatedWith": {\n'
+          '        "dartCodeLinter": "4.5.0",\n'
+          '        "analyzer": "13.3.0",\n'
+          '        "dartSdk": "3.11.3"\n'
+          '      },\n'
+          '      "analyzedPaths": ["lib"],\n'
+          '      "keyVersion": 1,\n'
+          '      "sensitivity": "exact",\n'
+          '      "findings": {"lib/old.dart": {"unused-file": [""]}}\n'
+          '    },\n'
+          '    "next-command": {"anything": true},\n';
+
+      final baseline = Baseline.parse(
+        _conflicted(
+          findings: _appendedByBoth,
+          otherSections: '<<<<<<< HEAD\n$unusedFiles=======\n>>>>>>> feature\n',
+        ),
+        resolveConflicts: true,
+      );
+
+      expect(baseline.sections.keys, {
+        BaselineCommand.analyze,
+        BaselineCommand.checkUnusedFiles,
+      });
+      expect(
+        (jsonDecode(baseline.toJsonString()) as Map)['commands'],
+        containsPair('next-command', {'anything': true}),
+      );
+    });
+
+    test('names a side that is not a valid baseline', () {
+      const broken = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.alpha#2",,\n'
+          '=======\n'
+          '            "A.beta#3"\n'
+          '>>>>>>> feature\n'
+          '          ]\n'
+          '        }';
+
+      expect(
+        () => Baseline.parse(
+          _conflicted(findings: broken),
+          resolveConflicts: true,
+        ),
+        throwsA(
+          isA<BaselineFormatException>().having(
+            (e) => e.toString(),
+            'message',
+            allOf(contains('HEAD'), contains('merge conflict')),
+          ),
+        ),
+      );
+    });
+
+    test('reads a file without markers as usual', () {
+      final baseline = Baseline.parse(
+        _conflicted(findings: '        "lib/a.dart": {}'),
+        resolveConflicts: true,
+      );
+
+      expect(baseline.resolvedConflict, isFalse);
+    });
   });
 
   group('BaselineCommand', () {

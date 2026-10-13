@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/rules/rules_factory.dart';
 import 'package:dart_code_linter/src/baseline/lint_baseline_keys.dart';
@@ -125,6 +127,24 @@ void main() {
     test('folds local functions and closures into their member', () {
       expect(scopeOf('local_function_marker'), 'Cart.total');
       expect(scopeOf('closure_marker'), 'Cart.total');
+      expect(scopeOf('nested_local_function_marker'), 'Cart.total');
+    });
+
+    test('names a measured local function below its member', () {
+      final functions = _Functions();
+      unit.unit.accept(functions);
+      FunctionDeclaration declared(String header) => functions.all
+          .singleWhere((node) => node.offset == unit.content.indexOf(header));
+
+      expect(
+        keys.scopeOf(declared('int localHelper(')),
+        'Cart.total/localHelper',
+      );
+      expect(
+        keys.scopeOf(declared('int innerHelper(')),
+        'Cart.total/outerHelper/innerHelper',
+      );
+      expect(keys.scopeOf(declared('void main(')), 'main');
     });
 
     test('names directives and the library the file', () {
@@ -213,6 +233,113 @@ void main() {
     });
   });
 
+  group('LintBaselineKeys declaration bodies', () {
+    late Directory folder;
+    var files = 0;
+
+    setUpAll(() => folder = Directory.systemTemp.createTempSync('dcl_keys_'));
+    tearDownAll(() => folder.deleteSync(recursive: true));
+
+    /// The key of the span of [source] from [from] to the end of [to].
+    Future<String> keyOf(String source, String from, String to) async {
+      final path = p.join(folder.path, 'f${files++}.dart');
+      File(path).writeAsStringSync(source);
+      final unit = await FileResolver.resolve(path);
+      final keys = LintBaselineKeys(unit.unit, unit.content);
+      final start = unit.content.indexOf(from);
+      final end = unit.content.indexOf(to, start) + to.length;
+
+      return keys.spanKey(start, end);
+    }
+
+    test('keys a method, constructor or function on its header', () async {
+      const method = 'class A {\n  int total(int a) {\n    return 1;\n  }\n}\n';
+      Future<String> methodKey(String source) =>
+          keyOf(source, 'int total', '  }');
+      final key = await methodKey(method);
+
+      expect(
+          await methodKey(method.replaceFirst('return 1;', 'return 2;')), key);
+      expect(
+        await methodKey(method.replaceFirst('int a', 'int a, int b')),
+        isNot(key),
+      );
+
+      const arrow = 'class A {\n  int get total => 1;\n}\n';
+      expect(
+        await keyOf(arrow.replaceFirst('1', '2'), 'int get', ';'),
+        await keyOf(arrow, 'int get', ';'),
+      );
+
+      const constructor = 'class A {\n  A() {\n    print(1);\n  }\n}\n';
+      expect(
+        await keyOf(constructor.replaceFirst('1', '2'), 'A()', '  }'),
+        await keyOf(constructor, 'A()', '  }'),
+      );
+
+      const function = 'void run() {\n  print(1);\n}\n';
+      expect(
+        await keyOf(function.replaceFirst('1', '2'), 'void', '}'),
+        await keyOf(function, 'void', '}'),
+      );
+    });
+
+    test('keys a type on its header', () async {
+      for (final header in [
+        'class A',
+        'mixin A',
+        'extension A on int',
+        'extension type A(int v)',
+      ]) {
+        final type = '$header {\n  int get one => 1;\n}\n';
+        final key = await keyOf(type, header, '\n}');
+
+        expect(
+          await keyOf(
+            type.replaceFirst('  int get one => 1;', '  int get two => 2;'),
+            header,
+            '\n}',
+          ),
+          key,
+          reason: header,
+        );
+      }
+
+      const enumeration = 'enum E {\n  a,\n  b;\n\n  int get one => 1;\n}\n';
+      expect(
+        await keyOf(enumeration.replaceFirst('b;', 'b,\n  c;'), 'enum', '\n}'),
+        await keyOf(enumeration, 'enum', '\n}'),
+      );
+      expect(
+        await keyOf('class A extends Object {}\n', 'class', '}'),
+        isNot(await keyOf('class A {}\n', 'class', '}')),
+      );
+    });
+
+    test('hashes statement blocks and closures in full', () async {
+      const block = 'void f(bool c) {\n  if (c) {\n    print(1);\n  }\n}\n';
+      expect(
+        await keyOf(block.replaceFirst('1', '2'), 'if', '  }'),
+        isNot(await keyOf(block, 'if', '  }')),
+      );
+
+      const closure = 'void f() {\n  run(() {\n    print(1);\n  });\n}\n'
+          'void run(void Function() body) {}\n';
+      expect(
+        await keyOf(closure.replaceFirst('1', '2'), 'run(', '});'),
+        isNot(await keyOf(closure, 'run(', '});')),
+      );
+    });
+
+    test('hashes a body that is the whole span', () async {
+      const empty = 'void f() {\n  print(1);\n}\n';
+      expect(
+        await keyOf(empty.replaceFirst('1', '2'), '{', '\n}'),
+        isNot(await keyOf(empty, '{', '\n}')),
+      );
+    });
+  });
+
   group('LintBaselineKeys.formatValue', () {
     test('keeps integers and rounds fractions to two decimals', () {
       expect(LintBaselineKeys.formatValue(14), '14');
@@ -227,4 +354,14 @@ void main() {
       expect(LintBaselineKeys.valueKey('Cart.total', 14), 'Cart.total@14');
     });
   });
+}
+
+class _Functions extends RecursiveAstVisitor<void> {
+  final all = <FunctionDeclaration>[];
+
+  @override
+  void visitFunctionDeclaration(FunctionDeclaration node) {
+    all.add(node);
+    super.visitFunctionDeclaration(node);
+  }
 }

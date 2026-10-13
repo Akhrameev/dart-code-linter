@@ -134,9 +134,22 @@ class BaselineReportFile {
     final mismatch = pathsMismatch;
     final recorded = recordedVersions;
     final current = currentVersions;
+    final unknown = <String, int>{};
+    for (final entry in stale) {
+      if (entry.reason == StaleReason.unknownGroup) {
+        unknown.update(entry.group, (count) => count + 1, ifAbsent: () => 1);
+      }
+    }
+    final unknownCount = unknown.values.fold<int>(0, (a, b) => a + b);
 
     return [
       if (_summaryLine() case final line?) line,
+      if (unknownCount > 0)
+        '$unknownCount of them ${unknownCount == 1 ? 'belongs' : 'belong'} to '
+            '$what this dart_code_linter no longer has (${[
+          for (final group in unknown.keys.toList()..sort())
+            '$group: ${unknown[group]}',
+        ].join(', ')}).',
       if (disabledCount > 0)
         '${_plural(disabledCount, 'baseline entry belongs', 'baseline entries belong')} '
             'to disabled $what (${[
@@ -234,13 +247,9 @@ class BaselineReport {
             when action == BaselineWriteAction.failed ||
                 action == BaselineWriteAction.skipped =>
           read.stale,
-        // A write rewrites every covered entry.
-        BaselineMode.write => const <StaleEntry>[],
-        // An update removes them, except in groups matched by count.
-        BaselineMode.update => [
-            for (final entry in read.stale)
-              if (read.countMode.appliesTo(entry.group)) entry,
-          ],
+        // A write rewrites every covered entry, and an update removes the
+        // stale ones, in groups matched by count too.
+        BaselineMode.write || BaselineMode.update => const <StaleEntry>[],
       };
       final versionsDiffer =
           session.mode != BaselineMode.write && read.generatedWith != versions;
@@ -300,15 +309,23 @@ class BaselineReport {
       };
 
   /// The console summary: the lines of each file that has something to
-  /// say, and a total line when the run used several files.
-  List<String> get consoleLines => [
-        for (final file in files) ...file.consoleLines,
-        if (files.length > 1)
-          'Baselines: ${files.length} files, '
-              '${_plural(hidden, 'finding', 'findings')} hidden, '
-              '${worsened > 0 ? '${_plural(worsened, 'baselined finding', 'baselined findings')} got worse, ' : ''}'
-              '${_plural(stale, 'stale entry', 'stale entries')}.',
-      ];
+  /// say, and a total line when several files do. Files with nothing to say
+  /// are neither listed nor counted.
+  List<String> get consoleLines {
+    final lines = [
+      for (final file in files)
+        if (file.consoleLines case final lines when lines.isNotEmpty) lines,
+    ];
+
+    return [
+      ...lines.expand((file) => file),
+      if (lines.length > 1)
+        'Baselines: ${lines.length} files, '
+            '${_plural(hidden, 'finding', 'findings')} hidden, '
+            '${worsened > 0 ? '${_plural(worsened, 'baselined finding', 'baselined findings')} got worse, ' : ''}'
+            '${_plural(stale, 'stale entry', 'stale entries')}.',
+    ];
+  }
 
   static String _actionName(BaselineWriteAction action) => action.name;
 }

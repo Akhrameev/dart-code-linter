@@ -193,6 +193,39 @@ void main() {
         expect(written.section.analyzedPaths, ['lib']);
         expect(written.droppedForPaths, 1);
       });
+
+      test('keeps the covered entries of disabled groups', () {
+        final written = write(
+          _section(
+            {
+              'lib/a.dart': {
+                'avoid-late-keyword': ['A.x#late'],
+                'unused-public-member': ['method A.old'],
+              },
+              'test/a_test.dart': {
+                'avoid-late-keyword': ['main#late'],
+              },
+            },
+            analyzedPaths: ['lib', 'test'],
+          ),
+          {
+            'lib/a.dart': {
+              'unused-public-member': ['method A.current'],
+            },
+          },
+          command: BaselineCommand.checkUnusedCode,
+          analyzedPaths: ['lib'],
+          pathsChanged: true,
+        );
+
+        expect(written.section.findings, {
+          'lib/a.dart': {
+            'avoid-late-keyword': ['A.x#late'],
+            'unused-public-member': ['method A.current'],
+          },
+        });
+        expect(written.droppedForPaths, 1);
+      });
     });
 
     group('key versions', () {
@@ -392,7 +425,7 @@ void main() {
       });
     });
 
-    test('removes nothing from groups matched by count', () {
+    test('removes surplus entries of groups matched by count', () {
       final updated = update(
         _section({
           'lib/a.dart': {
@@ -409,7 +442,14 @@ void main() {
         countMode: const CountMode.all(),
       );
 
-      expect(updated.changed, isFalse);
+      expect(updated.removed, 1, reason: 'any entry is as good as another');
+      expect(updated.section.findings['lib/a.dart']!['member-ordering'],
+          hasLength(1));
+      expect(
+        updated.section.findings['lib/a.dart']!['cyclomatic-complexity'],
+        ['A.f@9'],
+        reason: 'old keys are not comparable, so no value is tightened',
+      );
     });
 
     test('keeps the key version and the sensitivity', () {
@@ -455,6 +495,19 @@ void main() {
 
         expect(writeBaselineFile(path, '{}\n'), isFalse);
         expect(file.lastModifiedSync(), modified);
+      });
+
+      test('writes through a symbolic link, keeping the link', () {
+        final shared = p.join(folder.path, 'shared', 'real.json');
+        File(shared)
+          ..createSync(recursive: true)
+          ..writeAsStringSync('old\n');
+        final path = p.join(folder.path, baselineFileName);
+        Link(path).createSync(shared);
+
+        expect(writeBaselineFile(path, 'new\n'), isTrue);
+        expect(FileSystemEntity.isLinkSync(path), isTrue);
+        expect(File(shared).readAsStringSync(), 'new\n');
       });
 
       test('leaves the file as it was when the write fails', () {

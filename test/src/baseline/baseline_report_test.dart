@@ -98,6 +98,8 @@ void main() {
         '12 findings hidden by baseline packages/cart/dcl_baseline.json, '
             '1 baselined finding got worse. 2 baseline entries no longer '
             'occur; run with --update-baseline to remove them.',
+        '1 of them belongs to rules this dart_code_linter no longer has '
+            '(prefer-commenting-analyzer-ignores: 1).',
       ]);
     });
 
@@ -271,12 +273,25 @@ void main() {
       );
     });
 
-    test('adds a total line for several files', () {
-      expect(report.consoleLines, [
+    test('adds a total line for several files that have something to say', () {
+      const auth = BaselineReportFile(
+        command: BaselineCommand.analyze,
+        path: 'packages/auth/dcl_baseline.json',
+        action: 'read',
+        hidden: 3,
+      );
+
+      expect(const BaselineReport([auth, _cart]).consoleLines, [
+        ...auth.consoleLines,
         ..._cart.consoleLines,
-        'Baselines: 2 files, 12 findings hidden, 1 baselined finding got '
+        'Baselines: 2 files, 15 findings hidden, 1 baselined finding got '
             'worse, 2 stale entries.',
       ]);
+      expect(
+        report.consoleLines,
+        _cart.consoleLines,
+        reason: 'a file with nothing to say is neither listed nor counted',
+      );
       expect(const BaselineReport([_cart]).consoleLines, _cart.consoleLines);
     });
   });

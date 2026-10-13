@@ -3,8 +3,8 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_redundant_async/examples/example.dart": {
       "avoid-redundant-async": [
-        "SomeClass.anotherAsyncMethod#af54a3eee892a5cc",
-        "fastestBranch#7cf4664e9cb1b4f8",
+        "SomeClass.anotherAsyncMethod#f0f7e8d1c6f3a32a",
+        "fastestBranch#97f5e3b3a61c82cd",
         "main#c1f278abd20d24a7",
         "main#c1f278abd20d24a7"
       ]

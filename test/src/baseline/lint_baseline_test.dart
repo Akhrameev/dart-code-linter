@@ -245,6 +245,51 @@ void main() {
         });
       });
 
+      test('never pairs the values of a local function with its member',
+          () async {
+        project
+          ..write(
+            'analysis_options.yaml',
+            'dart_code_linter:\n  metrics:\n    number-of-parameters: 1\n',
+          )
+          ..write(_cartPath, '''
+class Cart {
+  int total(int a, int b) {
+    int helper(int p, int q, int r, int s, int t) => p;
+
+    return helper(a, b, a, b, a);
+  }
+}
+''');
+        final recorded = (await currentKeys())[_cartPath]!;
+        expect(
+          recorded['number-of-parameters'],
+          unorderedEquals(['Cart.total@2', 'Cart.total/helper@5']),
+        );
+        project
+          ..writeBaseline(BaselineCommand.analyze, {_cartPath: recorded})
+          ..write(_cartPath, '''
+class Cart {
+  int total(int a, int b, int c, int d) {
+    int helper(int p, int q) => p;
+
+    return helper(a, b);
+  }
+}
+''');
+
+        final (_, session) = await run();
+
+        expect(
+          [
+            for (final entry in session.results.single.worsenedEntries)
+              entry.key
+          ],
+          ['Cart.total@2'],
+          reason: 'the method got worse; its helper got better',
+        );
+      });
+
       test('reports a fixed finding as stale', () async {
         final keys = await currentKeys();
         project.writeBaseline(BaselineCommand.analyze, {

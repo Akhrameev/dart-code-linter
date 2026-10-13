@@ -3,12 +3,12 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_top_level_members_in_tests/examples/example.dart": {
       "avoid-top-level-members-in-tests": [
-        "Class#a95bbcfac1d227a9",
-        "Enum#e9eb7711dfed6005",
-        "Extension#1300b6770af55ffc",
-        "Mixin#ee2eb43327d4a74e",
+        "Class#26c1fcb9f69c4700",
+        "Enum#1a488a11a39cf221",
+        "Extension#b63e17e91b4ea6dc",
+        "Mixin#4efc226e59870523",
         "Public#d209c089396a1672",
-        "function#e654c1ababd1584c",
+        "function#dea8a837eae79e58",
         "public#7bfd4a3668c71df7"
       ]
     }

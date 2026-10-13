@@ -162,6 +162,28 @@ void main() {
         );
       });
 
+      test('refuses to update a file without the command section', () async {
+        baselineFile().writeAsStringSync(jsonEncode({
+          'formatVersion': 1,
+          'commands': {
+            'analyze': {
+              ...section(),
+              'findings': const <String, Object?>{},
+            }..remove('analyzedPaths'),
+          },
+        }));
+        final before = baselineFile().readAsStringSync();
+
+        final updated = await run(['--update-baseline']);
+
+        expectExit(updated, 64);
+        expect(
+          updated.stdout,
+          contains('$baselineFileName has no check-unused-files section'),
+        );
+        expect(baselineFile().readAsStringSync(), before);
+      });
+
       test('refuses to delete the files a write records', () async {
         expectExit(await run(['--write-baseline']), 0);
         project.write('lib/fresh.dart', 'void fresh() {}\n');
