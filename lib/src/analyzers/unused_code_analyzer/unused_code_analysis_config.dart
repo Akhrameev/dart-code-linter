@@ -41,6 +41,7 @@ class UnusedCodeAnalysisConfig {
         'analyze-private-members': analyzePrivateMembers,
         'analyze-public-members': analyzePublicMembers,
         'suggest-private-members': suggestPrivateMembers,
-        if (baseline != null) 'baseline': baseline?.path,
+        if (baseline case final baseline? when baseline.isInUse)
+          'baseline': baseline.path,
       };
 }

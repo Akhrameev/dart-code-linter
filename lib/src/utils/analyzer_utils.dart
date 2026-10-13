@@ -56,7 +56,7 @@ List<String> getContextFolders(
   return folders.where((path) {
     final folderPath = normalize(join(rootFolder, path));
 
-    return folderPath == rootPath || folderPath.startsWith('$rootPath/');
+    return folderPath == rootPath || isWithin(rootPath, folderPath);
   }).toList();
 }
 

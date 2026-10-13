@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import 'key_version.dart';
+
 /// The conventional name of a baseline file, next to the
 /// `analysis_options.yaml` it belongs to.
 const baselineFileName = 'dcl_baseline.json';
@@ -128,10 +130,18 @@ class BaselineSection {
   /// The tool versions the section was written with.
   final BaselineVersions generatedWith;
 
-  /// The paths the section was written for, relative to the baseline file.
+  /// Every path argument of the run that wrote the section, relative to the
+  /// baseline file.
   ///
-  /// Recorded for project-wide commands only, null for `analyze`.
+  /// Recorded for project-wide commands only, null for `analyze`. Their
+  /// findings in one package depend on the other packages analyzed with it,
+  /// so the paths outside the file's own folder count too.
   final List<String>? analyzedPaths;
+
+  /// Whether the run that wrote the section used `--monorepo`, which changes
+  /// the findings of the project-wide commands that have it. Written only
+  /// when set.
+  final bool monorepo;
 
   /// The version of the key code that computed the keys.
   final int keyVersion;
@@ -150,6 +160,7 @@ class BaselineSection {
     required this.sensitivity,
     required this.findings,
     this.analyzedPaths,
+    this.monorepo = false,
   });
 
   /// Returns the section as JSON, with every path, group and key list sorted
@@ -165,6 +176,7 @@ class BaselineSection {
     return {
       'generatedWith': generatedWith.toJson(),
       if (paths != null) 'analyzedPaths': paths.toSet().toList()..sort(),
+      if (monorepo) 'monorepo': true,
       'keyVersion': keyVersion,
       'sensitivity': sensitivity.name,
       'findings': {
@@ -181,6 +193,9 @@ class BaselineSection {
   /// branches inherited appears on both sides; the lower key version, so
   /// that keys of either version are matched by count where they differ;
   /// and the other fields of [ours].
+  ///
+  /// [Baseline.parse] refuses to merge sides whose key versions differ when
+  /// one is newer than this version computes, since that would downgrade it.
   factory BaselineSection.merge(BaselineSection ours, BaselineSection theirs) {
     final findings = <String, Map<String, List<String>>>{};
     for (final path in {...ours.findings.keys, ...theirs.findings.keys}) {
@@ -196,6 +211,7 @@ class BaselineSection {
     return BaselineSection(
       generatedWith: ours.generatedWith,
       analyzedPaths: ours.analyzedPaths,
+      monorepo: ours.monorepo,
       keyVersion: ours.keyVersion < theirs.keyVersion
           ? ours.keyVersion
           : theirs.keyVersion,
@@ -239,6 +255,9 @@ enum BaselineFormatError {
 
   /// The file has a newer format than this version reads.
   newerFormat,
+
+  /// The file cannot be read at all: no permission, or not UTF-8 text.
+  unreadable,
 }
 
 /// Thrown when a baseline file cannot be read.
@@ -260,6 +279,13 @@ class BaselineFormatException implements Exception {
     this.jsonPath,
     this.mergeConflict = false,
   });
+
+  /// The file named [source] cannot be read, for the given [reason].
+  const BaselineFormatException.unreadable(String source, String reason)
+      : this._(
+          BaselineFormatError.unreadable,
+          '$source cannot be read: $reason.',
+        );
 
   @override
   String toString() => _message;
@@ -330,18 +356,22 @@ class Baseline {
         }
       }
 
-      return side(sides.ours, sides.oursLabel)
-          ._merge(side(sides.theirs, sides.theirsLabel));
+      return side(sides.ours, sides.oursLabel)._merge(
+        side(sides.theirs, sides.theirsLabel),
+        source: source,
+        oursLabel: sides.oursLabel,
+        theirsLabel: sides.theirsLabel,
+      );
     }
 
     Object? json;
     try {
       json = jsonDecode(content);
     } on FormatException catch (e) {
-      throw _invalidJson(content, source, e);
+      throw _invalidJson(content, source, e, resolving: resolveConflicts);
     }
 
-    final repeated = _repeatedKeyPath(content);
+    final repeated = _repeatedKeyPath(content, source);
     if (repeated != null) {
       throw BaselineFormatException._(
         BaselineFormatError.wrongShape,
@@ -369,13 +399,53 @@ class Baseline {
 
   /// Merges this baseline, the side being merged into, with [theirs]:
   /// sections on one side only are taken as they are, and so are sections of
-  /// commands this version does not know, from this side when both have one.
-  Baseline _merge(Baseline theirs) {
+  /// commands this version does not know when both sides hold the same.
+  ///
+  /// Throws a [BaselineFormatException] when only a newer version can merge
+  /// the sides: they hold different sections of a command this version does
+  /// not know, or sections whose key versions differ, one of them newer than
+  /// this version computes.
+  Baseline _merge(
+    Baseline theirs, {
+    required String source,
+    required String oursLabel,
+    required String theirsLabel,
+  }) {
+    BaselineFormatException newer(String what) => BaselineFormatException._(
+          BaselineFormatError.newerFormat,
+          '$source contains merge conflict markers, and $what. Upgrade '
+          'dart_code_linter to resolve the conflict, so that the entries of '
+          'the newer side are not lost.',
+        );
+
+    for (final id in _commands.keys) {
+      if (BaselineCommand.fromId(id) == null &&
+          theirs._commands.containsKey(id) &&
+          jsonEncode(_commands[id]) != jsonEncode(theirs._commands[id])) {
+        throw newer(
+          'its sides differ in the section of $id, a command this '
+          'dart_code_linter does not know',
+        );
+      }
+    }
+
     final sections = {...theirs.sections, ...this.sections};
     final commands = {...theirs._commands, ..._commands};
     for (final MapEntry(key: command, value: ours) in this.sections.entries) {
       final other = theirs.sections[command];
       if (other != null) {
+        if (ours.keyVersion != other.keyVersion) {
+          final (label, newest) = ours.keyVersion > other.keyVersion
+              ? (oursLabel, ours.keyVersion)
+              : (theirsLabel, other.keyVersion);
+          if (newest > currentKeyVersion) {
+            throw newer(
+              'its $label side holds keys for ${command.id} from key version '
+              '$newest, written by a newer dart_code_linter; this version '
+              'computes key version $currentKeyVersion',
+            );
+          }
+        }
         final merged = BaselineSection.merge(ours, other);
         sections[command] = merged;
         commands[command.id] = {
@@ -412,8 +482,19 @@ class Baseline {
 BaselineFormatException _invalidJson(
   String content,
   String source,
-  FormatException exception,
-) {
+  FormatException exception, {
+  required bool resolving,
+}) {
+  if (content.contains('<<<<<<<') && resolving) {
+    return BaselineFormatException._(
+      BaselineFormatError.invalidJson,
+      '$source cannot be read: its merge conflict markers are incomplete, as '
+      'if the conflict was partly resolved by hand. Restore them with '
+      '`git checkout --conflict=merge $source` and run the command with '
+      '--update-baseline again.',
+      mergeConflict: true,
+    );
+  }
   if (content.contains('<<<<<<<')) {
     return BaselineFormatException._(
       BaselineFormatError.invalidJson,
@@ -454,6 +535,10 @@ class _ConflictSides {
   /// outside the blocks belong to both, and the base section of the `diff3`
   /// and `zdiff3` styles (from `|||||||`) to neither. Returns null when the
   /// content has no complete conflict block.
+  ///
+  /// A block's markers all have the length of its opening one, seven by
+  /// default: the base of a recursive merge can hold a conflict of its own,
+  /// whose markers Git makes longer so that they are not taken for these.
   static _ConflictSides? of(String content) {
     final ours = StringBuffer();
     final theirs = StringBuffer();
@@ -461,18 +546,29 @@ class _ConflictSides {
     String? theirsLabel;
     var state = _Side.both;
     var blocks = 0;
+    var size = 0;
+
+    bool isMarker(String line, String char, {required bool labeled}) =>
+        line.startsWith(char * size) &&
+        (line.length == size ||
+            labeled && line[size] == ' ' ||
+            line.substring(size).trim().isEmpty);
 
     for (final line in const LineSplitter().convert(content)) {
-      if (state == _Side.both && line.startsWith('<<<<<<<')) {
-        oursLabel ??= line.substring(7).trim();
+      final opening = state == _Side.both
+          ? RegExp(r'^(<{7,})(?: |$)').firstMatch(line)
+          : null;
+      if (opening != null) {
+        size = opening.group(1)!.length;
+        oursLabel ??= line.substring(size).trim();
         state = _Side.ours;
-      } else if (state == _Side.ours && line.startsWith('|||||||')) {
+      } else if (state == _Side.ours && isMarker(line, '|', labeled: true)) {
         state = _Side.base;
       } else if ((state == _Side.ours || state == _Side.base) &&
-          line.startsWith('=======')) {
+          isMarker(line, '=', labeled: false)) {
         state = _Side.theirs;
-      } else if (state == _Side.theirs && line.startsWith('>>>>>>>')) {
-        theirsLabel ??= line.substring(7).trim();
+      } else if (state == _Side.theirs && isMarker(line, '>', labeled: true)) {
+        theirsLabel ??= line.substring(size).trim();
         state = _Side.both;
         blocks++;
       } else {
@@ -503,12 +599,20 @@ class _ConflictSides {
 
 enum _Side { both, ours, base, theirs }
 
+/// How deep [_repeatedKeyPath] scans, the root object being level 1. A
+/// baseline nests six levels; anything far deeper is not one, and would
+/// overflow the stack of the recursive scan.
+const _maxDepth = 100;
+
 /// Returns the JSON path of the first object key that occurs twice in its
 /// object in [content], which must be valid JSON, or null when none does.
 ///
 /// `jsonDecode` keeps the last value of a repeated key without a word, so
 /// the text is scanned for it.
-String? _repeatedKeyPath(String content) {
+///
+/// Throws a [BaselineFormatException] when the content nests deeper than
+/// [_maxDepth] levels.
+String? _repeatedKeyPath(String content, String source) {
   var index = 0;
 
   void skipSpace() {
@@ -527,7 +631,14 @@ String? _repeatedKeyPath(String content) {
     return jsonDecode(content.substring(start, index)) as String;
   }
 
-  String? valueAt(String path) {
+  String? valueAt(String path, int depth) {
+    if (depth > _maxDepth) {
+      throw BaselineFormatException._(
+        BaselineFormatError.wrongShape,
+        '$source cannot be read: $path nests deeper than $_maxDepth levels.',
+        jsonPath: path,
+      );
+    }
     skipSpace();
     switch (content[index]) {
       case '{':
@@ -548,7 +659,7 @@ String? _repeatedKeyPath(String content) {
           }
           skipSpace();
           index++; // The colon.
-          if (valueAt(keyPath) case final repeated?) {
+          if (valueAt(keyPath, depth + 1) case final repeated?) {
             return repeated;
           }
           skipSpace();
@@ -565,7 +676,7 @@ String? _repeatedKeyPath(String content) {
           return null;
         }
         for (var i = 0;; i++) {
-          if (valueAt('$path[$i]') case final repeated?) {
+          if (valueAt('$path[$i]', depth + 1) case final repeated?) {
             return repeated;
           }
           skipSpace();
@@ -587,7 +698,7 @@ String? _repeatedKeyPath(String content) {
     }
   }
 
-  return valueAt(r'$');
+  return valueAt(r'$', 1);
 }
 
 class _BaselineReader {
@@ -665,6 +776,8 @@ class _BaselineReader {
       analyzedPaths: command.isProjectWide
           ? _strings(object['analyzedPaths'], _child(path, 'analyzedPaths'))
           : null,
+      monorepo: command.isProjectWide &&
+          _optionalBool(object['monorepo'], _child(path, 'monorepo')),
       keyVersion:
           _positiveInt(object['keyVersion'], _child(path, 'keyVersion')),
       sensitivity: sensitivity,
@@ -709,6 +822,14 @@ class _BaselineReader {
     }
 
     throw _wrongShape(path, 'must be a string');
+  }
+
+  bool _optionalBool(Object? json, String path) {
+    if (json == null || json is bool) {
+      return json == true;
+    }
+
+    throw _wrongShape(path, 'must be true or false');
   }
 
   int _positiveInt(Object? json, String path) {

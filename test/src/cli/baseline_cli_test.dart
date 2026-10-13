@@ -254,7 +254,9 @@ void main() {
         expect(
           fixed.stdout,
           contains('fix applies to all findings, including those hidden by '
-              'the baseline; run --update-baseline afterwards.'),
+              'the baseline. Afterwards run analyze with --update-baseline to '
+              'remove the fixed ones; findings a fix changed come back as '
+              'new, and --write-baseline over the fixed paths accepts them.'),
         );
       });
 
@@ -341,6 +343,147 @@ void main() {
         expectExit(written, 1);
         expect(written.stderr, contains('could not be written'));
         expect(baselineFile('a').existsSync(), isTrue);
+      });
+
+      test('records --monorepo and warns about a run without it', () async {
+        expectExit(await run(['--write-baseline', '--monorepo']), 0);
+        expect(
+          (((jsonDecode(baselineFile().readAsStringSync()) as Map)['commands']
+              as Map)['check-unused-files'] as Map)['monorepo'],
+          isTrue,
+        );
+
+        final without = await run([]);
+
+        expectExit(without, 0);
+        expect(
+          without.stdout,
+          contains('was written for lib with --monorepo; this run analyzes '
+              'lib without --monorepo.'),
+        );
+      });
+
+      test('--fatal-stale-baseline points a JSON reader to the report',
+          () async {
+        writeSection(section(findings: {
+          'lib/deleted.dart': {
+            'unused-file': [''],
+          },
+        }));
+
+        final unusedFiles = await run([
+          '--reporter=json',
+          '--no-congratulate',
+          '--fatal-stale-baseline',
+          '--no-fatal-unused',
+        ]);
+        expectExit(unusedFiles, 1);
+        expect(
+          unusedFiles.stderr,
+          allOf(
+            isNot(contains('see above')),
+            contains('versionsMismatch'),
+          ),
+          reason: 'the JSON report on stdout names the versions',
+        );
+      });
+
+      test('a machine reporter run prints the stale entries to stderr',
+          () async {
+        project
+          ..write(
+            'analysis_options.yaml',
+            'dart_code_linter:\n  rules:\n    - no-magic-number\n',
+          )
+          ..write('lib/main.dart', 'int main() => 42;\n');
+        expectExit(await run(['--write-baseline'], command: 'analyze'), 0);
+        project.write('lib/main.dart', 'int main() => 0;\n');
+
+        final github = await run(
+          ['--reporter=github', '--no-congratulate'],
+          command: 'analyze',
+        );
+
+        expectExit(github, 0);
+        expect(github.stdout, isEmpty);
+        expect(
+          github.stderr,
+          contains('1 baseline entry no longer occurs; run with '
+              '--update-baseline to remove it.'),
+        );
+      });
+
+      test('analyze puts the baseline into the --json-path report', () async {
+        project
+          ..write(
+            'analysis_options.yaml',
+            'dart_code_linter:\n  rules:\n    - no-magic-number\n',
+          )
+          ..write('lib/main.dart', 'int main() => 42;\n');
+        expectExit(await run(['--write-baseline'], command: 'analyze'), 0);
+        final reportPath = project.pathOf('report.json');
+
+        final analyzed = await run(
+          ['--json-path', reportPath, '--fatal-warnings'],
+          command: 'analyze',
+        );
+
+        expectExit(analyzed, 0);
+        final report = jsonDecode(File(reportPath).readAsStringSync()) as Map;
+        expect(
+          (report['baseline'] as Map)['total'],
+          {'hidden': 1, 'worsened': 0, 'stale': 0},
+        );
+      });
+
+      test('a merge conflict stops reads and writes, and an update resolves it',
+          () async {
+        writeSection(section(findings: {
+          'lib/unused.dart': {
+            'unused-file': [''],
+          },
+        }));
+        final resolvedContent = baselineFile().readAsStringSync();
+        baselineFile().writeAsStringSync(
+          '<<<<<<< HEAD\n$resolvedContent\n=======\n$resolvedContent\n'
+          '>>>>>>> feature\n',
+        );
+        final conflicted = baselineFile().readAsStringSync();
+
+        for (final options in [
+          <String>[],
+          ['--write-baseline'],
+        ]) {
+          final stopped = await run(options);
+          expectExit(stopped, 1);
+          expect(stopped.stderr, contains('merge conflict markers'));
+          expect(baselineFile().readAsStringSync(), conflicted);
+        }
+
+        final updated = await run(
+          ['--update-baseline', '--reporter=json', '--no-congratulate'],
+        );
+        expectExit(updated, 0);
+        expect(
+          jsonDecode(updated.stdout as String),
+          isA<Map<String, Object?>>(),
+        );
+        expect(
+          updated.stderr,
+          contains('Merge conflict in $baselineFileName resolved'),
+        );
+        expect(baselineFile().readAsStringSync(), isNot(contains('<<<<<<<')));
+        expectExit(await run([]), 0);
+      });
+
+      test('a write never fails for stale entries', () async {
+        expectExit(await run(['--write-baseline']), 0);
+        File(project.pathOf('lib/unused.dart')).deleteSync();
+
+        expectExit(
+          await run(['--write-baseline', '--fatal-stale-baseline']),
+          0,
+        );
       });
     },
     testOn: 'posix',

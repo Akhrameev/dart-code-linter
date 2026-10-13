@@ -3,15 +3,15 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/member_ordering/examples/alphabetical_correct_example.dart": {
       "member-ordering": [
-        "OrderExample._privateField#a8d6b207f4ce722a"
+        "OrderExample._privateField#1164a73721373302"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/member_ordering/examples/example.dart": {
       "member-ordering": [
-        "Test.data#41c4d62d61d39c7f",
+        "Test.data#53924aaa03a44b05",
         "Test.lateNullableField#ea70f6b1d52d96a5",
         "Test.nullableField#ae235009af8a75ea",
-        "Test.staticConstField#542ad50e15988900",
+        "Test.staticConstField#b9d30e18ae3a2d95",
         "Test.staticLateFinalField#3185e30e415fce4d",
         "Test.value#cf9883cf86111b3b"
       ]

@@ -150,26 +150,47 @@ void main() {
     expect(remaining(baseline(), _changed), hasLength(1));
   });
 
-  test('leaves ignored findings out of matching, as the command line does', () {
-    const content = '''
+  group('drops findings an ignore comment suppresses', () {
+    const ignoredPrice = '''
 // ignore: no-magic-number
 int price() => 7;
 
 int tax() => 8;
 ''';
-    project.writeBaseline(
-      BaselineCommand.analyze,
-      {
-        'lib/a.dart': {_rule: keysOf('int other() => 9;\n')},
-      },
-      sensitivity: BaselineSensitivity.count,
-    );
 
-    expect(
-      remaining(baseline(), content),
-      ['7'],
-      reason: 'the ignored one is returned as it is, for the server',
-    );
+    test('as the command line does: the server cannot match a hyphenated id',
+        () {
+      expect(remaining(baseline(), ignoredPrice), ['8']);
+      expect(
+        remaining(
+          baseline(),
+          '// ignore_for_file: no-magic-number\n$_changed',
+        ),
+        isEmpty,
+      );
+      expect(
+        remaining(baseline(), '// ignore_for_file: type=lint\n$_changed'),
+        isEmpty,
+      );
+    });
+
+    test('before matching, so that they take no entry', () {
+      project.writeBaseline(
+        BaselineCommand.analyze,
+        {
+          'lib/a.dart': {_rule: keysOf('int other() => 9;\n')},
+        },
+        sensitivity: BaselineSensitivity.count,
+      );
+
+      expect(remaining(baseline(), ignoredPrice), isEmpty);
+    });
+
+    test('also when the baseline cannot be read', () {
+      project.write(baselineFileName, '{');
+
+      expect(remaining(baseline(), ignoredPrice), ['8']);
+    });
   });
 
   test('reads entries relative to a baseline in another folder', () {
@@ -207,6 +228,27 @@ int tax() => 8;
 
     test('keeps every finding', () {
       expect(remaining(baseline(), _changed), ['7', '8']);
+    });
+
+    test('keeps every finding of a conflicted or newer file, untouched', () {
+      project.writeBaseline(BaselineCommand.analyze, {
+        'lib/a.dart': {_rule: keysOf(_old)},
+      });
+      final valid = File(project.pathOf(baselineFileName)).readAsStringSync();
+      for (final content in [
+        '<<<<<<< HEAD\n$valid=======\n$valid>>>>>>> feature\n',
+        valid.replaceFirst('"formatVersion":1', '"formatVersion":2'),
+      ]) {
+        project.write(baselineFileName, content);
+        final unit = baseline().unitAt(path, check(_changed).$1, _changed);
+
+        expect(remaining(baseline(), _changed), ['7', '8']);
+        expect(unit.error, contains('Findings are shown without the baseline'));
+        expect(
+          File(project.pathOf(baselineFileName)).readAsStringSync(),
+          content,
+        );
+      }
     });
 
     test('is reported by the first rule, by id, that runs on the file', () {

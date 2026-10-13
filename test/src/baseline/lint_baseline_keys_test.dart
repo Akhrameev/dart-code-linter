@@ -316,6 +316,51 @@ void main() {
       );
     });
 
+    test('keys a field or top-level variable on its name', () async {
+      const field = 'class A {\n  static const limit = 10;\n}\n';
+      Future<String> fieldKey(String source) => keyOf(source, 'static', ';');
+      final key = await fieldKey(field);
+
+      expect(await fieldKey(field.replaceFirst('10', '(10 + 1)')), key);
+      expect(
+        await fieldKey(field.replaceFirst('limit', 'maximum')),
+        isNot(key),
+      );
+
+      const topLevel = 'final names = <String>[\n  "a",\n];\n';
+      expect(
+        await keyOf(topLevel.replaceFirst('"a"', '"b"'), 'final', ';'),
+        await keyOf(topLevel, 'final', ';'),
+      );
+    });
+
+    test('keys a constructor on its header, not its initializer list',
+        () async {
+      const constructor = 'class A {\n  final int y;\n\n'
+          '  A(int x) : y = x + 1 {\n    print(y);\n  }\n}\n';
+      Future<String> constructorKey(String source) =>
+          keyOf(source, 'A(', '  }');
+      final key = await constructorKey(constructor);
+
+      expect(
+        await constructorKey(constructor.replaceFirst('x + 1', 'x + 2')),
+        key,
+      );
+      expect(
+        await constructorKey(constructor.replaceFirst('int x', 'num x')),
+        isNot(key),
+      );
+    });
+
+    test('hashes local variables in full', () async {
+      const local = 'void f() {\n  late final a = 1;\n}\n';
+      expect(
+        await keyOf(local.replaceFirst('1', '2'), 'late', ';'),
+        isNot(await keyOf(local, 'late', ';')),
+        reason: 'two locals of one name in a member differ by initializer',
+      );
+    });
+
     test('hashes statement blocks and closures in full', () async {
       const block = 'void f(bool c) {\n  if (c) {\n    print(1);\n  }\n}\n';
       expect(

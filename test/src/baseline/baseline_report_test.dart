@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dart_code_linter/src/analyzers/unused_files_analyzer/unused_files_analyzer.dart';
 import 'package:dart_code_linter/src/analyzers/unused_files_analyzer/unused_files_config.dart';
 import 'package:dart_code_linter/src/baseline/baseline.dart';
@@ -213,6 +215,32 @@ void main() {
       });
     });
 
+    test('warns about a run without the recorded --monorepo', () {
+      const file = BaselineReportFile(
+        command: BaselineCommand.checkUnusedCode,
+        path: baselineFileName,
+        action: 'read',
+        pathsMismatch: AnalyzedPathsMismatch(
+          ['.', '../b'],
+          ['.', '../b'],
+          recordedMonorepo: true,
+        ),
+      );
+
+      expect(file.consoleLines, [
+        'Baseline for check-unused-code in $baselineFileName was written for '
+            '., ../b with --monorepo; this run analyzes ., ../b without '
+            '--monorepo. Findings depend on the analyzed paths and '
+            '--monorepo, so stale entries are not reported.',
+      ]);
+      expect(file.toJson()['pathsMismatch'], {
+        'recorded': ['.', '../b'],
+        'current': ['.', '../b'],
+        'recordedMonorepo': true,
+        'currentMonorepo': false,
+      });
+    });
+
     test('warns about other tool versions, naming those that differ', () {
       const file = BaselineReportFile(
         command: BaselineCommand.analyze,
@@ -386,6 +414,51 @@ void main() {
         expect(file.recorded, 1);
         expect(file.stale, isEmpty);
         expect(file.recordedVersions, isNull);
+      });
+
+      test('reports no paths mismatch for a write that switched the paths',
+          () async {
+        project.writeBaseline(
+          BaselineCommand.checkUnusedFiles,
+          {},
+          analyzedPaths: ['lib', 'test'],
+        );
+
+        final file = (await run(BaselineMode.write))!.files.single;
+
+        expect(file.action, 'written');
+        expect(file.pathsMismatch, isNull);
+        expect(file.consoleLines, isEmpty);
+      });
+
+      test('reports nothing recorded by an update of a resolved conflict',
+          () async {
+        final other = jsonEncode({
+          'generatedWith': {
+            'dartCodeLinter': '4.5.0',
+            'analyzer': '13.3.0',
+            'dartSdk': '3.11.3',
+          },
+          'keyVersion': 1,
+          'sensitivity': 'exact',
+          'findings': {
+            'lib/main.dart': {
+              'no-magic-number': ['main#1'],
+            },
+          },
+        });
+        project.write(
+          baselineFileName,
+          '{\n  "formatVersion": 1,\n  "commands": {\n'
+          '<<<<<<< HEAD\n    "analyze": $other\n'
+          '=======\n    "analyze": $other\n>>>>>>> feature\n  }\n}\n',
+        );
+
+        final file = (await run(BaselineMode.update))!.files.single;
+
+        expect(file.action, 'updated');
+        expect(file.recorded, isNull);
+        expect(file.toJson(), isNot(contains('recorded')));
       });
     },
     testOn: 'posix',

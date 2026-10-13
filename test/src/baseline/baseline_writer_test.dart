@@ -497,6 +497,31 @@ void main() {
         expect(file.lastModifiedSync(), modified);
       });
 
+      test('keeps the line endings of a file checked out with CRLF', () {
+        final path = p.join(folder.path, baselineFileName);
+        final file = File(path)..writeAsStringSync('{\r\n  "a": 1\r\n}\r\n');
+        final modified = DateTime(2020);
+        file.setLastModifiedSync(modified);
+
+        expect(writeBaselineFile(path, '{\n  "a": 1\n}\n'), isFalse);
+        expect(file.lastModifiedSync(), modified);
+
+        expect(writeBaselineFile(path, '{\n  "a": 2\n}\n'), isTrue);
+        expect(file.readAsStringSync(), '{\r\n  "a": 2\r\n}\r\n');
+      });
+
+      test('creates the file a dangling symbolic link points to', () {
+        final path = p.join(folder.path, baselineFileName);
+        Link(path).createSync(p.join('shared', 'real.json'));
+
+        expect(writeBaselineFile(path, 'new\n'), isTrue);
+        expect(FileSystemEntity.isLinkSync(path), isTrue);
+        expect(
+          File(p.join(folder.path, 'shared', 'real.json')).readAsStringSync(),
+          'new\n',
+        );
+      });
+
       test('writes through a symbolic link, keeping the link', () {
         final shared = p.join(folder.path, 'shared', 'real.json');
         File(shared)

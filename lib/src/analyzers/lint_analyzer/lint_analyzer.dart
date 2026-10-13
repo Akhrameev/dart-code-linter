@@ -58,17 +58,22 @@ class LintAnalyzer {
 
   /// Returns a lint report for analyzing given [result].
   /// The analysis is configured with the [config].
+  ///
+  /// When given, [measured] receives the reports of every class and function
+  /// measured: the returned report keys them by name and keeps one per name.
   LintFileReport? runPluginAnalysis(
     ResolvedUnitResult result,
     LintAnalysisConfig config,
-    String rootFolder,
-  ) {
+    String rootFolder, {
+    List<Report>? measured,
+  }) {
     if (!isExcluded(result.path, config.globalExcludes)) {
       return _analyzeFile(
         result,
         config,
         rootFolder,
         filePath: result.path,
+        measured: measured,
       );
     }
 
@@ -118,18 +123,25 @@ class LintAnalyzer {
 
         final unit = await context.currentSession.getResolvedUnit(filePath);
         if (unit is ResolvedUnitResult) {
+          final measured = lintBaseline == null ? null : <Report>[];
           final result = _analyzeFile(
             unit,
             lintAnalysisConfig,
             rootFolder,
             filePath: filePath,
+            measured: measured,
           );
 
           if (result != null) {
             _logger?.infoVerbose(
               'Analysis result: found ${result.issues.length} issues',
             );
-            lintBaseline?.addFile(unit, result, lintAnalysisConfig);
+            lintBaseline?.addFile(
+              unit,
+              result,
+              lintAnalysisConfig,
+              measured: measured,
+            );
             analyzerResult.add(result);
           }
         }
@@ -141,7 +153,9 @@ class LintAnalyzer {
 
   /// Printed by [runCliFix] when a baseline is configured.
   static const baselineFixNote = 'fix applies to all findings, including '
-      'those hidden by the baseline; run --update-baseline afterwards.';
+      'those hidden by the baseline. Afterwards run analyze with '
+      '--update-baseline to remove the fixed ones; findings a fix changed come '
+      'back as new, and --write-baseline over the fixed paths accepts them.';
 
   Future<void> runCliFix(
     Iterable<String> folders,
@@ -344,12 +358,16 @@ class LintAnalyzer {
     );
   }
 
+  /// Analyzes one file. When given, [measured] receives the reports of every
+  /// class and function measured, which the returned report keys by name, so
+  /// that it keeps only one of declarations sharing a name.
   // ignore: long-method
   LintFileReport? _analyzeFile(
     ResolvedUnitResult result,
     LintAnalysisConfig config,
     String rootFolder, {
     String? filePath,
+    List<Report>? measured,
   }) {
     if (filePath == null || !_isSupported(result)) {
       return null;
@@ -383,6 +401,7 @@ class LintAnalyzer {
           _checkFileMetrics(visitor, internalResult, config, ignores);
       final functionMetrics =
           _checkFunctionMetrics(visitor, internalResult, config, ignores);
+      measured?.addAll([...classMetrics.values, ...functionMetrics.values]);
       final antiPatterns = _checkOnAntiPatterns(
         ignores,
         internalResult,

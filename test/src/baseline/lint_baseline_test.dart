@@ -105,8 +105,10 @@ void main() {
 
       tearDown(() => project.delete());
 
-      Future<(List<LintFileReport>, BaselineSession)> run() async {
-        final session = BaselineSession(BaselineCommand.analyze);
+      Future<(List<LintFileReport>, BaselineSession)> run({
+        BaselineMode mode = BaselineMode.read,
+      }) async {
+        final session = BaselineSession(BaselineCommand.analyze, mode: mode);
         final reports = await const LintAnalyzer().runCliAnalysis(
           ['lib'],
           project.path,
@@ -117,9 +119,9 @@ void main() {
         return (reports.toList(), session);
       }
 
-      /// The baseline keys of a run without a baseline file.
+      /// The baseline keys a write of the current code records.
       Future<Map<String, Map<String, List<String>>>> currentKeys() async {
-        final (_, session) = await run();
+        final (_, session) = await run(mode: BaselineMode.write);
 
         return _keysOf(project, session.findings);
       }
@@ -133,6 +135,12 @@ void main() {
           everyElement(startsWith('discount#')),
         );
         expect(keys['cyclomatic-complexity'], ['discount@2']);
+      });
+
+      test('computes no key without a baseline file', () async {
+        final (_, session) = await run();
+
+        expect(session.findings, isEmpty);
       });
 
       test('reports every finding without a baseline', () async {
@@ -290,6 +298,49 @@ class Cart {
         );
       });
 
+      test('keeps the values of declarations that share a name', () async {
+        const getter = '  int get count => _c > 0 ? (_c > 5 ? 5 : _c) : 0;\n';
+        const setter = '  set count(int v) => _c = v > 0 ? v : 0;\n';
+        const enumA = 'enum A {\n  a;\n\n'
+            '  int label(int x) => x > 0 ? 1 : 0;\n}\n';
+        const enumB = 'enum B {\n  b;\n\n'
+            '  int label(int x) => x > 0 ? (x > 5 ? 2 : 1) : 0;\n}\n';
+        String cart(String first, String second) =>
+            'class Cart {\n  int _c = 0;\n$first$second}\n';
+        project
+          ..write(
+            'analysis_options.yaml',
+            'dart_code_linter:\n  metrics:\n    cyclomatic-complexity: 1\n',
+          )
+          ..write(_cartPath, '${cart(getter, setter)}\n$enumA\n$enumB');
+        final recorded = (await currentKeys())[_cartPath]!;
+        expect(
+          recorded['cyclomatic-complexity'],
+          unorderedEquals(
+            ['Cart.count@3', 'Cart.count=@2', 'A.label@2', 'B.label@3'],
+          ),
+        );
+        project
+          ..writeBaseline(BaselineCommand.analyze, {_cartPath: recorded})
+          ..write(_cartPath, '${cart(setter, getter)}\n$enumB\n$enumA');
+
+        final (reports, session) = await run();
+
+        expect(session.results.single.stale, isEmpty);
+        expect(session.results.single.worsenedEntries, isEmpty);
+        expect(
+          [
+            for (final report in reports)
+              for (final function in report.functions.values)
+                for (final value in function.metrics)
+                  if (value.level > MetricValueLevel.none) value.metricsId,
+          ],
+          isEmpty,
+          reason: 'which of two same-named declarations a report keeps must '
+              'not change what the baseline hides',
+        );
+      });
+
       test('reports a fixed finding as stale', () async {
         final keys = await currentKeys();
         project.writeBaseline(BaselineCommand.analyze, {
@@ -377,7 +428,9 @@ int checkout(int a, int b, int c) {
 }
 ''';
 
-        Future<(LintFileReport, BaselineSession)> runPatterns() async {
+        Future<(LintFileReport, BaselineSession)> runPatterns({
+          BaselineMode mode = BaselineMode.read,
+        }) async {
           project.write(_cartPath, checkout);
           final collection =
               AnalysisContextCollection(includedPaths: [project.path]);
@@ -409,7 +462,7 @@ int checkout(int a, int b, int c) {
               measuredType: EntityType.methodEntity,
             ),
           );
-          final session = BaselineSession(BaselineCommand.analyze);
+          final session = BaselineSession(BaselineCommand.analyze, mode: mode);
           final baseline = LintBaseline(session)
             ..addContext(
               context,
@@ -430,12 +483,12 @@ int checkout(int a, int b, int c) {
             [for (final issue in report.antiPatternCases) issue.ruleId];
 
         test('take the value of the metric they are found from', () async {
-          final (report, session) = await runPatterns();
+          final (report, session) = await runPatterns(mode: BaselineMode.write);
           final lines = report.functions.values.single
               .metric('source-lines-of-code')!
               .value;
 
-          expect(patterns(report), ['long-method', 'long-parameter-list']);
+          expect(patterns(report), isEmpty, reason: 'a first write hides');
           expect(
             _keysOf(project, session.findings)[_cartPath],
             containsPair('long-method', ['checkout@$lines']),

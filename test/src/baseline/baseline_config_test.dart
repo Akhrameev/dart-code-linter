@@ -1,11 +1,19 @@
+import 'dart:io';
+
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/lint_config.dart';
+import 'package:dart_code_linter/src/analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_analysis_config.dart';
 import 'package:dart_code_linter/src/analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_config.dart';
+import 'package:dart_code_linter/src/analyzers/unused_code_analyzer/unused_code_analysis_config.dart';
 import 'package:dart_code_linter/src/analyzers/unused_code_analyzer/unused_code_config.dart';
+import 'package:dart_code_linter/src/analyzers/unused_files_analyzer/unused_files_analysis_config.dart';
 import 'package:dart_code_linter/src/analyzers/unused_files_analyzer/unused_files_config.dart';
+import 'package:dart_code_linter/src/analyzers/unused_l10n_analyzer/unused_l10n_analysis_config.dart';
 import 'package:dart_code_linter/src/analyzers/unused_l10n_analyzer/unused_l10n_config.dart';
+import 'package:dart_code_linter/src/baseline/baseline.dart';
 import 'package:dart_code_linter/src/baseline/baseline_location.dart';
 import 'package:dart_code_linter/src/cli/models/parsed_arguments.dart';
 import 'package:dart_code_linter/src/config_builder/models/analysis_options.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 const _options = AnalysisOptions('/project/analysis_options.yaml', {
@@ -40,6 +48,48 @@ void _checkBaseline<T>({
 }
 
 void main() {
+  test('analysis configs print a baseline only when one is in use', () {
+    final folder = Directory.systemTemp.createTempSync('dcl_config_');
+    addTearDown(() => folder.deleteSync(recursive: true));
+    final conventional = BaselineLocation(
+      p.join(folder.path, baselineFileName),
+      BaselineSource.conventional,
+    );
+    final printers = <String, Map<String, Object?> Function(BaselineLocation)>{
+      'unused code': (baseline) => UnusedCodeAnalysisConfig(
+            const [],
+            const [],
+            isMonorepo: false,
+            analyzePrivateMembers: false,
+            analyzePublicMembers: false,
+            suggestPrivateMembers: false,
+            baseline: baseline,
+          ).toJson(),
+      'unused files': (baseline) => UnusedFilesAnalysisConfig(
+            const [],
+            isMonorepo: false,
+            baseline: baseline,
+          ).toJson(),
+      'unnecessary nullable': (baseline) => UnnecessaryNullableAnalysisConfig(
+            const [],
+            const [],
+            isMonorepo: false,
+            baseline: baseline,
+          ).toJson(),
+      'unused l10n': (baseline) =>
+          UnusedL10nAnalysisConfig(const [], null, baseline: baseline).toJson(),
+    };
+
+    for (final MapEntry(key: name, value: toJson) in printers.entries) {
+      expect(toJson(conventional), isNot(contains('baseline')), reason: name);
+      expect(toJson(_fromCli), containsPair('baseline', _fromCli.path));
+    }
+    File(conventional.path).writeAsStringSync('{}');
+    for (final toJson in printers.values) {
+      expect(toJson(conventional), containsPair('baseline', conventional.path));
+    }
+  });
+
   test('LintConfig reads the baseline from options and args', () {
     _checkBaseline<LintConfig>(
       fromOptions: LintConfig.fromAnalysisOptions,

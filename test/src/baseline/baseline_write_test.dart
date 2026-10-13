@@ -88,10 +88,12 @@ void main() {
         List<String> folders = const ['lib'],
         BaselineLocation? baseline,
         BaselineSensitivity? sensitivity,
+        bool monorepo = false,
       }) async {
         final session = BaselineSession(
           BaselineCommand.checkUnusedFiles,
           mode: mode,
+          monorepo: monorepo,
         );
         final reports = await const UnusedFilesAnalyzer().runCliAnalysis(
           folders,
@@ -99,7 +101,7 @@ void main() {
           UnusedFilesConfig(
             excludePatterns: const [],
             analyzerExcludePatterns: const [],
-            isMonorepo: false,
+            isMonorepo: monorepo,
             shouldPrintConfig: false,
             baseline: baseline,
           ),
@@ -536,8 +538,75 @@ void main() {
               'unused-file': [''],
             },
           });
-          expect(sectionOf('check-unused-files', 'a')['analyzedPaths'], ['.']);
           expect(baselineFile('c').existsSync(), isFalse);
+        });
+
+        test('records every path of the run, relative to each file', () async {
+          await unusedFiles(mode: BaselineMode.write, folders: ['a', 'b']);
+
+          expect(
+            sectionOf('check-unused-files', 'a')['analyzedPaths'],
+            ['.', '../b'],
+            reason: "the findings of a project-wide command in a depend on b's "
+                'code too',
+          );
+          expect(
+            sectionOf('check-unused-files', 'b')['analyzedPaths'],
+            ['.', '../a'],
+          );
+        });
+
+        test('tells a run over fewer packages from the recorded one', () async {
+          await unusedFiles(mode: BaselineMode.write, folders: ['a', 'b']);
+          File(project.pathOf('a/lib/unused.dart')).deleteSync();
+
+          final (_, read, _) = await unusedFiles(folders: ['a']);
+          final result = read.results.single;
+          expect(result.pathsMismatch?.recorded, ['.', '../b']);
+          expect(result.pathsMismatch?.current, ['.']);
+          expect(result.stale, isEmpty);
+
+          final (_, _, updated) =
+              await unusedFiles(mode: BaselineMode.update, folders: ['a']);
+          expect(updated.single.action, BaselineWriteAction.skipped);
+        });
+
+        test('tells a run over more packages from the recorded one', () async {
+          await unusedFiles(mode: BaselineMode.write, folders: ['a']);
+
+          final (_, read, _) = await unusedFiles(folders: ['a', 'b']);
+
+          expect(
+            [for (final result in read.results) result.pathsMismatch?.recorded],
+            [
+              ['.'],
+            ],
+          );
+        });
+
+        test('records --monorepo and tells a run without it apart', () async {
+          await unusedFiles(
+            mode: BaselineMode.write,
+            folders: ['a', 'b'],
+            monorepo: true,
+          );
+          expect(sectionOf('check-unused-files', 'a')['monorepo'], isTrue);
+
+          final (_, read, _) = await unusedFiles(folders: ['a', 'b']);
+          final mismatch = read.results.first.pathsMismatch;
+          expect(mismatch?.recordedMonorepo, isTrue);
+          expect(mismatch?.currentMonorepo, isFalse);
+          expect(read.results.first.stale, isEmpty);
+
+          final (_, again, _) =
+              await unusedFiles(folders: ['a', 'b'], monorepo: true);
+          expect(again.results.first.pathsMismatch, isNull);
+
+          await unusedFiles(mode: BaselineMode.write, folders: ['a', 'b']);
+          expect(
+            sectionOf('check-unused-files', 'a'),
+            isNot(contains('monorepo')),
+          );
         });
 
         test('accepts a new section while another reports its additions',

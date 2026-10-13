@@ -6,6 +6,13 @@
         "Doer@1"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "weight-of-class": [
+        "<extension on List<int>>@0",
+        "<extension on Map<String,int>>@0",
+        "Cart@0.71"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "weight-of-class": [
         "Logger@0.33"

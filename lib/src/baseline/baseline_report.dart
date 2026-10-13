@@ -118,6 +118,10 @@ class BaselineReportFile {
         'pathsMismatch': {
           'recorded': mismatch.recorded,
           'current': mismatch.current,
+          if (mismatch.monorepoDiffers) ...{
+            'recordedMonorepo': mismatch.recordedMonorepo,
+            'currentMonorepo': mismatch.currentMonorepo,
+          },
         },
       if (recorded != null && current != null)
         'versionsMismatch': {
@@ -166,9 +170,9 @@ class BaselineReportFile {
             'findings are matched by count until the next --write-baseline.',
       if (mismatch != null)
         'Baseline for ${command.id} in $path was written for '
-            '${mismatch.recorded.join(', ')}; this run analyzes '
-            '${mismatch.current.join(', ')}. Findings depend on the analyzed '
-            'paths, so stale entries are not reported.',
+            '${mismatch.recordedText}; this run analyzes '
+            '${mismatch.currentText}. Findings depend on '
+            '${mismatch.dependsOn}, so stale entries are not reported.',
       if (recorded != null && current != null) _versionsLine(recorded, current),
       if (stale.isNotEmpty && newFindings > 0)
         'If files or declarations were renamed, run --write-baseline to '
@@ -253,6 +257,9 @@ class BaselineReport {
       };
       final versionsDiffer =
           session.mode != BaselineMode.write && read.generatedWith != versions;
+      // A write that went through switched the file to this run's paths.
+      final switched = session.mode == BaselineMode.write &&
+          action != BaselineWriteAction.failed;
 
       files.add(BaselineReportFile(
         command: session.command,
@@ -265,20 +272,21 @@ class BaselineReport {
         disabled: read.disabled,
         keyVersion: read.keyVersion,
         countMode: read.countMode,
-        pathsMismatch: read.pathsMismatch,
+        pathsMismatch: switched ? null : read.pathsMismatch,
         recordedVersions: versionsDiffer ? read.generatedWith : null,
         currentVersions: versionsDiffer ? versions : null,
         newFindings: read.unmatched,
       ));
     }
 
-    // Files without a section for the command: created by a write.
+    // Files without a section for the command: created by a write, or
+    // rewritten by an update that resolved a merge conflict.
     for (final write in writesByPath.values) {
       files.add(BaselineReportFile(
         command: session.command,
         path: write.displayPath,
         action: _actionName(write.action),
-        recorded: write.recorded,
+        recorded: session.mode == BaselineMode.write ? write.recorded : null,
       ));
     }
 

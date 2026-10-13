@@ -6,6 +6,11 @@
         "<file>@0"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "technical-debt": [
+        "<file>@0"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "technical-debt": [
         "<file>@0"

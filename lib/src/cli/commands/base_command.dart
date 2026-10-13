@@ -146,6 +146,8 @@ abstract class BaseCommand extends Command<void> {
           : options.update
               ? BaselineMode.update
               : BaselineMode.read,
+      monorepo: argParser.options.containsKey(FlagNames.isMonorepo) &&
+          argResults[FlagNames.isMonorepo] == true,
     );
 
     final T result;
@@ -189,16 +191,17 @@ abstract class BaseCommand extends Command<void> {
             ? baseline.update()
             : const <BaselineWriteResult>[];
     _baselineWrites = written;
-    _baselineReport =
+    final report =
         BaselineReport.of(baseline, writes: written, versions: versions);
+    _baselineReport = report;
     // A console report is read together with these lines. Any other report
     // on stdout is read by a program, so they go to stderr, which CI logs
-    // still show; the report itself carries the same facts.
+    // still show. The JSON report carries the same facts; the others have no
+    // place for the baseline's own lines, so those go to stderr too.
     final reporter = argResults[FlagNames.reporter] as String;
-    final info = reporter == FlagNames.consoleReporter ||
-            reporter == FlagNames.consoleVerboseReporter
-        ? logger.info
-        : logger.infoToStderr;
+    final isConsole = reporter == FlagNames.consoleReporter ||
+        reporter == FlagNames.consoleVerboseReporter;
+    final info = isConsole ? logger.info : logger.infoToStderr;
     for (final file in written) {
       file.messages.forEach(
         file.action == BaselineWriteAction.failed ||
@@ -206,6 +209,9 @@ abstract class BaseCommand extends Command<void> {
             ? logger.warn
             : info,
       );
+    }
+    if (!isConsole && reporter != FlagNames.jsonReporter && report != null) {
+      report.consoleLines.forEach(logger.infoToStderr);
     }
 
     return (result, baseline);
@@ -245,7 +251,7 @@ abstract class BaseCommand extends Command<void> {
         'and --fatal-stale-baseline is set. Run the command with '
         '--update-baseline to remove ${stale == 1 ? 'it' : 'them'}, and '
         'commit the result.'
-        '${_baselineReport?.hasVersionsMismatch ?? false ? ' The baseline was written with other tool versions than this run (see above), the most likely cause.' : ''}',
+        '${_baselineReport?.hasVersionsMismatch ?? false ? ' The baseline was written with other tool versions than this run (${argResults[FlagNames.reporter] == FlagNames.jsonReporter ? 'see versionsMismatch in the report' : 'see above'}), the most likely cause.' : ''}',
       );
       exit(1);
     }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dart_code_linter/src/baseline/baseline.dart';
+import 'package:dart_code_linter/src/baseline/key_version.dart';
 import 'package:test/test.dart';
 
 const _versions = BaselineVersions(
@@ -129,6 +130,49 @@ void main() {
       expect(
         read.sections[BaselineCommand.checkUnusedCode]!.analyzedPaths,
         ['lib', 'test'],
+      );
+    });
+
+    test('records --monorepo in a project-wide section only when it was set',
+        () {
+      String fileWith({required bool monorepo}) => const Baseline.empty()
+          .withSection(
+            BaselineCommand.checkUnusedCode,
+            BaselineSection(
+              generatedWith: _versions,
+              analyzedPaths: const ['.', '../b'],
+              monorepo: monorepo,
+              keyVersion: 1,
+              sensitivity: BaselineSensitivity.exact,
+              findings: const {},
+            ),
+          )
+          .toJsonString();
+      Map<String, Object?> sectionIn(String file) =>
+          ((jsonDecode(file) as Map<String, Object?>)['commands']
+                  as Map<String, Object?>)['check-unused-code']!
+              as Map<String, Object?>;
+
+      expect(sectionIn(fileWith(monorepo: true)).keys, [
+        'generatedWith',
+        'analyzedPaths',
+        'monorepo',
+        'keyVersion',
+        'sensitivity',
+        'findings',
+      ]);
+      expect(sectionIn(fileWith(monorepo: false)), isNot(contains('monorepo')));
+      expect(
+        Baseline.parse(fileWith(monorepo: true))
+            .sections[BaselineCommand.checkUnusedCode]!
+            .monorepo,
+        isTrue,
+      );
+      expect(
+        Baseline.parse(fileWith(monorepo: false))
+            .sections[BaselineCommand.checkUnusedCode]!
+            .monorepo,
+        isFalse,
       );
     });
 
@@ -440,6 +484,20 @@ void main() {
       );
     });
 
+    test('nesting too deep to scan as wrong shape', () {
+      final deep = '[' * 10000 + ']' * 10000;
+
+      expect(
+        () => Baseline.parse(
+          '{"formatVersion": 1, "commands": {}, "extra": $deep}',
+        ),
+        throwsA(_formatError(
+          BaselineFormatError.wrongShape,
+          jsonPath: 'extra${'[0]' * 99}',
+        )),
+      );
+    });
+
     test('a newer formatVersion before any shape problem', () {
       expect(
         () => Baseline.parse(
@@ -502,6 +560,15 @@ void main() {
           'check-unused-l10n': _section(analyzedPaths: ['lib', 1]),
         }),
         'commands["check-unused-l10n"].analyzedPaths[1]',
+      ),
+      'a monorepo that is not true or false': (
+        _file({
+          'check-unused-code': {
+            ..._section(analyzedPaths: ['lib']),
+            'monorepo': 'yes',
+          },
+        }),
+        'commands["check-unused-code"].monorepo',
       ),
       'missing findings': (
         _file({'analyze': _section(findings: null)}),
@@ -618,24 +685,169 @@ void main() {
       );
     });
 
-    test('takes the lower key version and the other fields of HEAD', () {
+    test('takes the other fields of HEAD', () {
       final baseline = Baseline.parse(
         _conflicted(
           findings: '',
-          keyVersion: '<<<<<<< HEAD\n'
-              '      "keyVersion": 2,\n'
+          sensitivity: '<<<<<<< HEAD\n'
               '      "sensitivity": "scope",\n'
               '=======\n'
-              '      "keyVersion": 1,\n'
               '      "sensitivity": "exact",\n'
               '>>>>>>> feature',
-          sensitivity: '',
-        ).replaceFirst('\n\n', '\n'),
+        ),
         resolveConflicts: true,
       );
 
-      expect(analyzeOf(baseline).keyVersion, 1);
       expect(analyzeOf(baseline).sensitivity, BaselineSensitivity.scope);
+    });
+
+    test('takes the lower key version of two sides', () {
+      BaselineSection section(int keyVersion, String key) => BaselineSection(
+            generatedWith: _versions,
+            keyVersion: keyVersion,
+            sensitivity: BaselineSensitivity.exact,
+            findings: {
+              'lib/a.dart': {
+                'no-magic-number': [key],
+              },
+            },
+          );
+
+      final merged =
+          BaselineSection.merge(section(2, 'A.a#new'), section(1, 'A.a#old'));
+
+      expect(merged.keyVersion, 1);
+      expect(
+        merged.findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.a#new', 'A.a#old']),
+      );
+    });
+
+    test('refuses to merge keys of a newer dart_code_linter into older ones',
+        () {
+      final newerHead = _conflicted(
+        findings: '',
+        keyVersion: '<<<<<<< HEAD\n'
+            '      "keyVersion": ${currentKeyVersion + 1},\n'
+            '=======\n'
+            '      "keyVersion": $currentKeyVersion,\n'
+            '>>>>>>> feature',
+      );
+
+      expect(
+        () => Baseline.parse(newerHead, resolveConflicts: true),
+        throwsA(
+          _formatError(BaselineFormatError.newerFormat).having(
+            (e) => e.toString(),
+            'message',
+            allOf(
+              contains('HEAD side'),
+              contains('analyze'),
+              contains('key version ${currentKeyVersion + 1}'),
+              contains('Upgrade dart_code_linter'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('merges keys of one newer key version on both sides', () {
+      final baseline = Baseline.parse(
+        _conflicted(
+          findings: _appendedByBoth,
+          keyVersion: '      "keyVersion": ${currentKeyVersion + 1},',
+        ),
+        resolveConflicts: true,
+      );
+
+      expect(analyzeOf(baseline).keyVersion, currentKeyVersion + 1);
+    });
+
+    test('refuses to merge differing sections of a command it does not know',
+        () {
+      String next(int value) => '    "next-command": {"value": $value},\n';
+      String conflicted(String ours, String theirs) => _conflicted(
+            findings: '',
+            otherSections:
+                '<<<<<<< HEAD\n$ours=======\n$theirs>>>>>>> feature\n',
+          );
+
+      expect(
+        () => Baseline.parse(conflicted(next(1), next(2)),
+            resolveConflicts: true),
+        throwsA(
+          _formatError(BaselineFormatError.newerFormat).having(
+            (e) => e.toString(),
+            'message',
+            allOf(contains('next-command'), contains('Upgrade')),
+          ),
+        ),
+      );
+      expect(
+        (jsonDecode(
+          Baseline.parse(conflicted(next(1), next(1)), resolveConflicts: true)
+              .toJsonString(),
+        ) as Map)['commands'],
+        containsPair('next-command', {'value': 1}),
+      );
+    });
+
+    test('ignores the longer markers inside the base of a recursive merge', () {
+      const crissCross = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.alpha#2"\n'
+          '||||||| merged common ancestors\n'
+          '<<<<<<<<< Temporary merge branch 1\n'
+          '            "A.one#4"\n'
+          '||||||||| base\n'
+          '            "A.gone#9"\n'
+          '=========\n'
+          '            "A.two#5"\n'
+          '>>>>>>>>> Temporary merge branch 2\n'
+          '=======\n'
+          '            "A.beta#3"\n'
+          '>>>>>>> feature\n'
+          '          ]\n'
+          '        }';
+
+      final baseline = Baseline.parse(
+        _conflicted(findings: crissCross),
+        resolveConflicts: true,
+      );
+
+      expect(
+        analyzeOf(baseline).findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.alpha#2', 'A.beta#3']),
+      );
+    });
+
+    test('says how to restore markers partly removed by hand', () {
+      const halfResolved = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.alpha#2",\n'
+          '            "A.beta#3"\n'
+          '          ]\n'
+          '        }';
+
+      expect(
+        () => Baseline.parse(
+          _conflicted(findings: halfResolved),
+          resolveConflicts: true,
+        ),
+        throwsA(
+          isA<BaselineFormatException>().having(
+            (e) => e.toString(),
+            'message',
+            allOf(
+              contains('incomplete'),
+              contains('git checkout --conflict=merge'),
+              isNot(contains('Run the command with --update-baseline')),
+            ),
+          ),
+        ),
+      );
     });
 
     test('keeps sections that only one side has', () {

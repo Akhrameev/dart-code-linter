@@ -12,13 +12,13 @@
 /// entries match by count until the next `--write-baseline`."
 const currentKeyVersion = 1;
 
-/// The highest key version a published dart_code_linter computes: 0 until
-/// the first release with baselines.
+/// The highest key version a published dart_code_linter computes.
 ///
-/// Set it to [currentKeyVersion] in the release that publishes it. The
-/// golden key test then refuses to change keys under a released version, so
-/// the next key change has to bump [currentKeyVersion] first.
-const releasedKeyVersion = 0;
+/// Set it to [currentKeyVersion] in the release that publishes it: 4.5.0,
+/// the first release with baselines, publishes key version 1. The golden key
+/// test refuses to change keys under a released version, so the next key
+/// change has to bump [currentKeyVersion] first.
+const releasedKeyVersion = 1;
 
 /// What changed in each key version above 1, keyed by that version.
 ///

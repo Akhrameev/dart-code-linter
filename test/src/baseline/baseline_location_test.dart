@@ -176,6 +176,40 @@ void main() {
       expect(read.warning, isNull);
     });
 
+    test('reports a file it cannot read as unreadable', () {
+      final location = BaselineLocation(
+          pathOf(baselineFileName), BaselineSource.conventional);
+      final unreadable = isA<BaselineFormatException>()
+          .having((e) => e.error, 'error', BaselineFormatError.unreadable)
+          .having(
+            (e) => e.toString(),
+            'message',
+            startsWith('pkg/dcl_baseline.json cannot be read: '),
+          );
+
+      // UTF-16, as Windows PowerShell 5 redirection writes it.
+      File(location.path)
+          .writeAsBytesSync([0xff, 0xfe, 0x7b, 0x00, 0x7d, 0x00]);
+      expect(
+        () => readBaselineAt(location, displayPath: 'pkg/dcl_baseline.json'),
+        throwsA(unreadable.having(
+          (e) => e.toString(),
+          'message',
+          contains('UTF-8'),
+        )),
+      );
+
+      if (Platform.isWindows) {
+        return;
+      }
+      File(location.path).writeAsStringSync('{}');
+      Process.runSync('chmod', ['000', location.path]);
+      expect(
+        () => readBaselineAt(location, displayPath: 'pkg/dcl_baseline.json'),
+        throwsA(unreadable),
+      );
+    });
+
     test('names the file as given in a parse error', () {
       File(pathOf(baselineFileName)).writeAsStringSync('{');
 

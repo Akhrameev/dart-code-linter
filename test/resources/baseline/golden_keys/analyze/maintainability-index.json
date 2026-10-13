@@ -6,6 +6,21 @@
         "Doer.doSomething@100"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "maintainability-index": [
+        "<extension on List<int>>.firstOrZero@95",
+        "<extension on Map<String,int>>.firstOrZero@94",
+        "Cart.count=@92",
+        "Cart.count@93",
+        "Cart.discount/sum@93",
+        "Cart.discount@82",
+        "Cart.total/sum/clamp@95",
+        "Cart.total/sum@82",
+        "Cart.total@70",
+        "Size.label@95",
+        "Weight.label@93"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "maintainability-index": [
         "Logger._internal@100",

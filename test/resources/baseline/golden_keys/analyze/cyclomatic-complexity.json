@@ -6,6 +6,21 @@
         "Doer.doSomething@1"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "cyclomatic-complexity": [
+        "<extension on List<int>>.firstOrZero@2",
+        "<extension on Map<String,int>>.firstOrZero@2",
+        "Cart.count=@2",
+        "Cart.count@3",
+        "Cart.discount/sum@2",
+        "Cart.discount@2",
+        "Cart.total/sum/clamp@2",
+        "Cart.total/sum@3",
+        "Cart.total@4",
+        "Size.label@2",
+        "Weight.label@3"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "cyclomatic-complexity": [
         "Logger._internal@1",

@@ -3,40 +3,40 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/correct_ignore_annotation_example.dart": {
       "prefer-static-class": [
-        "_privateGlobalConstant#605578de0971ef7d",
-        "_privateGlobalFinalVariable#12c3f37f15b39fd3",
+        "_privateGlobalConstant#a9ac14d5e28b0602",
+        "_privateGlobalFinalVariable#2f62df9c43354328",
         "_privateGlobalFunction#c4b7cd0be58bc0e8",
-        "_privateGlobalVariable#e4f9d22fc92ab8be",
-        "globalConstant#a7c27abd09b93a98",
-        "globalFinalVariable#a0f0562fcd4d930d",
+        "_privateGlobalVariable#b6a1d8835c9d76f5",
+        "globalConstant#41e0acc7bb6942f3",
+        "globalFinalVariable#a6b5c5dec2efb519",
         "globalFunction#e32fc8137ce3d0be",
-        "globalVariable#6ee326f98bf37768"
+        "globalVariable#9415e9047184bddd"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/correct_ignore_names_example.dart": {
       "prefer-static-class": [
-        "someRiverpodProvider#0279648537fdff36",
-        "useSomeRiverpodHook#962ecbfa9823872c"
+        "someRiverpodProvider#9c50837d05cf0967",
+        "useSomeRiverpodHook#e43342b73760fbd1"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/correct_ignore_private_example.dart": {
       "prefer-static-class": [
-        "_privateGlobalConstant#605578de0971ef7d",
-        "_privateGlobalFinalVariable#12c3f37f15b39fd3",
+        "_privateGlobalConstant#a9ac14d5e28b0602",
+        "_privateGlobalFinalVariable#2f62df9c43354328",
         "_privateGlobalFunction#c4b7cd0be58bc0e8",
-        "_privateGlobalVariable#e4f9d22fc92ab8be"
+        "_privateGlobalVariable#b6a1d8835c9d76f5"
       ]
     },
     "test/src/analyzers/lint_analyzer/rules/rules_list/prefer_static_class/examples/incorrect_example.dart": {
       "prefer-static-class": [
-        "_privateGlobalConstant#605578de0971ef7d",
-        "_privateGlobalFinalVariable#12c3f37f15b39fd3",
+        "_privateGlobalConstant#a9ac14d5e28b0602",
+        "_privateGlobalFinalVariable#2f62df9c43354328",
         "_privateGlobalFunction#c4b7cd0be58bc0e8",
-        "_privateGlobalVariable#e4f9d22fc92ab8be",
-        "globalConstant#a7c27abd09b93a98",
-        "globalFinalVariable#a0f0562fcd4d930d",
+        "_privateGlobalVariable#b6a1d8835c9d76f5",
+        "globalConstant#41e0acc7bb6942f3",
+        "globalFinalVariable#a6b5c5dec2efb519",
         "globalFunction#e32fc8137ce3d0be",
-        "globalVariable#6ee326f98bf37768"
+        "globalVariable#9415e9047184bddd"
       ]
     }
   }

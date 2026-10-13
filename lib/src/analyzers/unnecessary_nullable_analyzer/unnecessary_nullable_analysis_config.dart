@@ -23,6 +23,7 @@ class UnnecessaryNullableAnalysisConfig {
         'analyzer-excluded-patterns':
             analyzerExcludedPatterns.map((glob) => glob.pattern).toList(),
         'is-monorepo': isMonorepo,
-        if (baseline != null) 'baseline': baseline?.path,
+        if (baseline case final baseline? when baseline.isInUse)
+          'baseline': baseline.path,
       };
 }

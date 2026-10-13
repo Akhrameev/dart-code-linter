@@ -9,6 +9,7 @@ import 'package:dart_code_linter/src/analyzers/lint_analyzer/lint_config.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/metrics/metrics_factory.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/entity_type.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
+import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/report.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/rules/rules_factory.dart';
 import 'package:dart_code_linter/src/analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_analyzer.dart';
 import 'package:dart_code_linter/src/analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_config.dart';
@@ -37,6 +38,11 @@ import 'package:test/test.dart';
 /// which rewrites only the goldens whose keys changed and stamps them with
 /// [currentKeyVersion].
 const _goldenFolder = 'test/resources/baseline/golden_keys';
+
+/// Scopes whose metric keys the other fixtures lack: local functions, and
+/// declarations that share a name.
+const _metricScopesExample =
+    'test/resources/baseline/metric_scopes_example.dart';
 const _rulesFolder = 'test/src/analyzers/lint_analyzer/rules/rules_list';
 const _patternsFolder =
     'test/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list';
@@ -311,6 +317,7 @@ Future<void> _computeLintKeys(Map<_GoldenId, _Keys> computed) async {
         .where((path) =>
             path.endsWith('.dart') &&
             !p.basename(path).startsWith('suppression')),
+    p.normalize(File(_metricScopesExample).absolute.path),
   ];
   final units = await _resolve({
     ...ruleFiles.values.expand((files) => files),
@@ -366,17 +373,18 @@ Future<void> _computeLintKeys(Map<_GoldenId, _Keys> computed) async {
 
   for (final path in metricFiles) {
     final unit = units[path]!;
+    final scopes = <Report>[];
     final report = const LintAnalyzer().runPluginAnalysis(
       unit,
       config,
       p.current,
+      measured: scopes,
     )!;
     final keys = LintBaselineKeys(unit.unit, unit.content);
 
     for (final measured in [
       if (report.file case final file?) file,
-      ...report.classes.values,
-      ...report.functions.values,
+      ...scopes,
     ]) {
       for (final value in measured.metrics) {
         _add(
@@ -392,7 +400,7 @@ Future<void> _computeLintKeys(Map<_GoldenId, _Keys> computed) async {
       final key = keys.antiPatternKey(
         issue,
         patterns[issue.ruleId]!,
-        report.functions.values,
+        scopes,
       );
       expect(key, isNotNull, reason: '${issue.ruleId} in $path');
       _add(

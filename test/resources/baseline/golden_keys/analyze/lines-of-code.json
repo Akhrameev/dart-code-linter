@@ -6,6 +6,21 @@
         "Doer.doSomething@1"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "lines-of-code": [
+        "<extension on List<int>>.firstOrZero@1",
+        "<extension on Map<String,int>>.firstOrZero@1",
+        "Cart.count=@1",
+        "Cart.count@1",
+        "Cart.discount/sum@1",
+        "Cart.discount@5",
+        "Cart.total/sum/clamp@1",
+        "Cart.total/sum@5",
+        "Cart.total@9",
+        "Size.label@1",
+        "Weight.label@1"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "lines-of-code": [
         "Logger._internal@1",

@@ -85,7 +85,7 @@ dart_code_linter:
 
 ### Analyzer plugin
 
-DCL can be used as a plugin for the Dart `analyzer` [package](https://pub.dev/packages/analyzer) providing additional rules. All issues produced by rules or anti-patterns will be highlighted in the IDE.
+DCL can be used as a plugin for the Dart `analyzer` [package](https://pub.dev/packages/analyzer) providing additional rules. Issues produced by rules are highlighted in the IDE, and with the legacy analyzer plugin, issues produced by anti-patterns too.
 
 Depending on your Dart SDK version, you can configure the plugin in two ways:
 
@@ -462,7 +462,8 @@ dart run dart_code_linter:metrics analyze lib --write-baseline
 dart run dart_code_linter:metrics check-unused-code lib test --write-baseline
 ```
 
-The first write accepts everything and exits 0:
+The first write accepts everything and exits 0, apart from configuration errors
+in `analysis_options.yaml`, such as an unknown rule, which are never baselined:
 
 ```text
 Baseline created: 2 findings recorded in dcl_baseline.json (sensitivity exact, the default for a new section). Commit it.
@@ -480,7 +481,8 @@ hide the recorded findings and report the rest:
 A baselined finding is treated like one with an `// ignore:` comment: it is
 left out of every report, and a baselined metric value is kept but has no
 violation level. The summary line says how many findings were hidden, so the run
-is never silently clean.
+is never silently clean. With a reporter for machines, such as `github`, these
+lines go to stderr (see [Stale entries and CI](#stale-entries-and-ci)).
 
 ### Where the baseline file lives
 
@@ -509,7 +511,10 @@ it uses, in this order:
 In a monorepo, `--write-baseline` creates one `dcl_baseline.json` next to each
 `analysis_options.yaml` the run covers, and lists every file it created or
 changed, so you know what to commit. A package without a `dcl_baseline.json` simply has no baseline; delete
-the file to stop using one.
+the file to stop using one. In a Pub workspace (packages with
+`resolution: workspace`), the analyzer analyzes every package in one context at
+the workspace root, so the run uses the root's `analysis_options.yaml`, for the
+rules as for the baseline, and writes one `dcl_baseline.json` there.
 
 **The IDE never reads command line options.** A baseline given only through
 `--baseline` hides findings in CI and in the terminal, while the editor keeps
@@ -556,7 +561,9 @@ dart run dart_code_linter:metrics analyze lib/src/cart.dart --write-baseline
 That works for `analyze`, whose findings in a file depend only on that file. The
 other four commands search all the paths they are given for usages, so
 narrowing the paths changes their findings; run them over the paths the
-baseline was written for.
+baseline was written for. In a monorepo with a baseline per package, those are
+all the packages the run analyzed, not only the package of the file: a
+declaration counts as used when any of them uses it.
 
 `--write-baseline` exits 0 when it creates a section. When the section already
 exists, the run is judged against the baseline as it was before the write: the
@@ -581,6 +588,13 @@ per command, decides what happens when the flagged code itself changes:
 | `exact` (default) | its flagged code and enclosing declaration are unchanged |
 | `scope` | its enclosing declaration has no more findings of that rule than were recorded, whatever the code |
 | `count` | the file has no more findings of that rule than were recorded |
+
+A finding that spans a whole declaration, such as `member-ordering` on a method
+or a field, is keyed on the declaration's header: editing its body or initial
+value keeps it hidden, even with `exact`, while renaming it or changing its
+signature resurfaces it. For rules whose finding is about the body, such as
+`list-all-equatable-fields` or `consistent-update-render-object`, a body that
+gets worse therefore stays hidden too.
 
 `exact` resurfaces an old finding when you edit the code it flags, which is a
 good moment to fix it. `scope` and `count` hide more: a new finding can take the
@@ -617,15 +631,19 @@ that no longer exists in DCL are stale.
 Each section records the versions of DCL, the analyzer and the Dart SDK it was
 written with. When a run uses other versions, it prints one warning line, since
 new findings and stale entries may then come from the upgrade. The four
-project-wide commands also record the paths they analyzed; a run over other
-paths warns, reports no stale entries, and `--update-baseline` leaves the file
-unchanged.
+project-wide commands also record what they analyzed: every path the run was
+given, relative to the baseline file, including the other packages of a
+monorepo, and `--monorepo` when it was set. A run over other paths, or with a
+different `--monorepo`, warns, reports no stale entries, and
+`--update-baseline` leaves the file unchanged.
 
 The JSON reporter adds a `baseline` object with the counts per baseline file
 (hidden, worsened and stale entries, and what a write or update did to each
 file), so CI can read them without parsing the console. With any reporter other
 than `console` and `console-verbose`, the summaries of `--write-baseline` and
-`--update-baseline` go to stderr, so stdout holds only the report.
+`--update-baseline` go to stderr, so stdout holds only the report. Reporters
+other than those and `json`, such as `github`, have no place for the baseline
+lines of a normal run either, so those go to stderr as well.
 
 ### Merge conflicts
 
@@ -634,23 +652,29 @@ can conflict. Do not edit the conflict by hand; keeping both sides usually
 leaves invalid JSON, since Git drops the comma between the two last entries.
 Run the command with `--update-baseline` on the conflicted file instead: it
 keeps the entries of both sides, drops whatever the merged code no longer
-produces, and writes clean JSON. Then add the file to finish the merge:
+produces in that command's section, and writes clean JSON. Then add the file to
+finish the merge:
 
 ```sh
 dart run dart_code_linter:metrics analyze lib --update-baseline
 git add dcl_baseline.json
 ```
 
+Any command resolves the markers in the whole file, but cleans up only its own
+section: when the sections of several commands conflicted, run each of them
+with `--update-baseline`. When one side holds keys written by a newer DCL, the
+update refuses to merge them into older ones; upgrade DCL first.
+
 Never resolve a conflict by regenerating the file with `--write-baseline`: that
 would accept the merged code's new findings without anyone reviewing them. The
 `about` field at the top of the file says the same, for whoever meets the
 conflict first.
 
-A file that cannot be read (conflict markers outside `--update-baseline`,
-invalid JSON, a key that occurs twice in one object, or a format written by a
-newer DCL) stops the CLI with exit 1 and a message naming the file, and
-`--write-baseline` never replaces it. The IDE shows every finding instead and
-reports the problem once per file.
+A file that cannot be read (no permission, not UTF-8 text, conflict markers
+outside `--update-baseline`, invalid JSON, a key that occurs twice in one
+object, or a format written by a newer DCL) stops the CLI with exit 1 and a
+message naming the file, and `--write-baseline` never replaces it. The IDE shows
+every finding instead and reports the problem once per file.
 
 ### In the IDE
 
@@ -658,8 +682,9 @@ The Analysis Server plugin (see [Analyzer plugin](#analyzer-plugin)) hides basel
 the command line. The editor does not watch the baseline file: after writing or
 updating it, diagnostics refresh when each file is next analyzed, or at once
 after "Restart Analysis Server". The plugin runs rules only, so anti-pattern and
-metric entries matter to the CLI only. The legacy analyzer plugin does not read
-the baseline.
+metric entries matter to the CLI only. Like the command line, it leaves out
+findings an `// ignore:` or `// ignore_for_file:` comment names. The legacy
+analyzer plugin does not read the baseline.
 
 ### Known limitations
 
@@ -668,13 +693,13 @@ the baseline.
 | Renaming a file resurfaces all of its findings | Entries are keyed by path, so the old path's entries go stale and the findings under the new path are new | Run `--write-baseline` after the rename to accept them again |
 | Renaming a declaration resurfaces the findings inside it | The declaration name is part of every key | Same as for a file rename |
 | After a DCL upgrade that changed some keys, the affected rules are matched by count | Old keys cannot be compared with new ones; counting keeps findings nobody touched hidden | Review the changes, then run `--write-baseline` once over the baseline's full paths |
-| A project-wide command run over other paths reports no stale entries and updates nothing | Its findings depend on the analyzed paths | Use the same paths in CI and locally, or switch with `--write-baseline` |
+| A project-wide command run over other paths, or with a different `--monorepo`, reports no stale entries and updates nothing | Its findings depend on everything the run analyzes: a run over fewer packages also reports declarations only the others use, as it does without a baseline | Use the same paths and flags in CI and locally, or switch with `--write-baseline` |
 | Entries of a disabled rule stay in the file | The rule may be turned on again, and its debt is still real | Keep them, or remove them with `--write-baseline` once the rule is back on |
-| `fix` also fixes baselined findings | `fix` does not read the baseline | Run `--update-baseline` afterwards to drop the entries of fixed findings; `fix` prints a reminder |
+| `fix` also fixes baselined findings | `fix` does not read the baseline | Run `analyze` with `--update-baseline` afterwards to drop the entries of fixed findings. A fix can also change the keys of findings around the fixed code, or make values that count lines worse: review those and accept them with `--write-baseline` over the fixed paths. `fix` prints a reminder |
 | Two branches changing the same list conflict on merge | Concurrent changes touch neighbouring lines | Run `--update-baseline` on the conflicted file, then add it |
-| The IDE does not refresh when the baseline changes | The analysis server watches only `*.dart` files | Edit the file, or restart the analysis server |
+| The IDE does not refresh when the baseline changes | The analysis server watches only `*.dart` files | Edit the Dart file, or restart the analysis server |
 | Reformatting can resurface metric values that count lines | `lines-of-code`, `source-lines-of-code`, `maintainability-index` and `long-method` depend on how code is laid out, and `lines-of-code` also counts comment lines | After a format migration, such as the switch to the tall style, run `--write-baseline` once to accept the new values |
-| `check-unused-l10n` cannot record a finding in a localization class declared outside the folder of every baseline it uses, such as a sibling package outside `--root-folder` | Entries are stored relative to their baseline file | Add the class's folder to the analyzed paths, or share one baseline above both through `--baseline` or the `baseline:` key. `--write-baseline` warns about such findings |
+| `check-unused-l10n` cannot record a finding in a localization class declared outside the folder of every baseline it uses, such as a sibling package outside `--root-folder` | Entries are stored relative to their baseline file | Add the class's folder to the analyzed paths, or share one baseline above both through `--baseline` or the `baseline:` key. `--write-baseline` warns about such findings, which still fail the run |
 
 
 

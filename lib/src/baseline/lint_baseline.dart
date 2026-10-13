@@ -26,6 +26,9 @@ class LintBaseline {
   final _findings = Map<Object, BaselineFinding>.identity();
   final _configs = <String, LintAnalysisConfig>{};
 
+  /// The reports of every measured scope of a file, by its report.
+  final _measured = Map<LintFileReport, List<Report>>.identity();
+
   LintBaseline(this.session);
 
   /// Registers an analysis [context] analyzed with [config].
@@ -52,14 +55,29 @@ class LintBaseline {
   }
 
   /// Computes the keys of the findings in [report], the report of the
-  /// resolved [unit] analyzed with [config].
+  /// resolved [unit] analyzed with [config], when a baseline applies to its
+  /// file.
+  ///
+  /// [measured] are the reports of every class and function the analysis
+  /// measured. The [report] keys them by name and keeps one per name, so
+  /// that which of a getter and its setter, or of two enums' same-named
+  /// methods, it keeps depends on their order; the baseline records them
+  /// all. Without it, the report's own are used.
   void addFile(
     ResolvedUnitResult unit,
     LintFileReport report,
-    LintAnalysisConfig config,
-  ) {
+    LintAnalysisConfig config, {
+    Iterable<Report>? measured,
+  }) {
+    if (!session.hasBaselineFor(report.path)) {
+      return;
+    }
     final keys = LintBaselineKeys(unit.unit, unit.content);
     final path = report.path;
+    final scopes = _measured[report] = [
+      if (report.file case final file?) file,
+      ...measured ?? [...report.classes.values, ...report.functions.values],
+    ];
 
     for (final issue in report.issues) {
       _findings[issue] =
@@ -74,7 +92,7 @@ class LintBaseline {
       final key = keys.antiPatternKey(
         issue,
         dependentMetricIds[issue.ruleId] ?? const [],
-        report.functions.values,
+        scopes,
       );
       // Every pattern reports on a function it has measured; the span key
       // only keeps a finding of a future pattern that does not apart.
@@ -82,7 +100,7 @@ class LintBaseline {
           BaselineFinding(path, issue.ruleId, key ?? keys.issueKey(issue));
     }
 
-    for (final measured in _measuredReportsOf(report)) {
+    for (final measured in scopes) {
       for (final value in measured.metrics) {
         if (value.level > MetricValueLevel.none) {
           _findings[value] = BaselineFinding(
@@ -108,7 +126,8 @@ class LintBaseline {
       for (final report in all) ...[
         ...report.issues,
         ...report.antiPatternCases,
-        for (final measured in _measuredReportsOf(report)) ...measured.metrics,
+        for (final measured in _measured[report] ?? _measuredReportsOf(report))
+          ...measured.metrics,
       ],
     ].where(_findings.containsKey).toList();
 

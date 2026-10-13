@@ -3,9 +3,9 @@
   "keys": {
     "test/src/analyzers/lint_analyzer/rules/rules_list/avoid_missing_enum_constant_in_map/examples/example.dart": {
       "avoid-missing-enum-constant-in-map": [
-        "CountyTypeX._code#a619ce1cf3e0aaf4",
-        "CountyTypeX._title#e71fd85eb5015970",
-        "CountyTypeX._title#e71fd85eb5015970"
+        "CountyTypeX._code#d2de1feb3d226d04",
+        "CountyTypeX._title#0562d59c3b0ca21d",
+        "CountyTypeX._title#0562d59c3b0ca21d"
       ]
     }
   }

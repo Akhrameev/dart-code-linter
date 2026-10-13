@@ -62,9 +62,10 @@ class PluginBaseline {
     CompilationUnit unit,
     String content,
   ) {
+    final ignores = _Ignores(unit, content);
     final location = _location;
     if (location == null) {
-      return const PluginBaselineUnit._none();
+      return PluginBaselineUnit._(ignores);
     }
 
     final entry = _files.read(
@@ -82,9 +83,10 @@ class PluginBaseline {
           if (runsOn(path)) id,
       ]..sort();
 
-      return PluginBaselineUnit._failed(
-        '$error Findings are shown without the baseline.',
-        ids.firstOrNull,
+      return PluginBaselineUnit._(
+        ignores,
+        error: '$error Findings are shown without the baseline.',
+        errorReportedBy: ids.firstOrNull,
       );
     }
 
@@ -93,24 +95,27 @@ class PluginBaseline {
         .joinAll(p.split(p.relative(path, from: p.dirname(location.path))));
     final entries = section?.findings[relativePath];
     if (section == null || entries == null || entries.isEmpty) {
-      return const PluginBaselineUnit._none();
+      return PluginBaselineUnit._(ignores);
     }
 
-    return PluginBaselineUnit._(_UnitEntries(
-      entries,
-      section.sensitivity,
-      countModeFor(
-        command: BaselineCommand.analyze.id,
-        sectionKeyVersion: section.keyVersion,
+    return PluginBaselineUnit._(
+      ignores,
+      entries: _UnitEntries(
+        entries,
+        section.sensitivity,
+        countModeFor(
+          command: BaselineCommand.analyze.id,
+          sectionKeyVersion: section.keyVersion,
+        ),
+        unit,
+        content,
       ),
-      unit,
-      content,
-    ));
+    );
   }
 }
 
-/// The baseline entries of one unit, and the error to report when the
-/// baseline cannot be read.
+/// The ignore comments and baseline entries of one unit, and the error to
+/// report when the baseline cannot be read.
 class PluginBaselineUnit {
   /// Why the baseline cannot be read, with the note that findings are shown
   /// without it; null when it can be read or there is none.
@@ -120,24 +125,56 @@ class PluginBaselineUnit {
   /// the unit, so that the error appears once per unit and not once per rule.
   final String? errorReportedBy;
 
+  final _Ignores _ignores;
   final _UnitEntries? _entries;
 
-  const PluginBaselineUnit._(this._entries)
-      : error = null,
-        errorReportedBy = null;
+  PluginBaselineUnit._(
+    this._ignores, {
+    _UnitEntries? entries,
+    this.error,
+    this.errorReportedBy,
+  }) : _entries = entries;
 
-  const PluginBaselineUnit._none()
-      : error = null,
-        errorReportedBy = null,
-        _entries = null;
+  /// Returns the [issues] of the rule [ruleId] to report: those no ignore
+  /// comment suppresses and the baseline does not hide, matched as `analyze`
+  /// matches them on the command line.
+  ///
+  /// The analysis server cannot apply ignore comments to DCL's findings
+  /// itself: it reads only identifiers as diagnostic names, and DCL's rule
+  /// ids have hyphens. As on the command line, suppressed findings are
+  /// dropped before matching, so they never take an entry another finding
+  /// needs.
+  List<Issue> filter(String ruleId, List<Issue> issues) {
+    final reported = _ignores.without(ruleId, issues);
 
-  const PluginBaselineUnit._failed(String this.error, this.errorReportedBy)
-      : _entries = null;
+    return _entries?.filter(ruleId, reported) ?? reported;
+  }
+}
 
-  /// Returns the [issues] of the rule [ruleId] that the baseline does not
-  /// hide, matched as `analyze` matches them on the command line.
-  List<Issue> filter(String ruleId, List<Issue> issues) =>
-      _entries?.filter(ruleId, issues) ?? issues;
+/// The ignore comments of one unit, read for the first rule with findings.
+class _Ignores {
+  final CompilationUnit unit;
+  final String content;
+
+  late final Suppression _suppression =
+      Suppression(content, unit.lineInfo, supportsTypeLintIgnore: true);
+
+  _Ignores(this.unit, this.content);
+
+  List<Issue> without(String ruleId, List<Issue> issues) {
+    if (issues.isEmpty) {
+      return issues;
+    }
+    if (_suppression.isSuppressed(ruleId)) {
+      return const [];
+    }
+
+    return [
+      for (final issue in issues)
+        if (!_suppression.isSuppressedAt(ruleId, issue.location.start.line))
+          issue,
+    ];
+  }
 }
 
 class _UnitEntries {
@@ -150,8 +187,6 @@ class _UnitEntries {
 
   /// Computed for the first rule that has entries in the unit, then shared.
   late final LintBaselineKeys _keys = LintBaselineKeys(unit, content);
-  late final Suppression _ignores =
-      Suppression(content, unit.lineInfo, supportsTypeLintIgnore: true);
 
   _UnitEntries(
     this.entries,
@@ -167,32 +202,16 @@ class _UnitEntries {
       return issues;
     }
 
-    // The command line drops ignored findings before matching, so they never
-    // take an entry another finding needs. They are left out of matching here
-    // too, and returned as they are: whether the editor then hides them is up
-    // to the analysis server's own handling of ignore comments.
-    final ignored = _ignores.isSuppressed(ruleId);
-    final matched = [
-      for (final issue in issues)
-        if (!ignored &&
-            !_ignores.isSuppressedAt(ruleId, issue.location.start.line))
-          issue,
-    ];
     final match = matchGroup(
       entries: groupEntries,
-      findings: [for (final issue in matched) _keys.issueKey(issue)],
+      findings: [for (final issue in issues) _keys.issueKey(issue)],
       sensitivity: sensitivity,
       countMode: countMode.appliesTo(ruleId),
     );
-    final hidden = Set<Issue>.identity()
-      ..addAll([
-        for (var i = 0; i < matched.length; i++)
-          if (match.outcomes[i].status == FindingStatus.hidden) matched[i],
-      ]);
 
     return [
-      for (final issue in issues)
-        if (!hidden.contains(issue)) issue,
+      for (var i = 0; i < issues.length; i++)
+        if (match.outcomes[i].status != FindingStatus.hidden) issues[i],
     ];
   }
 }

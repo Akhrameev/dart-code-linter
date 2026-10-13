@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:meta/meta.dart';
@@ -38,6 +39,11 @@ class BaselineLocation {
   final String? configuredIn;
 
   const BaselineLocation(this.path, this.source, {this.configuredIn});
+
+  /// Whether a run uses this location, as `--print-config` shows it: the
+  /// user named it, or it is the conventional file and that file exists.
+  bool get isInUse =>
+      source != BaselineSource.conventional || File(path).existsSync();
 
   /// Returns the baseline named by the `dart_code_linter: baseline:` key of
   /// [options], or the conventional file next to them when the key is not
@@ -115,7 +121,8 @@ class BaselineRead {
 /// [resolveConflicts] resolves merge conflict markers, as
 /// `--update-baseline` does; see [Baseline.parse].
 ///
-/// Throws a [BaselineFormatException] when the file cannot be read.
+/// Throws a [BaselineFormatException] when the file cannot be read: no
+/// permission, not UTF-8 text, or not a valid baseline.
 BaselineRead readBaselineAt(
   BaselineLocation location, {
   bool creating = false,
@@ -142,9 +149,29 @@ BaselineRead readBaselineAt(
     );
   }
 
+  final List<int> bytes;
+  try {
+    bytes = file.readAsBytesSync();
+  } on FileSystemException catch (e) {
+    throw BaselineFormatException.unreadable(
+      shownPath,
+      e.osError?.message ?? e.message,
+    );
+  }
+  final String content;
+  try {
+    content = utf8.decode(bytes);
+  } on FormatException {
+    throw BaselineFormatException.unreadable(
+      shownPath,
+      'it is not UTF-8 text, as dart_code_linter writes it',
+    );
+  }
+
   return BaselineRead._(
     Baseline.parse(
-      file.readAsStringSync(),
+      // A byte order mark, as some Windows editors write.
+      content.startsWith('\uFEFF') ? content.substring(1) : content,
       source: shownPath,
       resolveConflicts: resolveConflicts,
     ),

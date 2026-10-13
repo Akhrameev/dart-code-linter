@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'baseline.dart';
 import 'baseline_matcher.dart';
 import 'key_version.dart';
@@ -44,7 +46,8 @@ class UpdatedSection {
 /// reports as disabled, since that debt is still real. Entries of groups
 /// this version does not know are dropped.
 ///
-/// When [pathsChanged], the section switches to the run's [analyzedPaths]:
+/// A project-wide section records the run's [analyzedPaths] and [monorepo].
+/// When [pathsChanged], the section switches to them:
 /// old entries were computed under other paths, so the run's findings
 /// replace them, and those outside the new coverage are dropped and counted
 /// in [WrittenSection.droppedForPaths]. Entries of disabled groups inside it
@@ -61,6 +64,7 @@ WrittenSection writeSection({
   required BaselineVersions versions,
   required BaselineSensitivity sensitivity,
   List<String>? analyzedPaths,
+  bool monorepo = false,
   bool pathsChanged = false,
   int current = currentKeyVersion,
   Map<int, KeyChange> changes = keyVersionChanges,
@@ -112,6 +116,7 @@ WrittenSection writeSection({
     BaselineSection(
       generatedWith: versions,
       analyzedPaths: command.isProjectWide ? analyzedPaths ?? const [] : null,
+      monorepo: command.isProjectWide && monorepo,
       keyVersion: old == null || heldBack.isEmpty ? current : old.keyVersion,
       sensitivity: sensitivity,
       findings: result,
@@ -186,6 +191,7 @@ UpdatedSection updateSection({
     BaselineSection(
       generatedWith: old.generatedWith,
       analyzedPaths: old.analyzedPaths,
+      monorepo: old.monorepo,
       keyVersion: old.keyVersion,
       sensitivity: old.sensitivity,
       findings: result,
@@ -198,30 +204,35 @@ UpdatedSection updateSection({
 /// Writes [content] to the baseline file at [path], unless it already holds
 /// exactly that. Returns whether the file was written.
 ///
+/// A file with CRLF line endings, as Git on Windows checks files out by
+/// default, keeps them, so that an unchanged baseline is not rewritten.
+///
 /// The content goes to a temporary file next to it first, which is then
 /// renamed over the baseline: a rename within one folder is atomic, so other
 /// runs and the IDE read either the old or the new file, never half of one.
 ///
 /// A baseline reached through a symbolic link is written where the link
 /// points, so that the link, often one file shared by several packages,
-/// survives the rename.
+/// survives the rename. A link to a file that does not exist yet creates it.
 ///
 /// Throws a [FileSystemException] when the file cannot be written; the
 /// baseline is then left as it was.
 bool writeBaselineFile(String path, String content) {
   final file = File(path);
-  if (file.existsSync() && file.readAsStringSync() == content) {
+  final existing = file.existsSync() ? file.readAsStringSync() : null;
+  final text = existing != null && existing.contains('\r\n')
+      ? content.replaceAll('\n', '\r\n')
+      : content;
+  if (existing == text) {
     return false;
   }
 
-  final target = FileSystemEntity.isLinkSync(path)
-      ? file.resolveSymbolicLinksSync()
-      : path;
+  final target = _linkTarget(path) ?? path;
   final temporary = File('$target.tmp');
   try {
     File(target).parent.createSync(recursive: true);
     temporary
-      ..writeAsStringSync(content, flush: true)
+      ..writeAsStringSync(text, flush: true)
       ..renameSync(target);
   } on FileSystemException {
     if (temporary.existsSync()) {
@@ -231,4 +242,20 @@ bool writeBaselineFile(String path, String content) {
   }
 
   return true;
+}
+
+/// Returns the file a symbolic link at [path] points to, following a chain
+/// of links, whether or not that file exists; null when [path] is no link.
+String? _linkTarget(String path) {
+  if (!FileSystemEntity.isLinkSync(path)) {
+    return null;
+  }
+
+  var target = path;
+  // Bounded, as the system bounds a chain, in case links form a cycle.
+  for (var i = 0; i < 40 && FileSystemEntity.isLinkSync(target); i++) {
+    target = p.normalize(p.join(p.dirname(target), Link(target).targetSync()));
+  }
+
+  return target;
 }

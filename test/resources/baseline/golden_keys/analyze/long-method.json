@@ -1,6 +1,13 @@
 {
   "keyVersion": 1,
   "keys": {
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "long-method": [
+        "Cart.discount@2",
+        "Cart.total/sum@2",
+        "Cart.total@5"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "long-method": [
         "Logger.fromJson@2",

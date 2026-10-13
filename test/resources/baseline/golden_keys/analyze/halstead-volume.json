@@ -6,6 +6,21 @@
         "Doer.doSomething@0"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "halstead-volume": [
+        "<extension on List<int>>.firstOrZero@4.75",
+        "<extension on Map<String,int>>.firstOrZero@8",
+        "Cart.count=@13.93",
+        "Cart.count@11.09",
+        "Cart.discount/sum@12",
+        "Cart.discount@50.53",
+        "Cart.total/sum/clamp@6.34",
+        "Cart.total/sum@43.94",
+        "Cart.total@132.88",
+        "Size.label@4.75",
+        "Weight.label@9.51"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "halstead-volume": [
         "Logger._internal@0",

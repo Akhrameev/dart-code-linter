@@ -6,6 +6,13 @@
         "Doer@1"
       ]
     },
+    "test/resources/baseline/metric_scopes_example.dart": {
+      "number-of-methods": [
+        "<extension on List<int>>@1",
+        "<extension on Map<String,int>>@1",
+        "Cart@7"
+      ]
+    },
     "test/resources/class_with_factory_constructors.dart": {
       "number-of-methods": [
         "Logger@4"

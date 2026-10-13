@@ -61,8 +61,8 @@ class BaselineFinding {
   const BaselineFinding(this.path, this.group, this.key);
 }
 
-/// The analyzed paths recorded in a section and those of the current run,
-/// when they differ.
+/// What the run that wrote a section analyzed, and what the current run
+/// analyzes, when they differ: the path arguments, and `--monorepo`.
 class AnalyzedPathsMismatch {
   /// The paths the section was written for.
   final List<String> recorded;
@@ -70,7 +70,35 @@ class AnalyzedPathsMismatch {
   /// The paths of the current run.
   final List<String> current;
 
-  const AnalyzedPathsMismatch(this.recorded, this.current);
+  /// Whether the section was written with `--monorepo`.
+  final bool recordedMonorepo;
+
+  /// Whether the current run uses `--monorepo`.
+  final bool currentMonorepo;
+
+  const AnalyzedPathsMismatch(
+    this.recorded,
+    this.current, {
+    this.recordedMonorepo = false,
+    this.currentMonorepo = false,
+  });
+
+  /// Whether `--monorepo` differs, besides or instead of the paths.
+  bool get monorepoDiffers => recordedMonorepo != currentMonorepo;
+
+  /// What the section was written for, as messages name it.
+  String get recordedText => _text(recorded, recordedMonorepo);
+
+  /// What the current run analyzes, as messages name it.
+  String get currentText => _text(current, currentMonorepo);
+
+  /// What findings depend on, as messages name it.
+  String get dependsOn => monorepoDiffers
+      ? 'the analyzed paths and --monorepo'
+      : 'the analyzed paths';
+
+  String _text(List<String> paths, bool monorepo) =>
+      '${paths.join(', ')}${monorepoDiffers ? monorepo ? ' with --monorepo' : ' without --monorepo' : ''}';
 }
 
 /// A baselined finding reported again because its measured value got worse.
@@ -282,8 +310,8 @@ class BaselineWriteResult {
         ],
       BaselineWriteAction.skipped => [
           'Baseline for ${command.id} in $file not updated: it was written '
-              'for ${mismatch!.recorded.join(', ')} and this run analyzes '
-              '${mismatch.current.join(', ')}. Rerun with the recorded paths, '
+              'for ${mismatch!.recordedText} and this run analyzes '
+              '${mismatch.currentText}. Rerun with the recorded paths, '
               'or use --write-baseline to switch to these paths.',
         ],
       BaselineWriteAction.updated when resolvedConflict => [
@@ -293,8 +321,8 @@ class BaselineWriteResult {
               '. Add the file to finish the merge.',
           if (mismatch != null)
             'Baseline for ${command.id} in $file not updated beyond the '
-                'merge: it was written for ${mismatch.recorded.join(', ')} '
-                'and this run analyzes ${mismatch.current.join(', ')}. Rerun '
+                'merge: it was written for ${mismatch.recordedText} '
+                'and this run analyzes ${mismatch.currentText}. Rerun '
                 'with the recorded paths, or use --write-baseline to switch '
                 'to these paths.',
         ],
@@ -320,8 +348,8 @@ class BaselineWriteResult {
                 'reported below ($_sensitivityText).',
           if (mismatch != null)
             'Baseline for ${command.id} in $file switched from '
-                '${mismatch.recorded.join(', ')} to '
-                '${mismatch.current.join(', ')}; '
+                '${mismatch.recordedText} to '
+                '${mismatch.currentText}; '
                 '${_plural(droppedForPaths, 'entry', 'entries')} outside the '
                 'new paths dropped.',
           if (heldBack.isNotEmpty)
@@ -358,7 +386,15 @@ class BaselineSession {
   /// Whether the run writes or updates the baseline files.
   final BaselineMode mode;
 
+  /// Whether the run uses `--monorepo`, which changes the findings of the
+  /// project-wide commands that have it, so their sections record it.
+  final bool monorepo;
+
   final _contexts = <String, _Context>{};
+
+  /// The run's path arguments, absolute and normalized: what the sections of
+  /// project-wide commands record, relative to each file.
+  var _runPaths = const <String>[];
   final _files = <String, _File>{};
 
   /// Paths of baseline files already looked up, found or not.
@@ -371,7 +407,11 @@ class BaselineSession {
   /// configured through `--baseline` or the options key.
   var _configured = false;
 
-  BaselineSession(this.command, {this.mode = BaselineMode.read});
+  BaselineSession(
+    this.command, {
+    this.mode = BaselineMode.read,
+    this.monorepo = false,
+  });
 
   /// Whether some analysis context of the run names a baseline file: an
   /// existing one, or one set by `--baseline` or the options key.
@@ -386,6 +426,13 @@ class BaselineSession {
           file.baseline.resolvedConflict)
       ? const []
       : [for (final file in _sortedFiles()) file.displayPath];
+
+  /// Whether findings in the file at the absolute [path] meet a baseline in
+  /// this run: the context that reports on it has a baseline file, or the
+  /// run writes one. Without, their keys need not be computed, so that a run
+  /// of a project without a baseline never runs the key code.
+  bool hasBaselineFor(String path) =>
+      mode == BaselineMode.write || _ownerOf(path)?.file != null;
 
   /// Warnings to print once the analysis is done.
   List<String> get warnings => List.unmodifiable(_warnings);
@@ -422,6 +469,12 @@ class BaselineSession {
     required String rootFolder,
     required Iterable<Glob> excludes,
   }) {
+    if (_runPaths.isEmpty) {
+      _runPaths = [
+        for (final folder in folders)
+          p.normalize(p.absolute(rootFolder, folder)),
+      ];
+    }
     final contextFolders = getContextFolders(folders, context, rootFolder);
     _File? file;
     if (contextFolders.isNotEmpty) {
@@ -687,6 +740,7 @@ class BaselineSession {
       versions: versions,
       sensitivity: chosen,
       analyzedPaths: command.isProjectWide ? _currentPaths(file) : null,
+      monorepo: command.isProjectWide && monorepo,
       pathsChanged: state.mismatch != null,
     );
 
@@ -846,32 +900,34 @@ class BaselineSession {
     return _files[location.path] = _File(location, displayPath, baseline);
   }
 
-  /// Compares the recorded analyzed paths with those of the contexts using
-  /// [file], both normalized and relative to the file's folder.
+  /// Compares what the [section] was written for with this run: the path
+  /// arguments, both normalized and relative to the file's folder, and
+  /// `--monorepo`.
   AnalyzedPathsMismatch? _pathsMismatch(_File file, BaselineSection section) {
     final recorded =
         (section.analyzedPaths ?? const []).map(p.posix.normalize).toSet();
     final current = _currentPaths(file).toSet();
 
-    if (recorded.length == current.length && recorded.containsAll(current)) {
+    if (recorded.length == current.length &&
+        recorded.containsAll(current) &&
+        section.monorepo == monorepo) {
       return null;
     }
 
     return AnalyzedPathsMismatch(
       recorded.toList()..sort(),
       current.toList()..sort(),
+      recordedMonorepo: section.monorepo,
+      currentMonorepo: monorepo,
     );
   }
 
-  /// The path arguments of the contexts using [file], normalized, relative to
-  /// the file's folder, deduplicated and sorted.
-  List<String> _currentPaths(_File file) => {
-        for (final root in file.contexts)
-          for (final folder in _contexts[root]!.folders)
-            file.relativePathOf(
-              p.normalize(p.absolute(_contexts[root]!.rootFolder, folder)),
-            ),
-      }.toList()
+  /// Every path argument of the run, relative to the folder of [file],
+  /// deduplicated and sorted. The findings of a project-wide command in one
+  /// package depend on the other packages the run analyzes, so paths outside
+  /// the file's own contexts count too.
+  List<String> _currentPaths(_File file) =>
+      {for (final path in _runPaths) file.relativePathOf(path)}.toList()
         ..sort();
 
   /// Says that a write cannot record the findings in the files at [paths],

@@ -4,6 +4,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:crypto/crypto.dart';
+import 'package:meta/meta.dart';
 
 import '../analyzers/lint_analyzer/metrics/models/metric_value.dart';
 import '../analyzers/lint_analyzer/models/issue.dart';
@@ -204,6 +205,7 @@ class LintBaselineKeys {
   }
 
   /// Returns the token hash of the code between [start] and [end].
+  @visibleForTesting
   String tokenHash(int start, int end) =>
       _hash(_tokensIn(start, end), start, end);
 
@@ -281,14 +283,16 @@ class LintBaselineKeys {
   /// hashed as `\n`: Git on Windows checks files out with `\r\n` by default,
   /// and a baseline written there must match one written on Linux CI.
   ///
-  /// A function, method or constructor body, or a type's member list, that
-  /// lies wholly inside the span, and is not the span itself, is hashed as
-  /// one placeholder. A finding on a whole declaration, such as
-  /// `member-ordering` on a method, is so keyed on the declaration's header:
-  /// editing the body never resurfaces it, while a new name or signature
-  /// does. Statement blocks and closures are hashed in full: blanking them
-  /// merged the keys of distinct findings, such as `test('...', () {...})`
-  /// calls of `missing-test-assertion`.
+  /// A function, method or constructor body, a constructor's initializer
+  /// list, the initializer of a field or top-level variable, or a type's
+  /// member list, that lies wholly inside the span, and is not the span
+  /// itself, is hashed as one placeholder. A finding on a whole declaration,
+  /// such as `member-ordering` on a method or a field, is so keyed on the
+  /// declaration's header: editing the body or the initial value never
+  /// resurfaces it, while a new name or signature does. Statement blocks,
+  /// closures and local variables are hashed in full: blanking them merged
+  /// the keys of distinct findings, such as `test('...', () {...})` calls of
+  /// `missing-test-assertion`, or two locals of one name in a member.
   ///
   /// A span without tokens lies inside a comment, as for `format-comment`.
   /// Its text is hashed instead, with whitespace runs collapsed, so findings
@@ -339,7 +343,9 @@ class LintBaselineKeys {
 }
 
 /// Collects the end offsets of the bodies of functions, methods and
-/// constructors, and of the member lists of types, by start offset.
+/// constructors, of constructor initializer lists, of the initializers of
+/// fields and top-level variables, and of the member lists of types, by
+/// start offset.
 class _Bodies extends GeneralizingAstVisitor<void> {
   final ends = <int, int>{};
 
@@ -348,9 +354,17 @@ class _Bodies extends GeneralizingAstVisitor<void> {
   @override
   void visitNode(AstNode node) {
     switch (node) {
-      case MethodDeclaration(:final body) ||
-            ConstructorDeclaration(:final body):
+      case MethodDeclaration(:final body):
         _add(body.offset, body.end);
+      case ConstructorDeclaration(:final body, :final initializers):
+        _add(body.offset, body.end);
+        if (initializers.isNotEmpty) {
+          _add(initializers.first.offset, initializers.last.end);
+        }
+      case VariableDeclaration(:final initializer?)
+          when node.parent?.parent is FieldDeclaration ||
+              node.parent?.parent is TopLevelVariableDeclaration:
+        _add(initializer.offset, initializer.end);
       case FunctionDeclaration(:final functionExpression):
         _add(functionExpression.body.offset, functionExpression.body.end);
       case AnnotatedNode() when LintBaselineKeys._isTypeDeclaration(node):

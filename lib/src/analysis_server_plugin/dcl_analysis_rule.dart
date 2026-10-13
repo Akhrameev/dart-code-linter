@@ -157,10 +157,11 @@ class _DclVisitor extends SimpleAstVisitor<void> {
     );
 
     // The server keeps reported diagnostics to itself, so findings are
-    // filtered before they are reported. The plugin server watches only
-    // `*.dart` files: editing the baseline does not refresh diagnostics shown
-    // already, only the next analysis of each file, or a restart of the
-    // analysis server, picks up the change.
+    // filtered before they are reported, by ignore comments too, which the
+    // server cannot apply to DCL's hyphenated rule ids. The plugin server
+    // watches only `*.dart` files: editing the baseline does not refresh
+    // diagnostics shown already, only the next analysis of each file, or a
+    // restart of the analysis server, picks up the change.
     final issues =
         baseline.filter(_dclRule.id, _dclRule.check(source).toList());
     for (final issue in issues) {
