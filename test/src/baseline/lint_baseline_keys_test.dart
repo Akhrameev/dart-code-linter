@@ -1,11 +1,14 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/features.dart';
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/rules/rules_factory.dart';
 import 'package:dart_code_linter/src/baseline/lint_baseline_keys.dart';
 import 'package:path/path.dart' as p;
+import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
 
 import '../helpers/file_resolver.dart';
@@ -349,6 +352,36 @@ void main() {
       expect(
         await constructorKey(constructor.replaceFirst('int x', 'num x')),
         isNot(key),
+      );
+    });
+
+    test('keys a primary constructor body on its header', () {
+      String key(String source) {
+        final unit = parseString(
+          content: source,
+          featureSet: FeatureSet.fromEnableFlags2(
+            sdkLanguageVersion: Version(3, 12, 0),
+            flags: ['primary-constructors'],
+          ),
+        ).unit;
+        final start = source.indexOf('this');
+
+        // Unresolved, so only the token hash is meaningful: the scope needs
+        // the declared fragments a resolved unit has.
+        return LintBaselineKeys(unit, source)
+            .tokenHash(start, source.indexOf('  }', start) + 3);
+      }
+
+      const primary = 'class A(final int x) {\n'
+          '  this : assert(x > 0) {\n    print(x);\n  }\n}\n';
+      final header = key(primary);
+
+      expect(key(primary.replaceFirst('print(x)', 'print(1)')), header);
+      expect(key(primary.replaceFirst('x > 0', 'x > 1')), header);
+      expect(
+        key(primary.replaceFirst(' : assert(x > 0)', '')),
+        isNot(header),
+        reason: 'an initializer list added or removed changes the header',
       );
     });
 

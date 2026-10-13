@@ -32,6 +32,7 @@ dart run dart_code_linter:metrics analyze lib
 | `--output-directory=<path>` | Directory for HTML report output |
 | `--root-folder=<path>` | Root folder of the project |
 | `--exclude=<glob>` | One glob of files to exclude, see [Excluding Files](#excluding-files) |
+| `--write-baseline`, `--update-baseline` | Record the current findings as accepted, or remove entries that no longer occur, see [Baselines](#baselines) |
 | `--set-exit-on-violation-level=<level>` | Set exit code when violations reach this level: `noted`, `warning`, `alarm` |
 | `--fatal-style` | Treat style violations as fatal |
 | `--fatal-performance` | Treat performance violations as fatal |
@@ -77,6 +78,7 @@ dart run dart_code_linter:metrics check-unused-files lib
 | `--reporter=<value>` | Output format: `console` (default), `json` |
 | `--root-folder=<path>` | Root folder of the project |
 | `--exclude=<glob>` | One glob of files to exclude, see [Excluding Files](#excluding-files) |
+| `--write-baseline`, `--update-baseline` | Record the current findings as accepted, or remove entries that no longer occur, see [Baselines](#baselines) |
 | `--no-congratulate` | Suppress congratulatory messages |
 
 **Example:**
@@ -100,6 +102,7 @@ dart run dart_code_linter:metrics check-unused-code lib
 | `--reporter=<value>` | Output format: `console` (default), `json` |
 | `--root-folder=<path>` | Root folder of the project |
 | `--exclude=<glob>` | One glob of files to exclude, see [Excluding Files](#excluding-files) |
+| `--write-baseline`, `--update-baseline` | Record the current findings as accepted, or remove entries that no longer occur, see [Baselines](#baselines) |
 | `--no-congratulate` | Suppress congratulatory messages |
 
 **Example:**
@@ -138,6 +141,7 @@ class ClassWithLocalization {
 | `--reporter=<value>` | Output format: `console` (default), `json` |
 | `--root-folder=<path>` | Root folder of the project |
 | `--exclude=<glob>` | One glob of files to exclude, see [Excluding Files](#excluding-files) |
+| `--write-baseline`, `--update-baseline` | Record the current findings as accepted, or remove entries that no longer occur, see [Baselines](#baselines) |
 | `--class-pattern=<regex>` | Regex pattern to match localization class names |
 | `--no-congratulate` | Suppress congratulatory messages |
 
@@ -162,6 +166,7 @@ dart run dart_code_linter:metrics check-unnecessary-nullable lib
 | `--reporter=<value>` | Output format: `console` (default), `json` |
 | `--root-folder=<path>` | Root folder of the project |
 | `--exclude=<glob>` | One glob of files to exclude, see [Excluding Files](#excluding-files) |
+| `--write-baseline`, `--update-baseline` | Record the current findings as accepted, or remove entries that no longer occur, see [Baselines](#baselines) |
 | `--no-congratulate` | Suppress congratulatory messages |
 
 **Example:**
@@ -182,6 +187,36 @@ dart run dart_code_linter:metrics check-unused-code lib --exclude="{**.g.dart,**
 ```
 
 `check-unused-files`, `check-unused-code`, `check-unused-l10n` and `check-unnecessary-nullable` do not report excluded files, but still count them as users of other code, so code used only from generated files is not reported. Files listed under `analyzer: exclude:` in `analysis_options.yaml` are not analyzed at all.
+
+## Baselines
+
+A baseline records a project's current findings in `dcl_baseline.json`, so stricter rules or the opt-in unused-code checks can be turned on without fixing every existing finding first. Later runs hide the recorded findings, the way an `// ignore:` comment does, and report and fail on new ones only. All five commands above support it, each in its own section of the file; `fix` does not read it.
+
+| Flag | Description |
+|------|-------------|
+| `--write-baseline` | Record this command's current findings as accepted. Creating a command's section exits 0; a later write reports the findings it adds and fails on them once |
+| `--update-baseline` | Remove entries that no longer occur and, for `analyze`, tighten metric values that improved. Never adds an entry. Also resolves merge conflicts in the file |
+| `--baseline=<path>` | Use this file instead of the configured one, relative to `--root-folder`. The IDE never reads this option |
+| `--baseline-sensitivity=<exact\|scope\|count>` | How strictly findings match entries, only with `--write-baseline`. `exact`, the default, reports a baselined finding again once its flagged code changes |
+| `--[no-]fatal-stale-baseline` | Exit 1 when baseline entries no longer occur. Off by default |
+
+Each analysis context finds its file in this order: `--baseline`, then the `dart_code_linter: baseline:` key in its `analysis_options.yaml`, then `dcl_baseline.json` next to that file. The IDE plugin hides the same findings, from the key or the conventional file.
+
+```sh
+# Adopt: record today's findings, then commit dcl_baseline.json
+dart run dart_code_linter:metrics analyze lib --write-baseline
+
+# CI: fail on new findings and on entries that no longer occur
+dart run dart_code_linter:metrics analyze lib --fatal-stale-baseline
+
+# Locally: remove fixed entries, or resolve a merge conflict in the file
+dart run dart_code_linter:metrics analyze lib --update-baseline
+```
+
+- Run `check-unused-code`, `check-unused-files`, `check-unused-l10n` and `check-unnecessary-nullable` over the same paths, and with the same `--monorepo` setting, as the baseline was written with: their findings depend on everything the run analyzes, so a run over other paths reports no stale entries and `--update-baseline` leaves the file unchanged.
+- Never resolve a merge conflict in the file by hand or by regenerating it with `--write-baseline`; run the command with `--update-baseline`, which keeps the entries of both sides.
+
+See the "Baseline" section of the README for sensitivity levels, monorepos and known limitations.
 
 ## Monorepo Support
 

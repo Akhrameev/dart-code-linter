@@ -82,6 +82,18 @@ void main() {
     expect(entry.error, startsWith('$baselineFileName cannot be read: '));
   });
 
+  test('says a file that is not UTF-8 text is not, as the CLI does', () {
+    // UTF-16, as Windows PowerShell 5 redirection writes it.
+    File(project.pathOf(baselineFileName))
+        .writeAsBytesSync([0xff, 0xfe, 0x7b, 0x00, 0x7d, 0x00]);
+
+    expect(
+      read().error,
+      '$baselineFileName cannot be read: it is not UTF-8 text, as '
+      'dart_code_linter writes it.',
+    );
+  });
+
   test(
     'says why an unreadable file cannot be read',
     () {

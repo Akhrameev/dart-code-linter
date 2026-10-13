@@ -67,5 +67,7 @@ class LintAnalysisConfig {
         'metrics-excludes':
             metricsExcludes.map((glob) => glob.pattern).toList(),
         'analysis-options-path': analysisOptionsPath,
+        if (baseline case final baseline? when baseline.isInUse)
+          'baseline': baseline.path,
       };
 }

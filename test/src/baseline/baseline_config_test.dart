@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dart_code_linter/src/analyzers/lint_analyzer/lint_analysis_config.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/lint_config.dart';
 import 'package:dart_code_linter/src/analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_analysis_config.dart';
 import 'package:dart_code_linter/src/analyzers/unnecessary_nullable_analyzer/unnecessary_nullable_config.dart';
@@ -56,6 +57,20 @@ void main() {
       BaselineSource.conventional,
     );
     final printers = <String, Map<String, Object?> Function(BaselineLocation)>{
+      'analyze': (baseline) => LintAnalysisConfig(
+            const [],
+            const [],
+            const [],
+            const [],
+            const [],
+            const [],
+            const [],
+            const [],
+            const {},
+            folder.path,
+            null,
+            baseline: baseline,
+          ).toJson(),
       'unused code': (baseline) => UnusedCodeAnalysisConfig(
             const [],
             const [],

@@ -602,6 +602,17 @@ void main() {
               await unusedFiles(folders: ['a', 'b'], monorepo: true);
           expect(again.results.first.pathsMismatch, isNull);
 
+          final (_, _, skipped) =
+              await unusedFiles(mode: BaselineMode.update, folders: ['a', 'b']);
+          expect(
+            skipped.first.messages.single,
+            endsWith(
+              'Rerun with --monorepo, or use --write-baseline to switch to '
+              "this run's --monorepo setting.",
+            ),
+            reason: 'the paths match; only the flag differs',
+          );
+
           await unusedFiles(mode: BaselineMode.write, folders: ['a', 'b']);
           expect(
             sectionOf('check-unused-files', 'a'),

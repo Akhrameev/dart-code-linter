@@ -103,6 +103,24 @@ class AnalyzedPathsMismatch {
       ? 'the analyzed paths and --monorepo'
       : 'the analyzed paths';
 
+  /// What to run instead, naming only what differs: the paths, `--monorepo`,
+  /// or both.
+  String get advice {
+    final pathsDiffer = !(recorded.toSet().containsAll(current) &&
+        current.toSet().containsAll(recorded));
+    final flag = recordedMonorepo ? 'with --monorepo' : 'without --monorepo';
+    final (rerun, target) = !monorepoDiffers
+        ? ('Rerun with the recorded paths', 'these paths')
+        : pathsDiffer
+            ? (
+                'Rerun with the recorded paths and $flag',
+                "these paths and this run's --monorepo setting",
+              )
+            : ('Rerun $flag', "this run's --monorepo setting");
+
+    return '$rerun, or use --write-baseline to switch to $target.';
+  }
+
   String _text(List<String> paths, bool monorepo) =>
       '${paths.join(', ')}${monorepoDiffers ? monorepo ? ' with --monorepo' : ' without --monorepo' : ''}';
 }
@@ -317,8 +335,7 @@ class BaselineWriteResult {
       BaselineWriteAction.skipped => [
           'Baseline for ${command.id} in $file not updated: it was written '
               'for ${mismatch!.recordedText} and this run analyzes '
-              '${mismatch.currentText}. Rerun with the recorded paths, '
-              'or use --write-baseline to switch to these paths.',
+              '${mismatch.currentText}. ${mismatch.advice}',
         ],
       BaselineWriteAction.updated when resolvedConflict => [
           'Merge conflict in $file resolved: entries of both sides kept'
@@ -328,9 +345,8 @@ class BaselineWriteResult {
           if (mismatch != null)
             'Baseline for ${command.id} in $file not updated beyond the '
                 'merge: it was written for ${mismatch.recordedText} '
-                'and this run analyzes ${mismatch.currentText}. Rerun '
-                'with the recorded paths, or use --write-baseline to switch '
-                'to these paths.',
+                'and this run analyzes ${mismatch.currentText}. '
+                '${mismatch.advice}',
         ],
       BaselineWriteAction.updated ||
       BaselineWriteAction.unchanged when sensitivity == null =>

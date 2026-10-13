@@ -145,7 +145,7 @@ class AnalyzeCommand extends BaseCommand {
     _usesMetricsThresholdOptions();
     addCommonFlags();
     _usesExitOption();
-    usesBaselineOptions();
+    usesBaselineOptions(codeKeys: true);
   }
 
   void _usesReporterOption() {

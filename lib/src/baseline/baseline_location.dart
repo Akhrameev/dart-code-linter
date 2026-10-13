@@ -149,27 +149,8 @@ BaselineRead readBaselineAt(
     );
   }
 
-  final List<int> bytes;
-  try {
-    bytes = file.readAsBytesSync();
-  } on FileSystemException catch (e) {
-    throw BaselineFormatException.unreadable(
-      shownPath,
-      e.osError?.message ?? e.message,
-    );
-  }
-  final String content;
-  try {
-    content = utf8.decode(bytes);
-  } on FormatException {
-    throw BaselineFormatException.unreadable(
-      shownPath,
-      'it is not UTF-8 text, as dart_code_linter writes it',
-    );
-  }
+  final content = readBaselineText(location.path, shownPath);
 
-  // A byte order mark, as some Windows editors write, is already dropped:
-  // the UTF-8 decoder discards a leading one.
   return BaselineRead._(
     Baseline.parse(
       content,
@@ -180,6 +161,34 @@ BaselineRead readBaselineAt(
           : null,
     ),
   );
+}
+
+/// Returns the text of the existing baseline file at [path], named
+/// [shownPath] in errors, for the CLI and the IDE alike.
+///
+/// A byte order mark, as some Windows editors write, is dropped: the UTF-8
+/// decoder discards a leading one.
+///
+/// Throws a [BaselineFormatException] when the file cannot be read: no
+/// permission, or not UTF-8 text.
+String readBaselineText(String path, String shownPath) {
+  final List<int> bytes;
+  try {
+    bytes = File(path).readAsBytesSync();
+  } on FileSystemException catch (e) {
+    throw BaselineFormatException.unreadable(
+      shownPath,
+      e.osError?.message ?? e.message,
+    );
+  }
+  try {
+    return utf8.decode(bytes);
+  } on FormatException {
+    throw BaselineFormatException.unreadable(
+      shownPath,
+      'it is not UTF-8 text, as dart_code_linter writes it',
+    );
+  }
 }
 
 /// Reads what Git knows about the baseline file at [path], which has merge

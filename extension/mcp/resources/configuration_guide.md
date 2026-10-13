@@ -24,6 +24,10 @@ dart_code_linter:
     # Glob patterns for files to exclude from metrics
   anti-patterns:
     # Anti-patterns to detect
+  baseline:
+    # Optional path of the baseline file, relative to the folder of the
+    # analysis_options.yaml that uses it, also when set in an included file;
+    # without it, dcl_baseline.json next to that file is used when it exists
 ```
 
 ## Rules Configuration
@@ -206,6 +210,7 @@ dart_code_linter:
 ## Tips
 
 - Start with a small set of rules and add more incrementally
+- To enable strict rules on existing code, record today's findings with `--write-baseline` and fix them over time (see Baselines in the CLI reference)
 - Use `metrics-exclude` to skip generated files (`*.g.dart`, `*.freezed.dart`)
 - Set CI exit thresholds with `--set-exit-on-violation-level` in your CI pipeline
 - Rules with auto-fixes (marked with a wrench icon) can be applied via your IDE context menu

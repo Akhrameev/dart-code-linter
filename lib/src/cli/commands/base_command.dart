@@ -313,7 +313,15 @@ abstract class BaseCommand extends Command<void> {
   /// Not part of [addCommonFlags], since `fix` uses those too and ignores the
   /// baseline: it applies every available fix, including fixes for findings
   /// the baseline hides.
-  void usesBaselineOptions() {
+  ///
+  /// [codeKeys] is set for `analyze`, whose keys hash the flagged code and
+  /// record measured values; the other commands key a finding on the
+  /// declaration, or the file for `check-unused-files`, which [keyedBy]
+  /// names.
+  void usesBaselineOptions({
+    bool codeKeys = false,
+    String keyedBy = 'declaration',
+  }) {
     argParser
       ..addSeparator('')
       ..addOption(
@@ -332,8 +340,11 @@ abstract class BaseCommand extends Command<void> {
       )
       ..addFlag(
         FlagNames.updateBaseline,
-        help: 'Remove baseline entries that no longer occur and tighten '
-            'improved metric values. Never adds entries.',
+        help: codeKeys
+            ? 'Remove baseline entries that no longer occur and tighten '
+                'improved metric values. Never adds entries.'
+            : 'Remove baseline entries that no longer occur. Never adds '
+                'entries.',
         negatable: false,
       )
       ..addOption(
@@ -343,14 +354,22 @@ abstract class BaseCommand extends Command<void> {
             'recorded in the file, and a new section gets exact.',
         valueHelp: 'exact',
         allowed: BaselineSensitivity.values.map((s) => s.name),
-        allowedHelp: {
-          BaselineSensitivity.exact.name: 'Only the same code in the same '
-              'declaration.',
-          BaselineSensitivity.scope.name: 'Up to the recorded number of '
-              'findings of the rule in the same declaration.',
-          BaselineSensitivity.count.name: 'Up to the recorded number of '
-              'findings of the rule in the file.',
-        },
+        allowedHelp: codeKeys
+            ? {
+                BaselineSensitivity.exact.name: 'Only the same code in the '
+                    'same declaration.',
+                BaselineSensitivity.scope.name: 'Up to the recorded number of '
+                    'findings of the rule in the same declaration.',
+                BaselineSensitivity.count.name: 'Up to the recorded number of '
+                    'findings of the rule in the file.',
+              }
+            : {
+                BaselineSensitivity.exact.name: 'Only the same $keyedBy.',
+                BaselineSensitivity.scope.name:
+                    'As exact: these findings record no code.',
+                BaselineSensitivity.count.name: 'Up to the recorded number of '
+                    'findings of the same kind in the file.',
+              },
       )
       ..addFlag(
         FlagNames.fatalStaleBaseline,

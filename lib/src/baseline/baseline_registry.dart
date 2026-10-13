@@ -54,19 +54,15 @@ class BaselineRegistry {
 
   static BaselineRegistryEntry _parse(String path, String displayPath) {
     try {
-      final content = File(path).readAsStringSync();
-
       return BaselineRegistryEntry._(
-        Baseline.parse(content, source: displayPath),
+        Baseline.parse(
+          readBaselineText(path, displayPath),
+          source: displayPath,
+        ),
         null,
       );
     } on BaselineFormatException catch (error) {
       return BaselineRegistryEntry._(null, '$error');
-    } on FileSystemException catch (error) {
-      return BaselineRegistryEntry._(
-        null,
-        '$displayPath cannot be read: ${error.osError?.message ?? error.message}.',
-      );
     }
   }
 }

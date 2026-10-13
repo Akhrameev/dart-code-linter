@@ -49,6 +49,36 @@ const _cart = BaselineReportFile(
 );
 
 void main() {
+  test('AnalyzedPathsMismatch advises rerunning with only what differs', () {
+    expect(
+      const AnalyzedPathsMismatch(['lib', 'test'], ['lib']).advice,
+      'Rerun with the recorded paths, or use --write-baseline to switch to '
+      'these paths.',
+    );
+    expect(
+      const AnalyzedPathsMismatch(['lib'], ['lib'], recordedMonorepo: true)
+          .advice,
+      'Rerun with --monorepo, or use --write-baseline to switch to this '
+      "run's --monorepo setting.",
+    );
+    expect(
+      const AnalyzedPathsMismatch(['lib'], ['lib'], currentMonorepo: true)
+          .advice,
+      'Rerun without --monorepo, or use --write-baseline to switch to this '
+      "run's --monorepo setting.",
+    );
+    expect(
+      const AnalyzedPathsMismatch(
+        ['lib', 'test'],
+        ['lib'],
+        recordedMonorepo: true,
+      ).advice,
+      'Rerun with the recorded paths and with --monorepo, or use '
+      "--write-baseline to switch to these paths and this run's --monorepo "
+      'setting.',
+    );
+  });
+
   group('BaselineReportFile', () {
     test('omits empty optional objects from its JSON', () {
       expect(_cart.toJson(), {

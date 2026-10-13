@@ -114,7 +114,7 @@ class CheckUnusedFilesCommand extends BaseCommand {
     _usesIsMonorepoOption();
     _usesExitOption();
     _usesDeleteUnusedFiles();
-    usesBaselineOptions();
+    usesBaselineOptions(keyedBy: 'file');
   }
 
   void _usesReporterOption() {

@@ -236,7 +236,8 @@ int tax() => 8;
       });
       final valid = File(project.pathOf(baselineFileName)).readAsStringSync();
       for (final content in [
-        '<<<<<<< HEAD\n$valid=======\n$valid>>>>>>> feature\n',
+        // The file has no trailing newline, so each marker starts a line.
+        '<<<<<<< HEAD\n$valid\n=======\n$valid\n>>>>>>> feature\n',
         valid.replaceFirst('"formatVersion":1', '"formatVersion":2'),
       ]) {
         project.write(baselineFileName, content);

@@ -356,7 +356,8 @@ class _Bodies extends GeneralizingAstVisitor<void> {
     switch (node) {
       case MethodDeclaration(:final body):
         _add(body.offset, body.end);
-      case ConstructorDeclaration(:final body, :final initializers):
+      case ConstructorDeclaration(:final body, :final initializers) ||
+            PrimaryConstructorBody(:final body, :final initializers):
         _add(body.offset, body.end);
         if (initializers.isNotEmpty) {
           _add(initializers.first.offset, initializers.last.end);
