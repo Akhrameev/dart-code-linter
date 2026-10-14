@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:meta/meta.dart';
 
@@ -188,68 +189,111 @@ class BaselineSection {
     };
   }
 
-  /// Returns this section with [keyVersion] instead of its own, or this
-  /// section when [keyVersion] is null.
-  BaselineSection _withKeyVersion(int? keyVersion) =>
-      keyVersion == null || keyVersion == this.keyVersion
-          ? this
-          : BaselineSection(
-              generatedWith: generatedWith,
-              keyVersion: keyVersion,
-              sensitivity: sensitivity,
-              findings: findings,
-              analyzedPaths: analyzedPaths,
-              monorepo: monorepo,
-            );
-
-  /// Returns the section a merge of [ours] and [theirs] holds: every key as
-  /// often as the side that has it most, never the sum, since an entry both
-  /// branches inherited appears on both sides; the lower key version, so
-  /// that keys of either version are matched by count where they differ;
-  /// and the other fields of [ours].
+  /// Returns the section a merge of [ours] and [theirs] holds, three-way
+  /// against their merge [base]: every key as often as the base has it,
+  /// plus what either side added and minus what either removed. A change
+  /// both sides made counts once, the larger one, since entries the merged
+  /// code no longer produces go stale and an update removes them, while a
+  /// missing one would resurface a finding. Without a base, every key is
+  /// kept as often as the side that has it most, never the sum, since an
+  /// entry both branches inherited appears on both sides.
+  ///
+  /// The key version is the lower one, so that keys of either version are
+  /// matched by count where they differ. Each other field is taken from the
+  /// side that changed it since the base, and from [ours] when both did or
+  /// there is no base.
   ///
   /// [Baseline.parse] refuses to merge sides whose key versions differ when
   /// one is newer than this version computes, since that would downgrade it.
-  factory BaselineSection.merge(BaselineSection ours, BaselineSection theirs) {
+  factory BaselineSection.merge(
+    BaselineSection ours,
+    BaselineSection theirs, {
+    BaselineSection? base,
+  }) {
     final findings = <String, Map<String, List<String>>>{};
-    for (final path in {...ours.findings.keys, ...theirs.findings.keys}) {
+    for (final path in {
+      ...?base?.findings.keys,
+      ...ours.findings.keys,
+      ...theirs.findings.keys,
+    }) {
+      final baseGroups = base?.findings[path] ?? const {};
       final ourGroups = ours.findings[path] ?? const {};
       final theirGroups = theirs.findings[path] ?? const {};
-      findings[path] = {
-        for (final group in {...ourGroups.keys, ...theirGroups.keys})
-          group: _union(
-              ourGroups[group] ?? const [], theirGroups[group] ?? const []),
-      };
+      final groups = {
+        for (final group in {
+          ...baseGroups.keys,
+          ...ourGroups.keys,
+          ...theirGroups.keys,
+        })
+          group: _merged(
+            baseGroups[group] ?? const [],
+            ourGroups[group] ?? const [],
+            theirGroups[group] ?? const [],
+          ),
+      }..removeWhere((_, keys) => keys.isEmpty);
+      if (groups.isNotEmpty) {
+        findings[path] = groups;
+      }
     }
 
+    T changed<T>(T Function(BaselineSection section) field) => base != null &&
+            _same(field(ours), field(base)) &&
+            !_same(field(theirs), field(base))
+        ? field(theirs)
+        : field(ours);
+
     return BaselineSection(
-      generatedWith: ours.generatedWith,
-      analyzedPaths: ours.analyzedPaths,
-      monorepo: ours.monorepo,
+      generatedWith: changed((section) => section.generatedWith),
+      analyzedPaths: changed((section) => section.analyzedPaths),
+      monorepo: changed((section) => section.monorepo),
       keyVersion: ours.keyVersion < theirs.keyVersion
           ? ours.keyVersion
           : theirs.keyVersion,
-      sensitivity: ours.sensitivity,
+      sensitivity: changed((section) => section.sensitivity),
       findings: findings,
     );
   }
 
-  static List<String> _union(List<String> ours, List<String> theirs) {
-    final counts = <String, int>{};
-    for (final key in theirs) {
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-    final result = ours.toList();
-    for (final key in ours) {
-      if (counts[key] case final count? when count > 0) {
-        counts[key] = count - 1;
+  static bool _same(Object? a, Object? b) =>
+      a is List<String> && b is List<String>
+          ? a.toSet().length == b.toSet().length && a.toSet().containsAll(b)
+          : a == b;
+
+  static List<String> _merged(
+    List<String> base,
+    List<String> ours,
+    List<String> theirs,
+  ) {
+    Map<String, int> counts(List<String> keys) {
+      final counts = <String, int>{};
+      for (final key in keys) {
+        counts[key] = (counts[key] ?? 0) + 1;
       }
-    }
-    for (final MapEntry(:key, value: extra) in counts.entries) {
-      result.addAll(List.filled(extra, key));
+
+      return counts;
     }
 
-    return result;
+    final inBase = counts(base);
+    final inOurs = counts(ours);
+    final inTheirs = counts(theirs);
+    final merged = <String>[];
+    for (final key in {...inBase.keys, ...inOurs.keys, ...inTheirs.keys}) {
+      final original = inBase[key] ?? 0;
+      final ourChange = (inOurs[key] ?? 0) - original;
+      final theirChange = (inTheirs[key] ?? 0) - original;
+      final change = switch ((ourChange, theirChange)) {
+        (0, _) => theirChange,
+        (_, 0) => ourChange,
+        // The same change on both sides counts once: the larger addition,
+        // or the smaller removal.
+        _ when (ourChange > 0) == (theirChange > 0) =>
+          max(ourChange, theirChange),
+        _ => ourChange + theirChange,
+      };
+      merged.addAll(List.filled(original + change, key));
+    }
+
+    return merged;
   }
 
   static Map<String, Object?> _sortedGroups(Map<String, List<String>> groups) =>
@@ -274,25 +318,31 @@ enum BaselineFormatError {
   unreadable,
 }
 
-/// What Git knows about a baseline file it left with merge conflict
-/// markers, read by the caller of [Baseline.parse], which reads no files.
+/// A baseline file Git left with merge conflict markers, as each branch
+/// wrote it, read from Git's index by the caller of [Baseline.parse], which
+/// reads no files.
 class BaselineGitConflict {
-  /// The command that restores the file's conflict markers, runnable from
-  /// the current folder.
-  final String restoreCommand;
+  /// The file as the merge base has it, stage 1 of the index; null when
+  /// there is none, as when both branches added the file.
+  final String? base;
 
-  /// The file as the side being merged into has it, stage 2 of Git's index;
-  /// null when the index holds no such stage, as after `git add`.
-  final String? ours;
+  /// The file as the side being merged into has it, stage 2 of the index.
+  final String ours;
 
-  /// The file as the side being merged has it, stage 3 of Git's index; null
-  /// when the index holds no such stage.
-  final String? theirs;
+  /// The file as the side being merged has it, stage 3 of the index.
+  final String theirs;
+
+  /// Whether the stages come from the record Git keeps to undo a
+  /// resolution, as after `git add`, rather than from the unmerged file.
+  /// The record outlives commits, so it can belong to an older conflict of
+  /// the same file.
+  final bool undoRecord;
 
   const BaselineGitConflict({
-    required this.restoreCommand,
-    this.ours,
-    this.theirs,
+    required this.ours,
+    required this.theirs,
+    this.base,
+    this.undoRecord = false,
   });
 }
 
@@ -365,18 +415,22 @@ class Baseline {
   /// [source] names the file in error messages.
   ///
   /// Content with merge conflict markers cannot be read, unless
-  /// [resolveConflicts] is set, as `--update-baseline` does. Both sides are
-  /// then rebuilt from the markers and merged: keeping both sides by hand
-  /// does not give valid JSON when both branches appended to a list, since
-  /// Git trims the shared lines and leaves two last elements without a
-  /// comma between them. See [BaselineSection.merge] for how sections merge.
+  /// [resolveConflicts] is set, as `--update-baseline` does. The two sides
+  /// are then merged: keeping both sides by hand does not give valid JSON
+  /// when both branches appended to a list, since Git trims the shared lines
+  /// and leaves two last elements without a comma between them. See
+  /// [BaselineSection.merge] for how sections merge.
   ///
-  /// The markers do not show which side changed a line that Git merged
-  /// without a conflict: when one branch was rewritten by a newer
-  /// dart_code_linter, both rebuilt sides show its key version. The key
-  /// version of each side is therefore taken from the files [git] read from
-  /// Git's index, where it has them; [git] also names the command that
-  /// restores incomplete markers.
+  /// The sides are taken from [git], the file as each branch wrote it and
+  /// as their merge base has it, and merged three-way. The markers cannot
+  /// stand in for them: Git lines up the changes of the two branches on the
+  /// lines they share, and a baseline repeats lines such as `},`, so a side
+  /// rebuilt from the markers can name a path twice or hold entries under
+  /// the wrong path or command; and a line only one branch changed, such as
+  /// its `keyVersion`, is merged outside the conflict blocks, where neither
+  /// side shows whose it was. Only without [git], or when it holds sides
+  /// Git recorded for an older conflict, are the sides rebuilt from the
+  /// markers and merged without a base.
   ///
   /// Throws a [BaselineFormatException] when the content cannot be read.
   factory Baseline.parse(
@@ -385,43 +439,32 @@ class Baseline {
     bool resolveConflicts = false,
     BaselineGitConflict? git,
   }) {
-    final sides = resolveConflicts ? _ConflictSides.of(content) : null;
-    if (sides != null) {
-      Baseline side(String text, String label) {
-        try {
-          return Baseline.parse(text, source: source);
-        } on BaselineFormatException catch (e) {
-          throw BaselineFormatException._(
-            e.error,
-            '$source cannot be read: the $label side of its merge conflict is '
-            'not a valid baseline. $e',
-            jsonPath: e.jsonPath,
-          );
-        }
+    if (resolveConflicts && hasConflictMarkers(content)) {
+      final markers = _ConflictSides.of(content);
+      if (git != null && (!git.undoRecord || markers.agreeWith(git))) {
+        return Baseline._resolve(
+          source,
+          markers,
+          ours: git.ours,
+          theirs: git.theirs,
+          base: git.base,
+        );
       }
-
-      return side(sides.ours, sides.oursLabel)._merge(
-        side(sides.theirs, sides.theirsLabel),
-        source: source,
-        oursLabel: sides.oursLabel,
-        theirsLabel: sides.theirsLabel,
-        oursKeyVersions: _keyVersionsIn(git?.ours),
-        theirsKeyVersions: _keyVersionsIn(git?.theirs),
-      );
+      if (markers.isComplete) {
+        return Baseline._resolve(
+          source,
+          markers,
+          ours: markers.ours,
+          theirs: markers.theirs,
+        );
+      }
     }
 
     Object? json;
     try {
       json = jsonDecode(content);
     } on FormatException catch (e) {
-      throw _invalidJson(
-        content,
-        source,
-        e,
-        resolving: resolveConflicts,
-        restoreCommand:
-            git?.restoreCommand ?? 'git checkout --conflict=merge $source',
-      );
+      throw _invalidJson(content, source, e, resolving: resolveConflicts);
     }
 
     final repeated = _repeatedKeyPath(content, source);
@@ -450,24 +493,57 @@ class Baseline {
         resolvedConflict: resolvedConflict,
       );
 
-  /// Merges this baseline, the side being merged into, with [theirs]:
-  /// sections on one side only are taken as they are, and so are sections of
-  /// commands this version does not know when both sides hold the same.
+  /// Reads the sides [ours] and [theirs] of the conflict whose [markers]
+  /// name them, and their merge [base] when there is one, and merges them.
+  factory Baseline._resolve(
+    String source,
+    _ConflictSides markers, {
+    required String ours,
+    required String theirs,
+    String? base,
+  }) {
+    Baseline side(String text, String label) => Baseline.parse(
+          text,
+          source: '$source (the $label side of its merge conflict)',
+        );
+
+    Baseline? mergeBase;
+    if (base != null) {
+      try {
+        mergeBase = Baseline.parse(base, source: source);
+      } on BaselineFormatException {
+        // The virtual base of a criss-cross merge holds the conflicts of its
+        // own merge: the sides are merged without it.
+      }
+    }
+
+    return side(ours, markers.oursLabel)._merge(
+      side(theirs, markers.theirsLabel),
+      base: mergeBase,
+      source: source,
+      oursLabel: markers.oursLabel,
+      theirsLabel: markers.theirsLabel,
+    );
+  }
+
+  /// Merges this baseline, the side being merged into, with [theirs],
+  /// three-way against their merge [base] when there is one.
   ///
-  /// A section's key version on each side is taken from [oursKeyVersions]
-  /// and [theirsKeyVersions], by command id, where they have it.
+  /// A section on one side only is taken as it is, unless the other side
+  /// deleted it and this one left it as the base has it. A section of a
+  /// command this version does not know is taken from the side that changed
+  /// it.
   ///
   /// Throws a [BaselineFormatException] when only a newer version can merge
-  /// the sides: they hold different sections of a command this version does
-  /// not know, or sections whose key versions differ, one of them newer than
-  /// this version computes.
+  /// the sides: both changed the section of a command this version does not
+  /// know, or they hold sections whose key versions differ, one of them
+  /// newer than this version computes.
   Baseline _merge(
     Baseline theirs, {
+    required Baseline? base,
     required String source,
     required String oursLabel,
     required String theirsLabel,
-    required Map<String, int> oursKeyVersions,
-    required Map<String, int> theirsKeyVersions,
   }) {
     BaselineFormatException newer(String what) => BaselineFormatException._(
           BaselineFormatError.newerFormat,
@@ -475,45 +551,68 @@ class Baseline {
           'dart_code_linter to resolve the conflict, so that the entries of '
           'the newer side are not lost.',
         );
+    bool same(Object? a, Object? b) => jsonEncode(a) == jsonEncode(b);
 
-    for (final id in _commands.keys) {
-      if (BaselineCommand.fromId(id) == null &&
-          theirs._commands.containsKey(id) &&
-          jsonEncode(_commands[id]) != jsonEncode(theirs._commands[id])) {
-        throw newer(
-          'its sides differ in the section of $id, a command this '
-          'dart_code_linter does not know',
-        );
-      }
-    }
+    final sections = <BaselineCommand, BaselineSection>{};
+    final commands = <String, Object?>{};
+    for (final id in {..._commands.keys, ...theirs._commands.keys}) {
+      final command = BaselineCommand.fromId(id);
+      final ourJson = _commands[id];
+      final theirJson = theirs._commands[id];
+      final baseJson = base?._commands[id];
 
-    final sections = {...theirs.sections, ...this.sections};
-    final commands = {...theirs._commands, ..._commands};
-    for (final MapEntry(key: command, value: marked) in this.sections.entries) {
-      final markedOther = theirs.sections[command];
-      if (markedOther != null) {
-        final ours = marked._withKeyVersion(oursKeyVersions[command.id]);
-        final other =
-            markedOther._withKeyVersion(theirsKeyVersions[command.id]);
-        if (ours.keyVersion != other.keyVersion) {
-          final (label, newest) = ours.keyVersion > other.keyVersion
-              ? (oursLabel, ours.keyVersion)
-              : (theirsLabel, other.keyVersion);
-          if (newest > currentKeyVersion) {
-            throw newer(
-              'its $label side holds keys for ${command.id} from key version '
-              '$newest, written by a newer dart_code_linter; this version '
-              'computes key version $currentKeyVersion',
-            );
+      if (ourJson == null || theirJson == null) {
+        final (kept, json) =
+            ourJson == null ? (theirs, theirJson) : (this, ourJson);
+        if (baseJson == null || !same(json, baseJson)) {
+          commands[id] = json;
+          if (command != null) {
+            sections[command] = kept.sections[command]!;
           }
         }
-        final merged = BaselineSection.merge(ours, other);
-        sections[command] = merged;
-        commands[command.id] = {
-          ...?_commands[command.id] as Map<String, Object?>?,
-          ...merged.toJson(),
-        };
+        continue;
       }
+
+      if (command == null) {
+        if (same(ourJson, theirJson) ||
+            baseJson != null && same(theirJson, baseJson)) {
+          commands[id] = ourJson;
+        } else if (baseJson != null && same(ourJson, baseJson)) {
+          commands[id] = theirJson;
+        } else {
+          throw newer(
+            'its sides differ in the section of $id, a command this '
+            'dart_code_linter does not know',
+          );
+        }
+        continue;
+      }
+
+      final ours = this.sections[command]!;
+      final other = theirs.sections[command]!;
+      if (ours.keyVersion != other.keyVersion) {
+        final (label, newest) = ours.keyVersion > other.keyVersion
+            ? (oursLabel, ours.keyVersion)
+            : (theirsLabel, other.keyVersion);
+        if (newest > currentKeyVersion) {
+          throw newer(
+            'its $label side holds keys for ${command.id} from key version '
+            '$newest, written by a newer dart_code_linter; this version '
+            'computes key version $currentKeyVersion',
+          );
+        }
+      }
+      final merged =
+          BaselineSection.merge(ours, other, base: base?.sections[command]);
+      sections[command] = merged;
+      commands[id] = {
+        ...merged.toJson(),
+        // Fields this version does not know, as the side merged into has
+        // them.
+        for (final MapEntry(:key, :value)
+            in (ourJson as Map<String, Object?>).entries)
+          if (!_sectionFields.contains(key)) key: value,
+      };
     }
 
     return Baseline._(
@@ -523,6 +622,16 @@ class Baseline {
       resolvedConflict: true,
     );
   }
+
+  /// The fields of a command section this version reads.
+  static const _sectionFields = {
+    'generatedWith',
+    'analyzedPaths',
+    'monorepo',
+    'keyVersion',
+    'sensitivity',
+    'findings',
+  };
 
   /// Returns the file content: deterministic, two-space indent, trailing
   /// newline.
@@ -553,15 +662,17 @@ BaselineFormatException _invalidJson(
   String source,
   FormatException exception, {
   required bool resolving,
-  required String restoreCommand,
 }) {
   final hasMarkers = hasConflictMarkers(content);
   if (hasMarkers && resolving) {
+    // Git restores markers only from the sides of the conflict, which would
+    // have been merged instead of the markers had Git still held them.
     return BaselineFormatException._(
       BaselineFormatError.invalidJson,
       '$source cannot be read: its merge conflict markers are incomplete, as '
-      'if the conflict was partly resolved by hand. Restore them with '
-      '`$restoreCommand` and run the command with --update-baseline again.',
+      "if the conflict was partly resolved by hand, and Git's index no longer "
+      'holds the sides of the conflict. Restore the markers as the merge left '
+      'them and run the command with --update-baseline again.',
       mergeConflict: true,
     );
   }
@@ -590,50 +701,57 @@ BaselineFormatException _invalidJson(
   );
 }
 
-/// Returns the key version of each command section in [content], a side of
-/// a merge conflict as Git's index holds it, by command id; empty when
-/// [content] is null or no baseline.
-Map<String, int> _keyVersionsIn(String? content) {
-  if (content == null) {
-    return const {};
-  }
-  try {
-    if (jsonDecode(content) case {'commands': final Map<String, Object?> all}) {
-      return {
-        for (final MapEntry(:key, :value) in all.entries)
-          if (value case {'keyVersion': final int version}) key: version,
-      };
-    }
-  } on FormatException {
-    // Not a baseline: the markers decide.
-  }
-
-  return const {};
-}
-
-/// The two sides of content with Git merge conflict markers.
+/// The two sides of content with Git merge conflict markers, as far as the
+/// markers show them.
 class _ConflictSides {
+  /// The side being merged into, rebuilt from the markers.
   final String ours;
+
+  /// The name Git gave the side being merged into, `HEAD` for a merge.
   final String oursLabel;
+
+  /// The side being merged, rebuilt from the markers.
   final String theirs;
+
+  /// The name Git gave the side being merged, such as its branch.
   final String theirsLabel;
 
-  const _ConflictSides(
-      this.ours, this.oursLabel, this.theirs, this.theirsLabel);
+  /// Whether every conflict block is complete, so that [ours] and [theirs]
+  /// are whole files.
+  final bool isComplete;
+
+  /// The lines inside the complete blocks of each side, without their
+  /// indent and trailing comma.
+  final Set<String> _oursInBlocks;
+  final Set<String> _theirsInBlocks;
+
+  const _ConflictSides._(
+    this.ours,
+    this.oursLabel,
+    this.theirs,
+    this.theirsLabel, {
+    required this.isComplete,
+    required Set<String> oursInBlocks,
+    required Set<String> theirsInBlocks,
+  })  : _oursInBlocks = oursInBlocks,
+        _theirsInBlocks = theirsInBlocks;
 
   /// Splits [content] into the side being merged into (between `<<<<<<<` and
   /// `=======`) and the other one (between `=======` and `>>>>>>>`). Lines
   /// outside the blocks belong to both, and the base section of the `diff3`
-  /// and `zdiff3` styles (from `|||||||`) to neither. Returns null when the
-  /// content has no complete conflict block.
+  /// and `zdiff3` styles (from `|||||||`) to neither.
   ///
   /// A block's markers all have the length of its opening one, seven by
   /// default or as a `conflict-marker-size` attribute sets it: the base of a
   /// recursive merge can hold a conflict of its own, whose markers Git makes
   /// longer so that they are not taken for these.
-  static _ConflictSides? of(String content) {
+  factory _ConflictSides.of(String content) {
     final ours = StringBuffer();
     final theirs = StringBuffer();
+    final oursInBlocks = <String>{};
+    final theirsInBlocks = <String>{};
+    final oursInBlock = <String>[];
+    final theirsInBlock = <String>[];
     String? oursLabel;
     String? theirsLabel;
     var state = _Side.both;
@@ -662,6 +780,10 @@ class _ConflictSides {
         theirsLabel ??= line.substring(size).trim();
         state = _Side.both;
         blocks++;
+        oursInBlocks.addAll(oursInBlock.map(_bare));
+        theirsInBlocks.addAll(theirsInBlock.map(_bare));
+        oursInBlock.clear();
+        theirsInBlock.clear();
       } else {
         if (state == _Side.both || state == _Side.ours) {
           ours.writeln(line);
@@ -669,22 +791,44 @@ class _ConflictSides {
         if (state == _Side.both || state == _Side.theirs) {
           theirs.writeln(line);
         }
+        if (state == _Side.ours) {
+          oursInBlock.add(line);
+        } else if (state == _Side.theirs) {
+          theirsInBlock.add(line);
+        }
       }
-    }
-
-    if (blocks == 0 || state != _Side.both) {
-      return null;
     }
 
     String label(String? text, String fallback) =>
         text == null || text.isEmpty ? fallback : text;
 
-    return _ConflictSides(
+    return _ConflictSides._(
       ours.toString(),
       label(oursLabel, 'HEAD'),
       theirs.toString(),
       label(theirsLabel, 'incoming'),
+      isComplete: blocks > 0 && state == _Side.both,
+      oursInBlocks: oursInBlocks..remove(''),
+      theirsInBlocks: theirsInBlocks..remove(''),
     );
+  }
+
+  /// Whether the sides of [git] hold every line the complete conflict blocks
+  /// show on each side, as the sides Git wrote the markers from do. Sides
+  /// Git recorded for an older conflict of the same file do not.
+  bool agreeWith(BaselineGitConflict git) {
+    bool holds(String file, Set<String> lines) =>
+        file.split('\n').map(_bare).toSet().containsAll(lines);
+
+    return holds(git.ours, _oursInBlocks) && holds(git.theirs, _theirsInBlocks);
+  }
+
+  static String _bare(String line) {
+    final trimmed = line.trim();
+
+    return trimmed.endsWith(',')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
   }
 }
 

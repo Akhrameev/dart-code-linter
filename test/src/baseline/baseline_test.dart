@@ -683,6 +683,27 @@ void main() {
         analyzeOf(baseline).findings['lib/a.dart']!['no-magic-number'],
         unorderedEquals(['A.x#1', 'A.x#1', 'A.y#2']),
       );
+
+      const mirrored = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.x#1",\n'
+          '            "A.y#2"\n'
+          '=======\n'
+          '            "A.x#1",\n'
+          '            "A.x#1"\n'
+          '>>>>>>> feature\n'
+          '          ]\n'
+          '        }';
+
+      expect(
+        analyzeOf(Baseline.parse(
+          _conflicted(findings: mirrored),
+          resolveConflicts: true,
+        )).findings['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.x#1', 'A.x#1', 'A.y#2']),
+        reason: 'the side being merged can hold a key more often too',
+      );
     });
 
     test('takes the other fields of HEAD', () {
@@ -720,60 +741,6 @@ void main() {
       expect(
         merged.findings['lib/a.dart']!['no-magic-number'],
         unorderedEquals(['A.a#new', 'A.a#old']),
-      );
-    });
-
-    test("takes the key versions of the sides from Git's index", () {
-      // Only the feature branch was rewritten by a newer dart_code_linter, so
-      // Git merged its keyVersion line outside the conflict block.
-      final content = _conflicted(
-        findings: _appendedByBoth,
-        keyVersion: '      "keyVersion": 2,',
-      );
-      String side(int keyVersion) => _conflicted(
-            findings: '',
-            keyVersion: '      "keyVersion": $keyVersion,',
-          );
-
-      expect(
-        analyzeOf(Baseline.parse(content, resolveConflicts: true)).keyVersion,
-        2,
-        reason: 'the markers alone show the same version on both sides',
-      );
-      expect(
-        () => Baseline.parse(
-          content,
-          resolveConflicts: true,
-          git: BaselineGitConflict(
-            restoreCommand: 'git checkout --conflict=merge dcl_baseline.json',
-            ours: side(1),
-            theirs: side(2),
-          ),
-        ),
-        throwsA(
-          isA<BaselineFormatException>()
-              .having((e) => e.error, 'error', BaselineFormatError.newerFormat)
-              .having(
-                (e) => e.toString(),
-                'message',
-                contains('its feature side holds keys for analyze from key '
-                    'version 2'),
-              ),
-        ),
-      );
-      expect(
-        analyzeOf(Baseline.parse(
-          content,
-          resolveConflicts: true,
-          git: BaselineGitConflict(
-            restoreCommand: 'git checkout --conflict=merge dcl_baseline.json',
-            ours: '{ not a baseline',
-            theirs: side(2),
-          ),
-        )).keyVersion,
-        2,
-        reason: 'a side the index holds no readable file for keeps the '
-            'version its markers show',
       );
     });
 
@@ -927,7 +894,7 @@ void main() {
       );
     });
 
-    test('says how to restore markers partly removed by hand', () {
+    test('asks to restore markers partly removed by hand', () {
       const halfResolved = '        "lib/a.dart": {\n'
           '          "no-magic-number": [\n'
           '<<<<<<< HEAD\n'
@@ -947,7 +914,10 @@ void main() {
             'message',
             allOf(
               contains('incomplete'),
-              contains('git checkout --conflict=merge'),
+              contains('Restore the markers as the merge left them'),
+              // Git could restore them only from the sides it no longer
+              // holds, or from an older conflict's.
+              isNot(contains('git checkout')),
               isNot(contains('Run the command with --update-baseline')),
             ),
           ),
@@ -1020,6 +990,421 @@ void main() {
       );
 
       expect(baseline.resolvedConflict, isFalse);
+    });
+  });
+
+  group("Baseline.parse merging the sides Git's index holds", () {
+    /// A file as dart_code_linter writes it, with an `analyze` section
+    /// holding [findings] and the [other] sections.
+    String written(
+      Map<String, Map<String, List<String>>> findings, {
+      int keyVersion = 1,
+      String sensitivity = 'exact',
+      Map<String, Object?> other = const {},
+    }) =>
+        '${const JsonEncoder.withIndent('  ').convert({
+              'formatVersion': 1,
+              'commands': {
+                ...other,
+                'analyze': _section(
+                  keyVersion: keyVersion,
+                  sensitivity: sensitivity,
+                  findings: findings,
+                ),
+              },
+            })}\n';
+
+    Map<String, List<String>> magic(List<String> keys) =>
+        {'no-magic-number': keys};
+
+    Baseline merged({
+      String? base,
+      required String ours,
+      required String theirs,
+      String markers = '',
+      bool undoRecord = false,
+    }) =>
+        Baseline.parse(
+          markers.isEmpty ? _conflicted(findings: _appendedByBoth) : markers,
+          resolveConflicts: true,
+          git: BaselineGitConflict(
+            base: base,
+            ours: ours,
+            theirs: theirs,
+            undoRecord: undoRecord,
+          ),
+        );
+
+    Map<String, Map<String, List<String>>> findingsOf(Baseline baseline) =>
+        baseline.sections[BaselineCommand.analyze]!.findings;
+
+    test('merges the sides as their branches wrote them', () {
+      // Git aligned the two diffs on the shared closing lines, so the side
+      // rebuilt from the markers holds "lib/cart.dart" twice.
+      const misleading = '<<<<<<< HEAD\n'
+          '        "lib/cart.dart": {\n'
+          '          "avoid-late-keyword": ["Cart.count#1"]\n'
+          '        },\n'
+          '        "lib/order.dart": {\n'
+          '=======\n'
+          '        "lib/main.dart": {\n'
+          '>>>>>>> rename\n'
+          '          "avoid-late-keyword": ["Order.qty#2"]\n'
+          '        },\n'
+          '        "lib/cart.dart": {\n'
+          '          "avoid-late-keyword": ["Cart.count#1"],\n'
+          '          "no-magic-number": ["Cart.total#3"]\n'
+          '        }';
+      const late = {
+        'avoid-late-keyword': ['Order.qty#2'],
+      };
+
+      final baseline = merged(
+        markers: _conflicted(findings: misleading),
+        base: written({
+          'lib/cart.dart': {
+            'avoid-late-keyword': ['Cart.count#1'],
+            'no-magic-number': ['Cart.total#3'],
+          },
+          'lib/order.dart': late,
+        }),
+        ours: written({
+          'lib/cart.dart': {
+            'avoid-late-keyword': ['Cart.count#1'],
+          },
+          'lib/order.dart': late,
+        }),
+        theirs: written({
+          'lib/cart.dart': {
+            'avoid-late-keyword': ['Cart.count#1'],
+            'no-magic-number': ['Cart.total#3'],
+          },
+          'lib/main.dart': late,
+        }),
+      );
+
+      expect(baseline.resolvedConflict, isTrue);
+      expect(findingsOf(baseline), {
+        'lib/cart.dart': {
+          'avoid-late-keyword': ['Cart.count#1'],
+        },
+        'lib/main.dart': late,
+      });
+    });
+
+    test('keeps what each side added and drops what either removed', () {
+      final baseline = merged(
+        base: written({
+          'lib/a.dart': magic(['A.x#1', 'A.y#2', 'A.y#2'])
+        }),
+        ours: written({
+          'lib/a.dart': magic(['A.x#1', 'A.y#2', 'A.z#3'])
+        }),
+        theirs: written({
+          'lib/a.dart': magic(['A.x#1', 'A.y#2', 'A.y#2', 'A.w#4']),
+        }),
+      );
+
+      expect(
+        findingsOf(baseline)['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.x#1', 'A.y#2', 'A.z#3', 'A.w#4']),
+      );
+    });
+
+    test('counts a change both sides made once', () {
+      final baseline = merged(
+        base: written({
+          'lib/a.dart': magic(['A.x#1', 'A.gone#2'])
+        }),
+        ours: written({
+          'lib/a.dart': magic(['A.x#1', 'A.new#3'])
+        }),
+        theirs: written({
+          'lib/a.dart': magic(['A.x#1', 'A.new#3'])
+        }),
+      );
+
+      expect(
+        findingsOf(baseline)['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.x#1', 'A.new#3']),
+      );
+    });
+
+    test('takes each other field from the side that changed it', () {
+      BaselineSection section({
+        String analyzer = '13.3.0',
+        List<String> paths = const ['lib'],
+        bool monorepo = false,
+        BaselineSensitivity sensitivity = BaselineSensitivity.exact,
+      }) =>
+          BaselineSection(
+            generatedWith: BaselineVersions(
+              dartCodeLinter: '4.5.0',
+              analyzer: analyzer,
+              dartSdk: '3.11.3',
+            ),
+            analyzedPaths: paths,
+            monorepo: monorepo,
+            keyVersion: 1,
+            sensitivity: sensitivity,
+            findings: const {},
+          );
+
+      final theirsChanged = BaselineSection.merge(
+        section(),
+        section(
+          analyzer: '14.4.0',
+          paths: ['lib', 'test'],
+          sensitivity: BaselineSensitivity.scope,
+        ),
+        base: section(),
+      );
+      final oursChanged = BaselineSection.merge(
+        section(monorepo: true, paths: ['.', '../b']),
+        section(),
+        base: section(),
+      );
+      final bothChanged = BaselineSection.merge(
+        section(sensitivity: BaselineSensitivity.scope),
+        section(sensitivity: BaselineSensitivity.count),
+        base: section(),
+      );
+
+      expect(theirsChanged.generatedWith.analyzer, '14.4.0');
+      expect(theirsChanged.analyzedPaths, ['lib', 'test']);
+      expect(theirsChanged.sensitivity, BaselineSensitivity.scope);
+      expect(oursChanged.analyzedPaths, ['.', '../b']);
+      expect(oursChanged.monorepo, isTrue);
+      expect(
+        bothChanged.sensitivity,
+        BaselineSensitivity.scope,
+        reason: 'HEAD wins when both sides changed a field',
+      );
+    });
+
+    test(
+        'drops a section one side deleted and the other left as it was, and '
+        'keeps one the other side changed', () {
+      final unusedFiles = _section(
+        analyzedPaths: ['lib'],
+        findings: {
+          'lib/old.dart': {
+            'unused-file': [''],
+          },
+        },
+      );
+      final changedUnusedFiles = _section(
+        analyzedPaths: ['lib'],
+        findings: {
+          'lib/new.dart': {
+            'unused-file': [''],
+          },
+        },
+      );
+      final findings = {
+        'lib/a.dart': magic(['A.x#1'])
+      };
+
+      Baseline mergedWith(Map<String, Object?> theirSection) => merged(
+            base: written(findings, other: {'check-unused-files': unusedFiles}),
+            ours: written(findings),
+            theirs: written(
+              findings,
+              other: {'check-unused-files': theirSection},
+            ),
+          );
+
+      expect(
+        mergedWith(unusedFiles).sections.keys,
+        [BaselineCommand.analyze],
+      );
+      expect(
+        mergedWith(changedUnusedFiles)
+            .sections[BaselineCommand.checkUnusedFiles]
+            ?.findings
+            .keys,
+        ['lib/new.dart'],
+      );
+    });
+
+    test(
+        'takes the section of a command it does not know from the side that '
+        'changed it, and refuses when both did', () {
+      String file(int value) => written(
+            {
+              'lib/a.dart': magic(['A.x#1'])
+            },
+            other: {
+              'next-command': {'value': value},
+            },
+          );
+
+      expect(
+        (jsonDecode(
+          merged(base: file(1), ours: file(1), theirs: file(2)).toJsonString(),
+        ) as Map)['commands'],
+        containsPair('next-command', {'value': 2}),
+      );
+      expect(
+        () => merged(base: file(1), ours: file(3), theirs: file(2)),
+        throwsA(
+          _formatError(BaselineFormatError.newerFormat).having(
+            (e) => e.toString(),
+            'message',
+            allOf(contains('next-command'), contains('Upgrade')),
+          ),
+        ),
+      );
+    });
+
+    test('refuses keys of a newer dart_code_linter on either side', () {
+      final findings = {
+        'lib/a.dart': magic(['A.x#1'])
+      };
+
+      expect(
+        () => merged(
+          base: written(findings),
+          ours: written({
+            'lib/a.dart': magic(['A.x#1', 'A.y#2']),
+          }),
+          // Git merges a keyVersion line only one side changed outside the
+          // conflict block, where the markers cannot show whose it was.
+          theirs: written(findings, keyVersion: currentKeyVersion + 1),
+        ),
+        throwsA(
+          _formatError(BaselineFormatError.newerFormat).having(
+            (e) => e.toString(),
+            'message',
+            contains('its feature side holds keys for analyze from key '
+                'version ${currentKeyVersion + 1}'),
+          ),
+        ),
+      );
+    });
+
+    test('merges without a base when the base holds markers of its own', () {
+      // The virtual base of a criss-cross merge whose own merge conflicted.
+      final base = written({
+        'lib/a.dart': magic(['A.x#1', 'A.y#2']),
+      }).replaceFirst(
+        '"A.y#2"',
+        '<<<<<<<<< Temporary merge branch 1\n"A.y#2"\n=========\n'
+            '>>>>>>>>> Temporary merge branch 2',
+      );
+
+      final baseline = merged(
+        base: base,
+        ours: written({
+          'lib/a.dart': magic(['A.x#1', 'A.y#2'])
+        }),
+        theirs: written({
+          'lib/a.dart': magic(['A.x#1'])
+        }),
+      );
+
+      expect(
+        findingsOf(baseline)['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.x#1', 'A.y#2']),
+        reason: 'without a base, a key is kept as often as either side has it',
+      );
+    });
+
+    test('resolves markers partly removed by hand from the sides', () {
+      const halfResolved = '        "lib/a.dart": {\n'
+          '          "no-magic-number": [\n'
+          '<<<<<<< HEAD\n'
+          '            "A.alpha#2",\n'
+          '            "A.beta#3"\n'
+          '          ]\n'
+          '        }';
+
+      final baseline = merged(
+        markers: _conflicted(findings: halfResolved),
+        base: written({
+          'lib/a.dart': magic(['A.x#1'])
+        }),
+        ours: written({
+          'lib/a.dart': magic(['A.x#1', 'A.alpha#2'])
+        }),
+        theirs: written({
+          'lib/a.dart': magic(['A.x#1', 'A.beta#3'])
+        }),
+      );
+
+      expect(
+        findingsOf(baseline)['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.x#1', 'A.alpha#2', 'A.beta#3']),
+      );
+    });
+
+    test(
+        'uses the sides Git recorded to undo a resolution only when the '
+        'markers agree with them', () {
+      // The markers show A.alpha#2 on HEAD and A.beta#3 on feature.
+      final current = merged(
+        undoRecord: true,
+        base: written({
+          'lib/a.dart': magic(['A.base#1'])
+        }),
+        ours: written({
+          'lib/a.dart': magic(['A.base#1', 'A.alpha#2'])
+        }),
+        theirs: written({
+          'lib/a.dart': magic(['A.base#1', 'A.beta#3', 'A.extra#7']),
+        }),
+      );
+      // Recorded for an older conflict of the same file.
+      final stale = merged(
+        undoRecord: true,
+        base: written({
+          'lib/a.dart': magic(['A.base#1'])
+        }),
+        ours: written({
+          'lib/a.dart': magic(['A.base#1', 'A.old#5'])
+        }),
+        theirs: written({
+          'lib/a.dart': magic(['A.base#1', 'A.old#6'])
+        }),
+      );
+
+      expect(
+        findingsOf(current)['lib/a.dart']!['no-magic-number'],
+        contains('A.extra#7'),
+        reason: 'merged from the recorded sides',
+      );
+      expect(
+        findingsOf(stale)['lib/a.dart']!['no-magic-number'],
+        unorderedEquals(['A.base#1', 'A.alpha#2', 'A.beta#3']),
+        reason: 'merged from the markers',
+      );
+    });
+
+    test('names a side that is not a valid baseline once', () {
+      expect(
+        () => merged(
+          ours: '{ not a baseline',
+          theirs: written({
+            'lib/a.dart': magic(['A.x#1'])
+          }),
+        ),
+        throwsA(
+          isA<BaselineFormatException>().having(
+            (e) => e.toString(),
+            'message',
+            allOf(
+              startsWith(
+                'dcl_baseline.json (the HEAD side of its merge conflict) '
+                'cannot be read: invalid JSON at line 1',
+              ),
+              predicate<String>(
+                (message) => 'cannot be read'.allMatches(message).length == 1,
+                'says "cannot be read" once',
+              ),
+            ),
+          ),
+        ),
+      );
     });
   });
 

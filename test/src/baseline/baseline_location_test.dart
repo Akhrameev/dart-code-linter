@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_code_linter/src/baseline/baseline.dart';
@@ -234,6 +235,11 @@ void main() {
         }
       }();
 
+      // Git's own variables would point it at the repository of whoever runs
+      // the tests, such as the index of a commit whose hook runs them.
+      final environment = Map.of(Platform.environment)
+        ..removeWhere((name, _) => name.startsWith('GIT_'));
+
       void git(List<String> arguments) {
         final result = Process.runSync(
           'git',
@@ -249,44 +255,47 @@ void main() {
             ...arguments,
           ],
           workingDirectory: directory.path,
+          environment: environment,
+          includeParentEnvironment: false,
         );
         if (arguments.first != 'merge' && result.exitCode != 0) {
           fail('git ${arguments.join(' ')}: ${result.stderr}');
         }
       }
 
-      String file({required int keyVersion, required List<String> keys}) =>
-          '{\n'
-          '  "formatVersion": 1,\n'
-          '  "commands": {\n'
-          '    "analyze": {\n'
-          '      "generatedWith": {\n'
-          '        "dartCodeLinter": "4.5.0",\n'
-          '        "analyzer": "13.3.0",\n'
-          '        "dartSdk": "3.11.3"\n'
-          '      },\n'
-          '      "keyVersion": $keyVersion,\n'
-          '      "sensitivity": "exact",\n'
-          '      "findings": {\n'
-          '        "lib/a.dart": {\n'
-          '          "no-magic-number": [\n'
-          '${keys.map((key) => '            "$key"').join(',\n')}\n'
-          '          ]\n'
-          '        }\n'
-          '      }\n'
-          '    }\n'
-          '  }\n'
-          '}\n';
+      /// A baseline with one `analyze` section, as dart_code_linter writes it.
+      String file(
+        Map<String, Map<String, List<String>>> findings, {
+        int keyVersion = 1,
+      }) =>
+          '${const JsonEncoder.withIndent('  ').convert({
+                'about': baselineAbout,
+                'formatVersion': baselineFormatVersion,
+                'commands': {
+                  'analyze': BaselineSection(
+                    generatedWith: const BaselineVersions(
+                      dartCodeLinter: '4.5.0',
+                      analyzer: '13.3.0',
+                      dartSdk: '3.11.3',
+                    ),
+                    keyVersion: keyVersion,
+                    sensitivity: BaselineSensitivity.exact,
+                    findings: findings,
+                  ).toJson(),
+                },
+              })}\n';
 
-      late BaselineLocation location;
+      BaselineLocation location() =>
+          BaselineLocation(pathOf(baselineFileName), BaselineSource.optionsKey);
 
-      setUp(() {
-        if (!hasGit) {
-          return;
-        }
-        location = BaselineLocation(
-            pathOf(baselineFileName), BaselineSource.optionsKey);
-        final baseline = File(location.path);
+      /// Commits [base], then [theirs] on a branch and [ours] on `main`, and
+      /// merges the branch into `main`, which leaves conflict markers.
+      void merge({
+        required String base,
+        required String ours,
+        required String theirs,
+      }) {
+        final baseline = File(location().path);
         void commit(String content) {
           baseline.writeAsStringSync(content);
           git(['add', baselineFileName]);
@@ -294,68 +303,165 @@ void main() {
         }
 
         git(['init', '-q', '-b', 'main']);
-        commit(file(keyVersion: 1, keys: ['A.base#1']));
-        git(['checkout', '-q', '-b', 'upgrade']);
-        // A newer dart_code_linter rewrote the keys of this branch.
-        commit(file(keyVersion: 2, keys: ['A.base#1-v2']));
+        commit(base);
+        git(['checkout', '-q', '-b', 'feature']);
+        commit(theirs);
         git(['checkout', '-q', 'main']);
-        commit(file(keyVersion: 1, keys: ['A.base#1', 'A.added#2']));
-        git(['merge', '-q', 'upgrade']);
-      });
+        commit(ours);
+        git(['merge', '-q', 'feature']);
+        expect(baseline.readAsStringSync(), contains('<<<<<<<'));
+      }
+
+      // A file renamed on the feature branch, whose baseline was rewritten
+      // there, while `main` updated the baseline after a fix. The markers
+      // put the cart entries of both sides before and after the conflict,
+      // so a side rebuilt from them names that path twice.
+      const lateCount = 'CartModel.count#af4f8ea78ecc57cd';
+      const orderLate = [
+        'Order.fee#a4d69bec1a0f38bd',
+        'Order.price#3e8a4d88a7b5f461',
+        'Order.qty#a8170ca4c320d248',
+      ];
+      const orderMagic = [
+        'Order.sum#902ba3cda1883801',
+        'Order.sum#ac3478d69a3c81fa',
+        'Order.sum#c1dfd96eea8cc2b6',
+      ];
+      const cartMagic = [
+        'CartModel.total#1b6453892473a467',
+        'CartModel.total#77de68daecd823ba',
+      ];
+      const order = {
+        'avoid-late-keyword': orderLate,
+        'no-magic-number': orderMagic,
+      };
+      void mergeRename() => merge(
+            base: file({
+              'lib/src/cart/cart_model.dart': {
+                'avoid-late-keyword': [lateCount],
+                'no-magic-number': cartMagic,
+              },
+              'lib/src/order/order.dart': order,
+            }),
+            ours: file({
+              'lib/src/cart/cart_model.dart': {
+                'avoid-late-keyword': [lateCount],
+              },
+              'lib/src/order/order.dart': order,
+            }),
+            theirs: file({
+              'lib/main.dart': order,
+              'lib/src/cart/cart_model.dart': {
+                'avoid-late-keyword': [lateCount],
+                'no-magic-number': cartMagic,
+              },
+            }),
+          );
+      const renamedAndFixed = {
+        'lib/main.dart': order,
+        'lib/src/cart/cart_model.dart': {
+          'avoid-late-keyword': [lateCount],
+        },
+      };
+
+      Map<String, Map<String, List<String>>> findingsAt(
+        BaselineLocation location,
+      ) =>
+          readBaselineAt(location, resolveConflicts: true)
+              .baseline!
+              .sections[BaselineCommand.analyze]!
+              .findings;
 
       test(
-        'takes the key version of each side from the index, where Git '
-        'merged the line of the side that changed it',
+        'merges the sides as their branches wrote them, which the markers '
+        'cannot show',
         () {
-          final content = File(location.path).readAsStringSync();
-          expect(content, contains('<<<<<<<'));
+          mergeRename();
+
+          expect(findingsAt(location()), renamedAndFixed);
+        },
+        skip: hasGit ? false : 'needs git',
+      );
+
+      test(
+        'reads the sides Git recorded to undo the resolution after the file '
+        'was added',
+        () {
+          mergeRename();
+          git(['add', baselineFileName]);
+
+          expect(findingsAt(location()), renamedAndFixed);
+        },
+        skip: hasGit ? false : 'needs git',
+      );
+
+      test(
+        'resolves markers partly removed by hand from the sides Git holds',
+        () {
+          mergeRename();
+          final content = File(location().path).readAsStringSync();
+          File(location().path).writeAsStringSync(content
+              .split('\n')
+              .where((line) =>
+                  !line.startsWith('=======') && !line.startsWith('>>>>>>>'))
+              .join('\n'));
+
+          expect(findingsAt(location()), renamedAndFixed);
+        },
+        skip: hasGit ? false : 'needs git',
+      );
+
+      test(
+        'takes the key version of each side as its branch wrote it, also '
+        'where Git merged the line of the side that changed it',
+        () {
+          merge(
+            base: file({
+              'lib/a.dart': {
+                'no-magic-number': ['A.base#1'],
+              },
+            }),
+            ours: file({
+              'lib/a.dart': {
+                'no-magic-number': ['A.base#1', 'A.added#2'],
+              },
+            }),
+            // A newer dart_code_linter rewrote the keys of this branch.
+            theirs: file(
+              {
+                'lib/a.dart': {
+                  'no-magic-number': ['A.base#1-v2'],
+                },
+              },
+              keyVersion: 2,
+            ),
+          );
+          final content = File(location().path).readAsStringSync();
           expect(
             content.substring(0, content.indexOf('<<<<<<<')),
             contains('"keyVersion": 2'),
             reason: 'both sides rebuilt from the markers say 2',
           );
 
-          expect(
-            () => readBaselineAt(location, resolveConflicts: true),
-            throwsA(
-              isA<BaselineFormatException>()
-                  .having(
-                      (e) => e.error, 'error', BaselineFormatError.newerFormat)
-                  .having(
-                    (e) => e.toString(),
-                    'message',
-                    contains('key version 2'),
-                  ),
-            ),
-          );
-        },
-        skip: hasGit ? false : 'needs git',
-      );
-
-      test(
-        'names a restore command that works from the current folder',
-        () {
-          final content = File(location.path).readAsStringSync();
-          // Resolved by hand, all but the opening marker.
-          File(location.path).writeAsStringSync(content
-              .split('\n')
-              .where((line) =>
-                  !line.startsWith('=======') && !line.startsWith('>>>>>>>'))
-              .join('\n'));
-
-          expect(
-            () => readBaselineAt(location, resolveConflicts: true),
-            throwsA(
-              isA<BaselineFormatException>().having(
-                (e) => e.toString(),
-                'message',
-                contains(
-                  '`git -C ${p.relative(directory.path)} checkout '
-                  '--conflict=merge $baselineFileName`',
-                ),
+          for (final added in [false, true]) {
+            if (added) {
+              git(['add', baselineFileName]);
+            }
+            expect(
+              () => readBaselineAt(location(), resolveConflicts: true),
+              throwsA(
+                isA<BaselineFormatException>()
+                    .having((e) => e.error, 'error',
+                        BaselineFormatError.newerFormat)
+                    .having(
+                      (e) => e.toString(),
+                      'message',
+                      contains('key version 2'),
+                    ),
               ),
-            ),
-          );
+              reason: added ? 'after git add' : 'unmerged',
+            );
+          }
         },
         skip: hasGit ? false : 'needs git',
       );

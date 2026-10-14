@@ -191,31 +191,34 @@ String readBaselineText(String path, String shownPath) {
   }
 }
 
-/// Reads what Git knows about the baseline file at [path], which has merge
-/// conflict markers: both sides from the stages of its index, and the
-/// command that restores the markers, with the file's folder relative to the
-/// current one.
+/// Reads the baseline file at [path], which has merge conflict markers, as
+/// Git's index holds it: the file as each branch wrote it and as their merge
+/// base has it. They are the stages of the unmerged file, or, once the file
+/// was added, the ones Git recorded to undo that.
 ///
-/// Without Git, or outside a repository, both sides are null.
-BaselineGitConflict _gitConflictOf(String path) {
+/// Returns null without Git, outside a repository, or when the index holds
+/// neither.
+BaselineGitConflict? _gitConflictOf(String path) {
   final file = p.normalize(
     FileSystemEntity.isLinkSync(path)
         ? File(path).resolveSymbolicLinksSync()
         : p.absolute(path),
   );
-  final folder = p.dirname(file);
-  final name = p.basename(file);
 
-  String? stage(int number) {
+  Object? git(List<String> arguments, {Encoding? encoding = utf8}) {
     try {
       final result = Process.runSync(
         'git',
-        ['show', ':$number:./$name'],
-        workingDirectory: folder,
-        stdoutEncoding: utf8,
+        ['--literal-pathspecs', ...arguments],
+        workingDirectory: p.dirname(file),
+        stdoutEncoding: encoding,
+        // The file's own repository, not one these variables name, such as
+        // the index of a commit whose hook runs dart_code_linter.
+        environment: _gitEnvironment,
+        includeParentEnvironment: false,
       );
 
-      return result.exitCode == 0 ? result.stdout as String : null;
+      return result.exitCode == 0 ? result.stdout : null;
     } on ProcessException {
       return null;
     } on FormatException {
@@ -223,19 +226,68 @@ BaselineGitConflict _gitConflictOf(String path) {
     }
   }
 
-  String quoted(String text) =>
-      RegExp(r'^[\w./\\:-]+$').hasMatch(text) ? text : '"$text"';
-  final shownFolder = p.relative(folder);
+  Map<int, String> stagesListedBy(String option) {
+    final listing = git(['ls-files', option, '-z', '--', p.basename(file)]);
 
-  return BaselineGitConflict(
-    restoreCommand: [
-      'git',
-      if (shownFolder != '.') ...['-C', quoted(shownFolder)],
-      'checkout',
-      '--conflict=merge',
-      quoted(name),
-    ].join(' '),
-    ours: stage(2),
-    theirs: stage(3),
-  );
+    return {
+      if (listing is String)
+        for (final entry in listing.split('\x00'))
+          if (_stageEntry.firstMatch(entry) case final match?)
+            int.parse(match[2]!): match[1]!,
+    };
+  }
+
+  String? blob(String? object) {
+    final bytes = object == null
+        ? null
+        : git(['cat-file', 'blob', object], encoding: null);
+    try {
+      return bytes is List<int> ? utf8.decode(bytes) : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  var undoRecord = false;
+  var stages = stagesListedBy('--unmerged');
+  if (!stages.containsKey(2) || !stages.containsKey(3)) {
+    undoRecord = true;
+    stages = stagesListedBy('--resolve-undo');
+  }
+  final ours = blob(stages[2]);
+  final theirs = blob(stages[3]);
+
+  return ours == null || theirs == null
+      ? null
+      : BaselineGitConflict(
+          base: blob(stages[1]),
+          ours: ours,
+          theirs: theirs,
+          undoRecord: undoRecord,
+        );
 }
+
+/// An entry `git ls-files` lists with a stage: mode, object, stage, path.
+final _stageEntry = RegExp(r'^\d+ ([0-9a-f]+) ([123])\t');
+
+/// The environment without the variables that make Git use another
+/// repository than the one around the folder it runs in, as
+/// `git rev-parse --local-env-vars` lists them.
+Map<String, String> get _gitEnvironment => Map.of(Platform.environment)
+  ..removeWhere((name, _) => const {
+        'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+        'GIT_CONFIG',
+        'GIT_CONFIG_PARAMETERS',
+        'GIT_CONFIG_COUNT',
+        'GIT_OBJECT_DIRECTORY',
+        'GIT_DIR',
+        'GIT_WORK_TREE',
+        'GIT_IMPLICIT_WORK_TREE',
+        'GIT_GRAFT_FILE',
+        'GIT_INDEX_FILE',
+        'GIT_NO_REPLACE_OBJECTS',
+        'GIT_REPLACE_REF_BASE',
+        'GIT_PREFIX',
+        'GIT_SHALLOW_FILE',
+        'GIT_COMMON_DIR',
+      }.contains(name.toUpperCase()));

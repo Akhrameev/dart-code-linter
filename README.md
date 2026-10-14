@@ -651,9 +651,10 @@ The file is sorted and deterministic, so two branches that change the same list
 can conflict. Do not edit the conflict by hand; keeping both sides usually
 leaves invalid JSON, since Git drops the comma between the two last entries.
 Run the command with `--update-baseline` on the conflicted file instead: it
-keeps the entries of both sides, drops whatever the merged code no longer
-produces in that command's section, and writes clean JSON. Then add the file to
-finish the merge:
+reads both sides from Git's index as each branch wrote them, keeps the entries
+each branch added, drops the ones either branch removed and whatever the merged
+code no longer produces in that command's section, and writes clean JSON. It
+works after `git add` too. Then add the file to finish the merge:
 
 ```sh
 dart run dart_code_linter:metrics analyze lib --update-baseline
