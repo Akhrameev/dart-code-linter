@@ -500,11 +500,14 @@ class BaselineSession {
     final contextFolders = getContextFolders(folders, context, rootFolder);
     _File? file;
     if (contextFolders.isNotEmpty) {
-      final used = location ??
-          BaselineLocation(
-            p.normalize(p.absolute(rootFolder, baselineFileName)),
-            BaselineSource.conventional,
-          );
+      // Spelled as the analyzer spells the files, under the root folder, so
+      // that the paths relative to it are the same from any spelling.
+      final used = (location ??
+              BaselineLocation(
+                p.normalize(p.absolute(rootFolder, baselineFileName)),
+                BaselineSource.conventional,
+              ))
+          .spelledLike(rootFolder);
       if (used.source != BaselineSource.conventional) {
         _configured = true;
       }

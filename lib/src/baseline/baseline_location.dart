@@ -85,6 +85,58 @@ class BaselineLocation {
               BaselineSource.cli,
             );
 
+  /// Returns this location with its folder spelled under [rootFolder], when
+  /// another spelling of the same folder was given: one through a symbolic
+  /// link, such as `$PWD` in a linked checkout, or in another case on a file
+  /// system that ignores case.
+  ///
+  /// The analyzer spells every file it analyzes under the root folder, and
+  /// baseline paths are relative to the baseline's folder, so a folder
+  /// spelled otherwise would record paths such as `../../private/tmp/...`,
+  /// which no other spelling, the IDE's included, matches.
+  ///
+  /// The file itself is never resolved, since a baseline can be a link the
+  /// writer follows. A folder still to be created is spelled by the part of
+  /// it that exists. The location is kept as it is when no spelling under
+  /// [rootFolder] leads to the same folder: from a linked folder, `..`
+  /// climbs to where the link lies, not to where it points.
+  BaselineLocation spelledLike(String rootFolder) {
+    var existing = p.dirname(p.normalize(path));
+    final missing = <String>[];
+    while (!Directory(existing).existsSync()) {
+      final parent = p.dirname(existing);
+      if (parent == existing) {
+        return this;
+      }
+      missing.insert(0, p.basename(existing));
+      existing = parent;
+    }
+
+    try {
+      final real = Directory(existing).resolveSymbolicLinksSync();
+      final root = p.absolute(rootFolder);
+      final spelled = p.normalize(p.join(
+        root,
+        p.relative(real, from: Directory(root).resolveSymbolicLinksSync()),
+      ));
+      if (spelled == existing ||
+          Directory(spelled).resolveSymbolicLinksSync() != real) {
+        return this;
+      }
+
+      return BaselineLocation(
+        p.joinAll([spelled, ...missing, p.basename(path)]),
+        source,
+        configuredIn: configuredIn,
+      );
+    } on FileSystemException {
+      return this;
+    } on p.PathException {
+      // On another drive than the root folder.
+      return this;
+    }
+  }
+
   @override
   bool operator ==(Object other) =>
       other is BaselineLocation &&

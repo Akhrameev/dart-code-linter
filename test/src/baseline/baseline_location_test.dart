@@ -109,6 +109,105 @@ void main() {
     });
   });
 
+  group(
+    'BaselineLocation.spelledLike',
+    () {
+      late String real;
+      late String alias;
+
+      setUp(() {
+        final directory = Directory.systemTemp.createTempSync('dcl_spelling_');
+        addTearDown(() => directory.deleteSync(recursive: true));
+        // Resolved, as the analyzer spells files under a root folder given
+        // as the current folder (macOS /var -> /private/var).
+        final base = directory.resolveSymbolicLinksSync();
+        real = p.join(base, 'real', 'project');
+        Directory(p.join(base, 'real', 'shared')).createSync(recursive: true);
+        Directory(real).createSync(recursive: true);
+        alias = p.join(base, 'alias');
+        Link(alias).createSync(real);
+      });
+
+      BaselineLocation at(String path) =>
+          BaselineLocation(path, BaselineSource.cli);
+
+      test('spells a folder reached through a link as the root folder', () {
+        expect(
+          at(p.join(alias, baselineFileName)).spelledLike(real).path,
+          p.join(real, baselineFileName),
+        );
+        expect(
+          at(p.join(real, baselineFileName)).spelledLike(alias).path,
+          p.join(alias, baselineFileName),
+        );
+      });
+
+      test('spells a folder still to be created by the part that exists', () {
+        expect(
+          at(p.join(alias, 'ci', 'new', baselineFileName))
+              .spelledLike(real)
+              .path,
+          p.join(real, 'ci', 'new', baselineFileName),
+        );
+      });
+
+      test('never resolves the baseline itself, which can be a link', () {
+        final link = p.join(alias, baselineFileName);
+        Link(link).createSync(p.join('..', 'shared', baselineFileName));
+
+        expect(at(link).spelledLike(real).path, p.join(real, baselineFileName));
+      });
+
+      test(
+        'keeps a folder no spelling under the root folder leads to',
+        () {
+          // From the alias, `..` climbs to the alias's own folder, not to the
+          // folder of the project it links to.
+          final shared = at(p.join(p.dirname(real), 'shared', 'b.json'));
+
+          expect(shared.spelledLike(alias), shared);
+        },
+      );
+
+      test('keeps the location and its source otherwise', () {
+        final location = BaselineLocation(
+          p.join(real, 'config', 'b.json'),
+          BaselineSource.optionsKey,
+          configuredIn: p.join(real, 'analysis_options.yaml'),
+        );
+
+        expect(location.spelledLike(real), location);
+        expect(
+          BaselineLocation(
+            p.join(alias, 'b.json'),
+            BaselineSource.optionsKey,
+            configuredIn: p.join(alias, 'analysis_options.yaml'),
+          ).spelledLike(real),
+          BaselineLocation(
+            p.join(real, 'b.json'),
+            BaselineSource.optionsKey,
+            configuredIn: p.join(alias, 'analysis_options.yaml'),
+          ),
+        );
+      });
+
+      test('spells a folder in the case the file system stores it', () {
+        final upper = p.join(p.dirname(real), 'PROJECT');
+        if (!Directory(upper).existsSync()) {
+          markTestSkipped('needs a case-insensitive file system');
+
+          return;
+        }
+
+        expect(
+          at(p.join(upper, baselineFileName)).spelledLike(real).path,
+          p.join(real, baselineFileName),
+        );
+      });
+    },
+    testOn: 'posix',
+  );
+
   group('readBaselineAt', () {
     late Directory directory;
 

@@ -163,6 +163,34 @@ void main() {
           expect(session.results.single.hidden, 2);
         });
 
+        test(
+          'records paths relative to a --baseline reached through a link',
+          () async {
+            final other = Directory.systemTemp.createTempSync('dcl_alias_');
+            addTearDown(() => other.deleteSync(recursive: true));
+            final alias = p.join(other.path, 'project');
+            Link(alias).createSync(project.path);
+
+            final (_, _, written) = await unusedFiles(
+              mode: BaselineMode.write,
+              baseline: BaselineLocation(
+                p.join(alias, baselineFileName),
+                BaselineSource.cli,
+              ),
+            );
+
+            expect(written.single.displayPath, baselineFileName);
+            expect(sectionOf('check-unused-files')['analyzedPaths'], ['lib']);
+            expect(sectionOf('check-unused-files')['findings'], _unused);
+
+            final (next, session, _) = await unusedFiles();
+            expect(next, isEmpty, reason: 'read as the conventional file');
+            expect(session.results.single.hidden, 2);
+            expect(session.warnings, isEmpty);
+          },
+          testOn: 'posix',
+        );
+
         test('leaves an unchanged file untouched', () async {
           await unusedFiles(mode: BaselineMode.write);
           final modified = DateTime(2020);
