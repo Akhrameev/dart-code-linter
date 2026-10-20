@@ -330,6 +330,13 @@ void main() {
         isNot(key),
       );
 
+      const product = 'class A {\n  static const limit = 10 * 3;\n}\n';
+      expect(
+        await keyOf(product.replaceFirst('10', '20'), '20', '20'),
+        isNot(await keyOf(product, '10', '10')),
+        reason: 'a span inside an initializer hashes its own tokens',
+      );
+
       const topLevel = 'final names = <String>[\n  "a",\n];\n';
       expect(
         await keyOf(topLevel.replaceFirst('"a"', '"b"'), 'final', ';'),

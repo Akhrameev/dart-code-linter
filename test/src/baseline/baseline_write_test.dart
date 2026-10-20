@@ -94,6 +94,8 @@ void main() {
           BaselineCommand.checkUnusedFiles,
           mode: mode,
           monorepo: monorepo,
+          versions: _now,
+          sensitivity: sensitivity,
         );
         final reports = await const UnusedFilesAnalyzer().runCliAnalysis(
           folders,
@@ -109,8 +111,7 @@ void main() {
         );
         final written = switch (mode) {
           BaselineMode.read => const <BaselineWriteResult>[],
-          BaselineMode.write =>
-            session.write(versions: _now, sensitivity: sensitivity),
+          BaselineMode.write => session.written,
           BaselineMode.update => session.update(),
         };
 
@@ -507,9 +508,11 @@ void main() {
               command: 'check-unused-code',
             ));
 
-            final (_, _, written) =
+            final (_, session, written) =
                 await unusedFiles(mode: BaselineMode.update);
 
+            expect(session.filesWithoutSection, isEmpty,
+                reason: 'the CLI would stop the update with a usage error');
             expect(written.single.action, BaselineWriteAction.updated);
             expect(
               (sectionOf('check-unused-code')['findings']! as Map).keys,
@@ -826,7 +829,7 @@ void main() {
             )
             ..write('b/blocker', 'a file where a folder is needed');
 
-          final (_, _, written) = await unusedFiles(
+          final (reported, _, written) = await unusedFiles(
             mode: BaselineMode.write,
             folders: ['a', 'b'],
           );
@@ -837,6 +840,8 @@ void main() {
             BaselineWriteAction.created,
             BaselineWriteAction.failed,
           ]);
+          expect(reported, ['b/lib/unused.dart'],
+              reason: 'a section that was not written accepts nothing');
           expect(written.last.messages.single,
               startsWith('Baseline b/blocker/$baselineFileName could not be '));
           expect(baselineFile('a').existsSync(), isTrue);
@@ -861,7 +866,11 @@ dart_code_linter:
           BaselineMode mode = BaselineMode.read,
           List<String> folders = const ['lib'],
         }) async {
-          final session = BaselineSession(BaselineCommand.analyze, mode: mode);
+          final session = BaselineSession(
+            BaselineCommand.analyze,
+            mode: mode,
+            versions: _now,
+          );
           final reports = await const LintAnalyzer().runCliAnalysis(
             folders,
             project.path,
@@ -879,7 +888,7 @@ dart_code_linter:
           );
           final written = switch (mode) {
             BaselineMode.read => const <BaselineWriteResult>[],
-            BaselineMode.write => session.write(versions: _now),
+            BaselineMode.write => session.written,
             BaselineMode.update => session.update(),
           };
 

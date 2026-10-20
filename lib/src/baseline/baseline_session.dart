@@ -412,6 +412,12 @@ class BaselineSession {
   /// project-wide commands that have it, so their sections record it.
   final bool monorepo;
 
+  /// The tools of this run, recorded by a write.
+  final BaselineVersions? versions;
+
+  /// The `--baseline-sensitivity` of a write; null keeps a section's own.
+  final BaselineSensitivity? sensitivity;
+
   final _contexts = <String, _Context>{};
 
   /// The run's path arguments, absolute and normalized: what the sections of
@@ -423,17 +429,24 @@ class BaselineSession {
   final _lookedUp = <String>{};
   final _warnings = <String>[];
   final _results = <BaselineFileResult>[];
+  var _written = const <BaselineWriteResult>[];
   final _findings = <BaselineFinding>[];
 
   /// Whether some context names a baseline: a file exists, or one is
   /// configured through `--baseline` or the options key.
   var _configured = false;
 
+  /// [versions] are required in [BaselineMode.write].
   BaselineSession(
     this.command, {
     this.mode = BaselineMode.read,
     this.monorepo = false,
-  });
+    this.versions,
+    this.sensitivity,
+  }) : assert(
+          mode != BaselineMode.write || versions != null,
+          'a write records the versions of the tools',
+        );
 
   /// Whether some analysis context of the run names a baseline file: an
   /// existing one, or one set by `--baseline` or the options key.
@@ -581,6 +594,8 @@ class BaselineSession {
       _warnings.add(_unrecordedWarning(unrecorded));
     }
 
+    // Findings of the sections a write creates, hidden once written.
+    final created = <_File, List<int>>{};
     for (final file in _sortedFiles()) {
       final coverage = _Coverage(this, file, groupState);
       final current = keys[file] ?? const {};
@@ -596,13 +611,10 @@ class BaselineSession {
         // A first write accepts what it records: there is no earlier
         // baseline to judge these findings against.
         if (mode == BaselineMode.write) {
-          for (final groups in (indices[file] ?? const {}).values) {
-            for (final groupIndices in groups.values) {
-              for (final i in groupIndices) {
-                hidden[i] = true;
-              }
-            }
-          }
+          created[file] = [
+            for (final groups in (indices[file] ?? const {}).values)
+              for (final groupIndices in groups.values) ...groupIndices,
+          ];
         }
         continue;
       }
@@ -681,6 +693,25 @@ class BaselineSession {
       ));
     }
 
+    // A section the write failed to create hides nothing.
+    if (mode == BaselineMode.write) {
+      final written = <BaselineWriteResult>[];
+      for (final file in _sortedFiles()) {
+        final state = file.state;
+        if (state == null) {
+          continue;
+        }
+        final result = _writeFile(file, state);
+        written.add(result);
+        if (result.action != BaselineWriteAction.failed) {
+          for (final i in created[file] ?? const <int>[]) {
+            hidden[i] = true;
+          }
+        }
+      }
+      _written = written;
+    }
+
     return [
       for (var i = 0; i < all.length; i++)
         if (!hidden[i]) all[i],
@@ -725,22 +756,8 @@ class BaselineSession {
     ];
   }
 
-  /// Records the findings of the run into the baseline file of every
-  /// context, creating missing files, and returns what happened to each
-  /// file, sorted by path.
-  ///
-  /// [versions] are the tools of this run. [sensitivity] is the one given by
-  /// `--baseline-sensitivity`; without it a section keeps its own, and a new
-  /// one gets `exact`. Call after [filter].
-  List<BaselineWriteResult> write({
-    required BaselineVersions versions,
-    BaselineSensitivity? sensitivity,
-  }) =>
-      [
-        for (final file in _sortedFiles())
-          if (file.state case final state?)
-            _writeFile(file, state, versions, sensitivity),
-      ];
+  /// What [filter] did to each baseline file in a write, sorted by path.
+  List<BaselineWriteResult> get written => _written;
 
   /// Removes the stale entries of the run from every existing baseline file
   /// and tightens the recorded values that improved, and returns what
@@ -770,12 +787,7 @@ class BaselineSession {
   List<_File> _sortedFiles() => _files.values.toList()
     ..sort((a, b) => a.location.path.compareTo(b.location.path));
 
-  BaselineWriteResult _writeFile(
-    _File file,
-    _FileState state,
-    BaselineVersions versions,
-    BaselineSensitivity? sensitivity,
-  ) {
+  BaselineWriteResult _writeFile(_File file, _FileState state) {
     final old = file.baseline.sections[command];
     final chosen = sensitivity ?? old?.sensitivity ?? BaselineSensitivity.exact;
     final written = writeSection(
@@ -783,7 +795,7 @@ class BaselineSession {
       old: old,
       findings: state.findings,
       coverage: state.coverage,
-      versions: versions,
+      versions: versions!,
       sensitivity: chosen,
       analyzedPaths: command.isProjectWide ? _currentPaths(file) : null,
       monorepo: command.isProjectWide && monorepo,

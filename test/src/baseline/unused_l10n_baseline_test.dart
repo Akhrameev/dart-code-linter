@@ -179,13 +179,16 @@ void main() {
           List<String> folders, {
           BaselineMode mode = BaselineMode.read,
         }) async {
-          final session =
-              BaselineSession(BaselineCommand.checkUnusedL10n, mode: mode);
+          final session = BaselineSession(
+            BaselineCommand.checkUnusedL10n,
+            mode: mode,
+            versions: _versions,
+          );
           final reports = await const UnusedL10nAnalyzer().runCliAnalysis(
               folders, project.path, _config,
               baseline: session);
           final written = mode == BaselineMode.write
-              ? session.write(versions: _versions)
+              ? session.written
               : const <BaselineWriteResult>[];
 
           return (found(reports.toList()), session, written);

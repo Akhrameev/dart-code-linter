@@ -139,6 +139,7 @@ abstract class BaseCommand extends Command<void> {
     Future<T> Function(BaselineSession baseline) analysis,
   ) async {
     final options = baselineOptions;
+    final versions = await currentToolVersions(findSdkPath());
     final baseline = BaselineSession(
       command,
       mode: options.write
@@ -148,6 +149,8 @@ abstract class BaseCommand extends Command<void> {
               : BaselineMode.read,
       monorepo: argParser.options.containsKey(FlagNames.isMonorepo) &&
           argResults[FlagNames.isMonorepo] == true,
+      versions: versions,
+      sensitivity: options.sensitivity,
     );
 
     final T result;
@@ -184,9 +187,8 @@ abstract class BaseCommand extends Command<void> {
       );
     }
 
-    final versions = await currentToolVersions(findSdkPath());
     final written = options.write
-        ? baseline.write(versions: versions, sensitivity: options.sensitivity)
+        ? baseline.written
         : options.update
             ? baseline.update()
             : const <BaselineWriteResult>[];

@@ -49,6 +49,12 @@ int discount(int price) {
 
 const _cartPath = 'lib/cart.dart';
 
+const _versions = BaselineVersions(
+  dartCodeLinter: '4.5.0',
+  analyzer: '13.3.0',
+  dartSdk: '3.11.3',
+);
+
 const _noConfig = LintConfig(
   excludePatterns: [],
   excludeForMetricsPatterns: [],
@@ -109,7 +115,11 @@ void main() {
       Future<(List<LintFileReport>, BaselineSession)> run({
         BaselineMode mode = BaselineMode.read,
       }) async {
-        final session = BaselineSession(BaselineCommand.analyze, mode: mode);
+        final session = BaselineSession(
+          BaselineCommand.analyze,
+          mode: mode,
+          versions: _versions,
+        );
         final reports = await const LintAnalyzer().runCliAnalysis(
           ['lib'],
           project.path,
@@ -366,6 +376,7 @@ class Cart {
         final write = BaselineSession(
           BaselineCommand.analyze,
           mode: BaselineMode.write,
+          versions: _versions,
         );
         await const LintAnalyzer().runCliAnalysis(
           ['lib'],
@@ -373,13 +384,7 @@ class Cart {
           _noConfig,
           baseline: write,
         );
-        final written = write.write(
-          versions: const BaselineVersions(
-            dartCodeLinter: '4.5.0',
-            analyzer: '13.3.0',
-            dartSdk: '3.11.3',
-          ),
-        );
+        final written = write.written;
         expect(written.single.recorded, 1, reason: 'it is still recorded');
         expect(written.single.added, 0);
 
@@ -515,7 +520,11 @@ int checkout(int a, int b, int c) {
               measuredType: EntityType.methodEntity,
             ),
           );
-          final session = BaselineSession(BaselineCommand.analyze, mode: mode);
+          final session = BaselineSession(
+            BaselineCommand.analyze,
+            mode: mode,
+            versions: _versions,
+          );
           final baseline = LintBaseline(session)
             ..addContext(
               context,

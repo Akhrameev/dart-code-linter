@@ -368,8 +368,11 @@ void main() {
       tearDown(() => project.delete());
 
       Future<BaselineReport?> run(BaselineMode mode) async {
-        final session =
-            BaselineSession(BaselineCommand.checkUnusedFiles, mode: mode);
+        final session = BaselineSession(
+          BaselineCommand.checkUnusedFiles,
+          mode: mode,
+          versions: _now,
+        );
         await const UnusedFilesAnalyzer().runCliAnalysis(
           ['lib'],
           project.path,
@@ -383,7 +386,7 @@ void main() {
         );
         final writes = switch (mode) {
           BaselineMode.read => const <BaselineWriteResult>[],
-          BaselineMode.write => session.write(versions: _now),
+          BaselineMode.write => session.written,
           BaselineMode.update => session.update(),
         };
 

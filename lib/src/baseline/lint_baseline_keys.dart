@@ -52,6 +52,9 @@ class LintBaselineKeys {
   /// [_hash].
   late final Map<int, int> _bodies = (_Bodies()..collect(unit)).ends;
 
+  /// The children [_childAt] searches, by node.
+  final _children = Map<AstNode, List<AstNode>?>.identity();
+
   LintBaselineKeys(this.unit, String content) : _names = SourceNames(content);
 
   /// Returns the key of a rule [issue].
@@ -213,19 +216,53 @@ class LintBaselineKeys {
   /// [offset], outermost first.
   List<AstNode> _pathTo(int offset) {
     final path = <AstNode>[unit];
-    var found = true;
-    while (found) {
-      found = false;
-      for (final child in path.last.childEntities) {
-        if (child is AstNode && child.offset <= offset && offset < child.end) {
-          path.add(child);
-          found = true;
-          break;
-        }
-      }
+    for (var child = _childAt(unit, offset);
+        child != null;
+        child = _childAt(child, offset)) {
+      path.add(child);
     }
 
     return path;
+  }
+
+  /// The first child of [node] containing [offset], by binary search.
+  AstNode? _childAt(AstNode node, int offset) {
+    final children = _children.putIfAbsent(node, () => _childrenOf(node));
+    if (children == null) {
+      return node.childEntities
+          .whereType<AstNode>()
+          .where((child) => child.offset <= offset && offset < child.end)
+          .firstOrNull;
+    }
+
+    var low = 0;
+    var high = children.length;
+    while (low < high) {
+      final middle = (low + high) >> 1;
+      if (children[middle].offset <= offset) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+    final child = low == 0 ? null : children[low - 1];
+
+    return child != null && offset < child.end ? child : null;
+  }
+
+  /// The non-empty children of [node], or null unless ordered and disjoint.
+  static List<AstNode>? _childrenOf(AstNode node) {
+    final children = [
+      for (final child in node.childEntities)
+        if (child is AstNode && child.offset < child.end) child,
+    ];
+    for (var i = 1; i < children.length; i++) {
+      if (children[i].offset < children[i - 1].end) {
+        return null;
+      }
+    }
+
+    return children;
   }
 
   /// The declarator of a field or top-level variable on [path], when the

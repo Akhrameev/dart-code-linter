@@ -585,7 +585,7 @@ A baseline belongs to an `analysis_options.yaml`, so a run over several analysis
 - **Packages without their own options file** use the options file DCL already falls back to (the one at the root folder), and with it that file's baseline. The baseline always lives with the options file the context actually uses; with no options file at all, it is `dcl_baseline.json` in the root folder.
 - **Writing.** `--write-baseline` writes, for each context the run covered, the file found by the lookup above: the key's file when the key is set, otherwise `dcl_baseline.json` next to the context's options file, created when missing. Contexts outside the run's coverage are not touched. With `--baseline=<path>`, all contexts go into that one file, with paths relative to it.
 - **Output.** The run lists every baseline file it created or changed, so a monorepo's first `--write-baseline` shows exactly which files to commit.
-- **Failures.** Each file is written atomically on its own. When one cannot be written, the others keep their new content, the output names the failed file, and the run exits 1.
+- **Failures.** Each file is written atomically on its own. When one cannot be written, the others keep their new content, the output names the failed file, and the run exits 1. A section the write failed to create accepts nothing: its findings are reported as they would be without a baseline, since nothing records them.
 - `--update-baseline` follows the same rules but never creates a file.
 
 ## Where it plugs in
