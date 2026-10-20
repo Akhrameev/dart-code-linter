@@ -510,11 +510,18 @@ it uses, in this order:
 
 In a monorepo, `--write-baseline` creates one `dcl_baseline.json` next to each
 `analysis_options.yaml` the run covers, and lists every file it created or
-changed, so you know what to commit. A package without a `dcl_baseline.json` simply has no baseline; delete
-the file to stop using one. In a Pub workspace (packages with
-`resolution: workspace`), the analyzer analyzes every package in one context at
-the workspace root, so the run uses the root's `analysis_options.yaml`, for the
-rules as for the baseline, and writes one `dcl_baseline.json` there.
+changed, so you know what to commit. A package without a `dcl_baseline.json`
+simply has no baseline; delete the file to stop using one.
+
+In a Pub workspace (packages with `resolution: workspace`), the paths a run is
+given decide which `analysis_options.yaml` it uses, for the rules as for the
+baseline. A package folder, or a folder above one, gets the workspace root's:
+`analyze packages/a packages/b` at the root, or `analyze .` inside
+`packages/a`, uses one `dcl_baseline.json` at the root. A folder inside a
+package with its own `analysis_options.yaml` gets that package's:
+`analyze packages/a/lib packages/b/lib`, or `analyze lib` inside `packages/a`,
+uses one `dcl_baseline.json` per package. Run the same paths locally and in CI,
+or the two runs read different baselines.
 
 **The IDE never reads command line options.** A baseline given only through
 `--baseline` hides findings in CI and in the terminal, while the editor keeps
