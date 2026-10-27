@@ -5,11 +5,14 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:glob/glob.dart';
+import 'package:meta/meta.dart';
 
 import '../analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
+import '../analyzers/lint_analyzer/models/issue.dart';
 import '../analyzers/lint_analyzer/rules/models/rule.dart';
 import '../baseline/baseline_location.dart';
 import '../utils/exclude_utils.dart';
+import '../utils/suppression.dart';
 import 'plugin_baseline.dart';
 import 'rule_config_loader.dart';
 
@@ -157,13 +160,15 @@ class _DclVisitor extends SimpleAstVisitor<void> {
     );
 
     // The server keeps reported diagnostics to itself, so findings are
-    // filtered before they are reported, by ignore comments too, which the
-    // server cannot apply to DCL's hyphenated rule ids. The plugin server
-    // watches only `*.dart` files: editing the baseline does not refresh
-    // diagnostics shown already, only the next analysis of each file, or a
-    // restart of the analysis server, picks up the change.
-    final issues =
-        baseline.filter(_dclRule.id, _dclRule.check(source).toList());
+    // filtered before they are reported: by ignore comments first, so that a
+    // suppressed finding takes no baseline entry, then by the baseline. The
+    // plugin server watches only `*.dart` files: editing the baseline does
+    // not refresh diagnostics shown already, only the next analysis of each
+    // file, or a restart of the analysis server, picks up the change.
+    final issues = baseline.filter(
+      _dclRule.id,
+      unsuppressedIssues(_dclRule, source).toList(),
+    );
     for (final issue in issues) {
       _rule.reportAtOffset(
         issue.location.start.offset,
@@ -173,3 +178,33 @@ class _DclVisitor extends SimpleAstVisitor<void> {
     }
   }
 }
+
+/// Returns the issues [rule] finds in [source] that no ignore comment
+/// suppresses, as the command line drops them.
+///
+/// The analysis server cannot apply ignore comments to DCL's findings
+/// itself: it reads only letters, digits and underscores as a diagnostic
+/// name, and DCL's rule ids have hyphens. As on the command line, a rule an
+/// `ignore_for_file` comment turns off does not run.
+@visibleForTesting
+Iterable<Issue> unsuppressedIssues(
+  Rule rule,
+  InternalResolvedUnitResult source,
+) {
+  final ignores = _ignores[source.unit] ??= Suppression(
+    source.content,
+    source.lineInfo,
+    supportsTypeLintIgnore: true,
+  );
+
+  return ignores.isSuppressed(rule.id)
+      ? const []
+      : rule.check(source).where(
+            (issue) =>
+                !ignores.isSuppressedAt(rule.id, issue.location.start.line),
+          );
+}
+
+/// The ignore comments of each unit, read once for all rules: on a very
+/// large file, reading them takes milliseconds.
+final _ignores = Expando<Suppression>();
