@@ -8,7 +8,6 @@ import '../baseline/baseline_matcher.dart';
 import '../baseline/baseline_registry.dart';
 import '../baseline/key_version.dart';
 import '../baseline/lint_baseline_keys.dart';
-import '../utils/suppression.dart';
 
 /// The baseline files read by the plugin, shared by every analysis.
 final pluginBaselineFiles = BaselineRegistry();
@@ -62,10 +61,9 @@ class PluginBaseline {
     CompilationUnit unit,
     String content,
   ) {
-    final ignores = _Ignores(unit, content);
     final location = _location;
     if (location == null) {
-      return PluginBaselineUnit._(ignores);
+      return PluginBaselineUnit._();
     }
 
     final entry = _files.read(
@@ -84,7 +82,6 @@ class PluginBaseline {
       ]..sort();
 
       return PluginBaselineUnit._(
-        ignores,
         error: '$error Findings are shown without the baseline.',
         errorReportedBy: ids.firstOrNull,
       );
@@ -95,11 +92,10 @@ class PluginBaseline {
         .joinAll(p.split(p.relative(path, from: p.dirname(location.path))));
     final entries = section?.findings[relativePath];
     if (section == null || entries == null || entries.isEmpty) {
-      return PluginBaselineUnit._(ignores);
+      return PluginBaselineUnit._();
     }
 
     return PluginBaselineUnit._(
-      ignores,
       entries: _UnitEntries(
         entries,
         section.sensitivity,
@@ -114,8 +110,8 @@ class PluginBaseline {
   }
 }
 
-/// The ignore comments and baseline entries of one unit, and the error to
-/// report when the baseline cannot be read.
+/// The baseline entries of one unit, and the error to report when the
+/// baseline cannot be read.
 class PluginBaselineUnit {
   /// Why the baseline cannot be read, with the note that findings are shown
   /// without it; null when it can be read or there is none.
@@ -125,56 +121,23 @@ class PluginBaselineUnit {
   /// the unit, so that the error appears once per unit and not once per rule.
   final String? errorReportedBy;
 
-  final _Ignores _ignores;
   final _UnitEntries? _entries;
 
-  PluginBaselineUnit._(
-    this._ignores, {
+  PluginBaselineUnit._({
     _UnitEntries? entries,
     this.error,
     this.errorReportedBy,
   }) : _entries = entries;
 
-  /// Returns the [issues] of the rule [ruleId] to report: those no ignore
-  /// comment suppresses and the baseline does not hide, matched as `analyze`
-  /// matches them on the command line.
+  /// Returns the [issues] of the rule [ruleId] that the baseline does not
+  /// hide, matched as `analyze` matches them on the command line.
   ///
-  /// The analysis server cannot apply ignore comments to DCL's findings
-  /// itself: it reads only identifiers as diagnostic names, and DCL's rule
-  /// ids have hyphens. As on the command line, suppressed findings are
-  /// dropped before matching, so they never take an entry another finding
-  /// needs.
-  List<Issue> filter(String ruleId, List<Issue> issues) {
-    final reported = _ignores.without(ruleId, issues);
-
-    return _entries?.filter(ruleId, reported) ?? reported;
-  }
-}
-
-/// The ignore comments of one unit, read for the first rule with findings.
-class _Ignores {
-  final CompilationUnit unit;
-  final String content;
-
-  late final Suppression _suppression =
-      Suppression(content, unit.lineInfo, supportsTypeLintIgnore: true);
-
-  _Ignores(this.unit, this.content);
-
-  List<Issue> without(String ruleId, List<Issue> issues) {
-    if (issues.isEmpty) {
-      return issues;
-    }
-    if (_suppression.isSuppressed(ruleId)) {
-      return const [];
-    }
-
-    return [
-      for (final issue in issues)
-        if (!_suppression.isSuppressedAt(ruleId, issue.location.start.line))
-          issue,
-    ];
-  }
+  /// Pass only the findings no ignore comment suppresses, as
+  /// `unsuppressedIssues` returns them: as on the command line, suppressed
+  /// findings are dropped before matching, so they never take an entry
+  /// another finding needs.
+  List<Issue> filter(String ruleId, List<Issue> issues) =>
+      _entries?.filter(ruleId, issues) ?? issues;
 }
 
 class _UnitEntries {

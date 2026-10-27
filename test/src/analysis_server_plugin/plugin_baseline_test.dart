@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:dart_code_linter/src/analysis_server_plugin/dcl_analysis_rule.dart';
 import 'package:dart_code_linter/src/analysis_server_plugin/plugin_baseline.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
 import 'package:dart_code_linter/src/analyzers/lint_analyzer/models/issue.dart';
@@ -80,9 +81,14 @@ void main() {
     return baseline;
   }
 
-  /// The issues of [_rule] in [content] that [baseline] leaves.
+  /// The issues of [_rule] in [content] that ignore comments and [baseline]
+  /// leave, filtered in the order the plugin filters them.
   List<String> remaining(PluginBaseline baseline, String content) {
-    final (unit, issues) = check(content);
+    final unit = parseString(content: content, path: path).unit;
+    final issues = unsuppressedIssues(
+      getRulesById({_rule: {}}).single,
+      InternalResolvedUnitResult(path, content, unit, unit.lineInfo),
+    ).toList();
 
     return [
       for (final issue
